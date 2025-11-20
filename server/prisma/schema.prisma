@@ -5,11 +5,170 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+model user {
+  id                        String    @id @default(cuid())
+  name                      String
+  username                  String    @unique
+  email                     String    @unique
+  password                  String
+  isVerified                Boolean?  @default(false)
+  isAdmin                   Boolean?  @default(false)
+  forgotPasswordToken       String?
+  forgotPasswordTokenExpiry DateTime?
+  verifyToken               String?
+  verifyTokenExpiry         DateTime?
+  expire                    DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  phone                     String?
+
+  // Relations
+  forgotPasswordRequests    ForgotPasswordRequest[] @relation("UserForgotPasswordRequests")
+  processedRequests         ForgotPasswordRequest[] @relation("ProcessedByAdmin")
+  userTokens                UserTokens[]
+  roles                     UserRole[]
+  notificationHistories     NotificationHistory[]
+  fcmDeliveryStatuses       FcmDeliveryStatus[]
+}
+
+enum ForgotPasswordStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model ForgotPasswordRequest {
+  id          String               @id @default(cuid())
+  userId      String
+  user        user                 @relation("UserForgotPasswordRequests", fields: [userId], references: [id])
+  email       String
+  status      ForgotPasswordStatus @default(PENDING)
+  newPassword String?
+  requestedAt DateTime             @default(now())
+  processedAt DateTime?
+  processedBy String?
+  admin       user?                @relation("ProcessedByAdmin", fields: [processedBy], references: [id])
+  reason      String?
+
+  @@index([userId])
+  @@index([status])
+  @@index([processedBy])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles   UserRole[]
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+enum DeviceType {
+  ANDROID
+  IOS
+  WEB
+  MAC
+  WINDOWS
+  LINUX
+  DESKTOP
+  OTHER
+}
+
+model UserTokens {
+  id         Int         @id @default(autoincrement())
+  userId     String? // This will reference either the user table or the borrowers table
+  token      String // FCM token
+  deviceType DeviceType? // Using the enum here
+  deviceId   String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  lastUsed   DateTime    @default(now())
+
+  user              user?               @relation(fields: [userId], references: [id], onDelete: Cascade, map: "user_userId_fkey")
+  FcmDeliveryStatus FcmDeliveryStatus[]
+
+  @@unique([userId, deviceId])
+}
+
+enum NotificationTargetType {
+  USER
+  MULTIPLE_USERS
+  ROLE
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  PARTIALLY_SENT
+  READ
+  DELIVERED
+}
+
+model NotificationHistory {
+  id           Int                    @id @default(autoincrement())
+  title        String
+  body         String
+  data         Json? // Additional data sent with notification
+  targetType   NotificationTargetType
+  targetIds    Json // Array of IDs (users or roles) as JSON
+  successCount Int                    @default(0) // Number of successful deliveries
+  failureCount Int                    @default(0) // Number of failed deliveries
+  status       NotificationStatus     @default(PENDING)
+  sentAt       DateTime               @default(now())
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  sentById     String? // ID of the user who sent the notification
+
+  // Relations
+  sentBy user?               @relation(fields: [sentById], references: [id], onDelete: SetNull)
+  tokens FcmDeliveryStatus[]
+
+  @@index([sentAt])
+  @@index([targetType])
+  @@index([sentById])
+}
+
+model FcmDeliveryStatus {
+  id             Int                @id @default(autoincrement())
+  notificationId Int
+  tokenId        Int
+  userId         String
+  status         NotificationStatus @default(PENDING)
+  errorMessage   String?
+  errorCode      String?
+  processedAt    DateTime?
+  createdAt      DateTime           @default(now())
+
+  // Relations
+  notification NotificationHistory @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  token        UserTokens          @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  user         user                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([tokenId])
+  @@index([userId])
+  @@index([status])
 }
