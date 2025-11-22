@@ -83,17 +83,17 @@ async function main() {
     },
   });
 
-  // Create sample FCM token
-  await prisma.userTokens.upsert({
-    where: { userId_deviceId: { userId: adminUser.id, deviceId: 'device1' } },
-    update: {},
-    create: {
-      userId: adminUser.id,
-      token: 'sample-fcm-token-admin',
-      deviceType: 'WEB',
-      deviceId: 'device1',
-    },
-  });
+  // Create sample FCM token (commented out since real tokens come from login)
+  // await prisma.userTokens.upsert({
+  //   where: { userId_deviceId: { userId: adminUser.id, deviceId: 'device1' } },
+  //   update: { },
+  //   create: {
+  //     userId: adminUser.id,
+  //     token: 'sample-fcm-token-admin',
+  //     deviceType: 'WEB',
+  //     deviceId: 'device1',
+  //   },
+  // });
 
   console.log('Database seeded successfully!');
   console.log('Sample users:');
