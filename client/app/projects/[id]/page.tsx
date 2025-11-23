@@ -51,10 +51,11 @@ import {
   fetchProjectById, 
   updateProject, 
   deleteProject,
-  addProjectMember 
+  addProjectMember,
+  fetchUsers,
+  fetchRoles
 } from "@/app/actions/projects/main"
 import { useRouter, useParams } from "next/navigation"
-import Link from "next/link"
 
 interface Project {
   id: string
@@ -109,9 +110,36 @@ export default function ProjectDetailPage() {
     status: "ACTIVE",
   })
 
+  // Add member dialog state
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false)
+  const [users, setUsers] = useState<Array<{id: string, name: string, email: string, username: string}>>([])
+  const [roles, setRoles] = useState<Array<{id: string, name: string, description: string}>>([])
+  const [addingMember, setAddingMember] = useState(false)
+  const [memberFormData, setMemberFormData] = useState({
+    userId: "",
+    roleId: "",
+  })
+
   useEffect(() => {
     loadProject()
   }, [projectId])
+
+  useEffect(() => {
+    loadUsersAndRoles()
+  }, [])
+
+  async function loadUsersAndRoles() {
+    try {
+      const [usersData, rolesData] = await Promise.all([
+        fetchUsers(),
+        fetchRoles()
+      ])
+      setUsers(usersData)
+      setRoles(rolesData)
+    } catch (error) {
+      console.error("Error loading users and roles:", error)
+    }
+  }
 
   async function loadProject() {
     try {
@@ -159,6 +187,23 @@ export default function ProjectDetailPage() {
       console.error("Error deleting project:", error)
       alert("Failed to delete project")
       setDeleting(false)
+    }
+  }
+
+  async function handleAddMember(e: React.FormEvent) {
+    e.preventDefault()
+    setAddingMember(true)
+
+    try {
+      await addProjectMember(projectId, memberFormData.userId, memberFormData.roleId)
+      setAddMemberDialogOpen(false)
+      setMemberFormData({ userId: "", roleId: "" })
+      await loadProject()
+    } catch (error) {
+      console.error("Error adding member:", error)
+      alert("Failed to add member")
+    } finally {
+      setAddingMember(false)
     }
   }
 
@@ -304,6 +349,72 @@ export default function ProjectDetailPage() {
                 </form>
               </DialogContent>
             </Dialog>
+            <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+              <DialogContent className="sm:max-w-[500px]">
+                <form onSubmit={handleAddMember}>
+                  <DialogHeader>
+                    <DialogTitle>Add Team Member</DialogTitle>
+                    <DialogDescription>
+                      Add a new member to this project. Select a user and assign a role.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="user">User *</Label>
+                      <Select
+                        value={memberFormData.userId}
+                        onValueChange={(value) =>
+                          setMemberFormData({ ...memberFormData, userId: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name} ({user.email})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="role">Role *</Label>
+                      <Select
+                        value={memberFormData.roleId}
+                        onValueChange={(value) =>
+                          setMemberFormData({ ...memberFormData, roleId: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roles.map((role) => (
+                            <SelectItem key={role.id} value={role.id}>
+                              {role.name} - {role.description}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setAddMemberDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={addingMember}>
+                      {addingMember ? "Adding..." : "Add Member"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
             <Button
               variant="destructive"
               onClick={handleDeleteProject}
@@ -320,7 +431,7 @@ export default function ProjectDetailPage() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold">{project.name}</h1>
-                <Badge variant={getStatusBadge(project.status) as any}>
+                <Badge variant={getStatusBadge(project.status) as "default" | "secondary" | "destructive" | "outline"}>
                   {project.status}
                 </Badge>
               </div>
@@ -411,7 +522,7 @@ export default function ProjectDetailPage() {
                   <CardTitle>Team Members</CardTitle>
                   <CardDescription>People working on this project</CardDescription>
                 </div>
-                <Button size="sm">
+                <Button size="sm" onClick={() => setAddMemberDialogOpen(true)}>
                   <UserPlus className="mr-2 h-4 w-4" />
                   Add Member
                 </Button>

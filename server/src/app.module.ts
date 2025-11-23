@@ -9,6 +9,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { ContractorsModule } from './contractors/contractors.module';
 import { LaboursModule } from './labours/labours.module';
 import { DrawingsModule } from './drawings/drawings.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { DrawingsModule } from './drawings/drawings.module';
     ContractorsModule,
     LaboursModule,
     DrawingsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

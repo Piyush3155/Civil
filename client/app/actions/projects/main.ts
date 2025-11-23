@@ -155,6 +155,58 @@ export async function deleteProject(id: string) {
   }
 }
 
+export async function fetchUsers() {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/users`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch users");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
+  }
+}
+
+export async function fetchRoles() {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/roles`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch roles");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching roles:", error);
+    throw error;
+  }
+}
+
 export async function addProjectMember(
   projectId: string,
   userId: string,
