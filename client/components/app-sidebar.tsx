@@ -7,7 +7,8 @@ import {
   FileText,
   Bell,
   Settings,
-  GalleryVerticalEnd
+  GalleryVerticalEnd,
+  Send
 } from "lucide-react"
 
 import {
@@ -73,6 +74,11 @@ const data = {
           title: "Notifications",
           url: "/notifications",
           icon: Bell,
+        },
+        {
+          title: "Send FCM",
+          url: "/send-fcm",
+          icon: Send,
         },
         {
           title: "Settings",
