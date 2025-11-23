@@ -55,6 +55,8 @@ import {
   fetchUsers,
   fetchRoles
 } from "@/app/actions/projects/main"
+import { fetchLabours } from "@/app/actions/labours/main"
+import { MaterialManagement } from "@/components/materials/material-management"
 import { useRouter, useParams } from "next/navigation"
 
 interface Project {
@@ -91,6 +93,11 @@ interface Project {
     version: string
     type: string
   }>
+  labours?: Array<{
+    id: string
+    name: string
+    contractorId: string
+  }>
 }
 
 export default function ProjectDetailPage() {
@@ -120,12 +127,16 @@ export default function ProjectDetailPage() {
     roleId: "",
   })
 
+  // Labours state
+  const [labours, setLabours] = useState<Array<{id: string, name: string, contractorId: string}>>([])
+
   useEffect(() => {
     loadProject()
   }, [projectId])
 
   useEffect(() => {
     loadUsersAndRoles()
+    loadLabours()
   }, [])
 
   async function loadUsersAndRoles() {
@@ -138,6 +149,15 @@ export default function ProjectDetailPage() {
       setRoles(rolesData)
     } catch (error) {
       console.error("Error loading users and roles:", error)
+    }
+  }
+
+  async function loadLabours() {
+    try {
+      const laboursData = await fetchLabours()
+      setLabours(laboursData)
+    } catch (error) {
+      console.error("Error loading labours:", error)
     }
   }
 
@@ -575,6 +595,13 @@ export default function ProjectDetailPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Material Management */}
+          <MaterialManagement
+            projectId={projectId}
+            contractors={project.contractors?.map(pc => pc.contractor) || []}
+            labours={labours}
+          />
         </div>
       </SidebarInset>
     </SidebarProvider>

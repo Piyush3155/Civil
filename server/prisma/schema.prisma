@@ -218,6 +218,8 @@ model Project {
   contractors ProjectContractor[]
   drawings    Drawing[]
   models      ProjectModel[]
+  materialDeliveries MaterialDelivery[]
+  materialUsages     MaterialUsage[]
 }
 
 enum ProjectStatus {
@@ -259,6 +261,8 @@ model Contractor {
   contractorUsers user[]              @relation("ContractorUsers")
   labours         Labour[]
   projects        ProjectContractor[]
+  materialDeliveries MaterialDelivery[]
+  materialUsages     MaterialUsage[]
 }
 
 enum ContractorType {
@@ -299,6 +303,7 @@ model Labour {
 
   contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
   user       user?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  materialUsages MaterialUsage[]
 
   @@index([contractorId])
   @@index([userId])
@@ -396,4 +401,74 @@ enum ModelType {
   ARCHITECTURAL_MODEL
   MEP_MODEL
   WALKTHROUGH
+}
+
+// -------------------------
+// MATERIAL MANAGEMENT
+// -------------------------
+
+enum QCStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Material {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  unit        String   // BAG, TON, CFT, KG, PCS etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deliveries MaterialDelivery[]
+  usages     MaterialUsage[]
+}
+
+model MaterialDelivery {
+  id            String    @id @default(cuid())
+  projectId     String
+  materialId    String
+  contractorId  String?
+  supplierName  String
+  quantity      Decimal
+  unitPrice     Decimal?  // optional pricing
+  totalPrice    Decimal?  // optional pricing
+  deliveryDate  DateTime
+  challanNumber String?
+  notes         String?
+  photos        Json?     // file URLs
+  qcStatus      QCStatus  @default(PENDING)
+  createdAt     DateTime  @default(now())
+
+  project    Project     @relation(fields: [projectId], references: [id])
+  material   Material    @relation(fields: [materialId], references: [id])
+  contractor Contractor? @relation(fields: [contractorId], references: [id])
+
+  @@index([projectId])
+  @@index([materialId])
+  @@index([contractorId])
+}
+
+model MaterialUsage {
+  id            String    @id @default(cuid())
+  projectId     String
+  materialId    String
+  contractorId  String?
+  labourId      String?
+  usageDate     DateTime
+  quantityUsed  Decimal
+  usedFor       String?   // e.g. "Footing", "Wall Casting", "Slab Work"
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  project    Project     @relation(fields: [projectId], references: [id])
+  material   Material    @relation(fields: [materialId], references: [id])
+  contractor Contractor? @relation(fields: [contractorId], references: [id])
+  labour     Labour?     @relation(fields: [labourId], references: [id])
+
+  @@index([projectId])
+  @@index([materialId])
+  @@index([contractorId])
+  @@index([labourId])
 }

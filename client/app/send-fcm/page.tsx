@@ -74,7 +74,7 @@ export default function SendFCMPage() {
         if (formData.targetType === "multiple" && !formData.userIds.trim()) return false;
         return true;
       case 2:
-        return formData.title.trim() && formData.body.trim();
+        return !!(formData.title.trim() && formData.body.trim());
       default:
         return true;
     }

@@ -10,6 +10,7 @@ import { ContractorsModule } from './contractors/contractors.module';
 import { LaboursModule } from './labours/labours.module';
 import { DrawingsModule } from './drawings/drawings.module';
 import { RolesModule } from './roles/roles.module';
+import { MaterialsModule } from './materials/materials.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RolesModule } from './roles/roles.module';
     LaboursModule,
     DrawingsModule,
     RolesModule,
+    MaterialsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

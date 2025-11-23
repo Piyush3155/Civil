@@ -50,6 +50,7 @@ import {
   updateContractor,
   deleteContractor 
 } from "@/app/actions/contractors/main"
+import Loader from "@/components/ui/loader";
 
 interface Contractor {
   id: string
@@ -294,7 +295,7 @@ export default function ContractorsPage() {
         <div className="flex flex-1 flex-col gap-4 p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Loading contractors...</p>
+              <Loader />
             </div>
           ) : contractors.length === 0 ? (
             <Card>
@@ -320,7 +321,7 @@ export default function ContractorsPage() {
                         <Building2 className="h-5 w-5 text-muted-foreground mt-1" />
                         <div>
                           <h3 className="font-semibold">{contractor.name}</h3>
-                          <Badge variant={getTypeBadge(contractor.type) as any} className="mt-1">
+                          <Badge variant={getTypeBadge(contractor.type) as "default" | "secondary" | "outline"} className="mt-1">
                             {contractor.type.replace("_", " ")}
                           </Badge>
                         </div>

@@ -51,6 +51,7 @@ import {
   deleteLabour 
 } from "@/app/actions/labours/main"
 import { fetchContractors } from "@/app/actions/contractors/main"
+import Loader from "@/components/ui/loader";
 
 interface Labour {
   id: string
@@ -350,7 +351,7 @@ export default function LaboursPage() {
         <div className="flex flex-1 flex-col gap-4 p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Loading workers...</p>
+                  <Loader />
             </div>
           ) : labours.length === 0 ? (
             <Card>
@@ -376,11 +377,11 @@ export default function LaboursPage() {
                         <HardHat className="h-5 w-5 text-primary" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold">{labour.name}</h3>
-                        <Badge variant={getSkillBadge(labour.skill) as any} className="mt-1">
-                          {labour.skill.replace("_", " ")}
-                        </Badge>
-                      </div>
+                          <h3 className="font-semibold">{labour.name}</h3>
+                          <Badge variant={getSkillBadge(labour.skill) as "default" | "secondary" | "outline"} className="mt-1">
+                            {labour.skill.replace("_", " ")}
+                          </Badge>
+                        </div>
                     </div>
                     
                     <div className="space-y-2 mb-4">

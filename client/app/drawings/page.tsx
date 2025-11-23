@@ -43,7 +43,8 @@ import {
   Trash2,
   Calendar,
   Building2,
-  File
+  File,
+  Loader
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { 
@@ -59,7 +60,7 @@ interface Drawing {
   title: string
   description?: string
   type: string
-  version: string
+  version: number
   filePath?: string
   fileUrl?: string
   createdAt: string
@@ -87,7 +88,7 @@ export default function DrawingsPage() {
     title: "",
     description: "",
     type: "PDF",
-    version: "1.0",
+    version: 1,
     projectId: "",
     filePath: "",
   })
@@ -114,7 +115,14 @@ export default function DrawingsPage() {
   async function handleCreateDrawing(e: React.FormEvent) {
     e.preventDefault()
     try {
-      await createDrawing(formData)
+      await createDrawing({
+        projectId: formData.projectId,
+        title: formData.title,
+        description: formData.description,
+        fileUrl: formData.filePath,
+        fileType: formData.type,
+        version: formData.version,
+      })
       setCreateDialogOpen(false)
       resetForm()
       await loadData()
@@ -172,7 +180,7 @@ export default function DrawingsPage() {
       title: "",
       description: "",
       type: "PDF",
-      version: "1.0",
+      version: 1,
       projectId: "",
       filePath: "",
     })
@@ -265,10 +273,12 @@ export default function DrawingsPage() {
             <Label htmlFor="version">Version</Label>
             <Input
               id="version"
+              type="number"
+              step="0.1"
               placeholder="1.0"
               value={formData.version}
               onChange={(e) =>
-                setFormData({ ...formData, version: e.target.value })
+                setFormData({ ...formData, version: parseFloat(e.target.value) || 1 })
               }
             />
           </div>
@@ -346,7 +356,7 @@ export default function DrawingsPage() {
         <div className="flex flex-1 flex-col gap-4 p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Loading drawings...</p>
+              <Loader />
             </div>
           ) : drawings.length === 0 ? (
             <Card>
@@ -375,7 +385,7 @@ export default function DrawingsPage() {
                         <h3 className="font-semibold truncate">{drawing.title}</h3>
                         <p className="text-sm text-muted-foreground">v{drawing.version}</p>
                       </div>
-                      <Badge variant={getTypeBadge(drawing.type) as any}>
+                      <Badge variant={getTypeBadge(drawing.type) as "default" | "secondary" | "outline"}>
                         {drawing.type}
                       </Badge>
                     </div>

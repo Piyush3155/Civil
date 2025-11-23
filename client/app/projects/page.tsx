@@ -34,11 +34,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Building2, Plus, MapPin, Calendar, Users as UsersIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { fetchProjects, createProject } from "@/app/actions/projects/main"
 import { useRouter } from "next/navigation"
+import Loader from "@/components/ui/loader";
 
 interface Project {
   id: string
@@ -101,8 +101,8 @@ export default function ProjectsPage() {
     }
   }
 
-  function getStatusBadge(status: string) {
-    const variants: { [key: string]: string } = {
+  function getStatusBadge(status: string): "default" | "secondary" | "destructive" | "outline" {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       ACTIVE: "default",
       PAUSED: "secondary",
       COMPLETED: "outline",
@@ -216,7 +216,7 @@ export default function ProjectsPage() {
         <div className="flex flex-1 flex-col gap-4 p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Loading projects...</p>
+              <Loader />
             </div>
           ) : projects.length === 0 ? (
             <Card>
@@ -248,7 +248,7 @@ export default function ProjectsPage() {
                           {project.code}
                         </CardDescription>
                       </div>
-                      <Badge variant={getStatusBadge(project.status) as any}>
+                      <Badge variant={getStatusBadge(project.status)}>
                         {project.status}
                       </Badge>
                     </div>

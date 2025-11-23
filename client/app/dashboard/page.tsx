@@ -4,10 +4,8 @@ import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -23,6 +21,7 @@ import { fetchContractors } from "@/app/actions/contractors/main"
 import { fetchLabours } from "@/app/actions/labours/main"
 import { fetchDrawings } from "@/app/actions/drawings/main"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({
@@ -44,7 +43,7 @@ export default function DashboardPage() {
         ])
 
         const projectStats = projects.reduce(
-          (acc: any, project: any) => {
+          (acc: { total: number; active: number; paused: number; completed: number }, project: { status: string }) => {
             acc.total++
             if (project.status === "ACTIVE") acc.active++
             else if (project.status === "PAUSED") acc.paused++
@@ -165,7 +164,7 @@ export default function DashboardPage() {
                 <CardDescription>Commonly used operations</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                <a
+                <Link
                   href="/projects"
                   className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                 >
@@ -173,8 +172,8 @@ export default function DashboardPage() {
                   <div className="text-sm text-muted-foreground">
                     Start a new construction project
                   </div>
-                </a>
-                <a
+                </Link>
+                <Link 
                   href="/drawings"
                   className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                 >
@@ -182,8 +181,8 @@ export default function DashboardPage() {
                   <div className="text-sm text-muted-foreground">
                     Add plans, CAD files, or documents
                   </div>
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/contractors"
                   className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                 >
@@ -191,7 +190,7 @@ export default function DashboardPage() {
                   <div className="text-sm text-muted-foreground">
                     Add or update contractor info
                   </div>
-                </a>
+                </Link>
               </CardContent>
             </Card>
 
