@@ -1,6 +1,6 @@
 "use client";
 
-import { AppSidebar } from "../../components/app-sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,81 +15,60 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
-import useFcmToken from "@/hooks/useFcmToken"
-import { updateUserToken } from "@/app/actions/notification/main"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Building2, Users, HardHat, FileText, Activity, AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { fetchProjects } from "@/app/actions/projects/main"
+import { fetchContractors } from "@/app/actions/contractors/main"
+import { fetchLabours } from "@/app/actions/labours/main"
+import { fetchDrawings } from "@/app/actions/drawings/main"
+import { Badge } from "@/components/ui/badge"
 
-export default function Page() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [firebaseConfigured, setFirebaseConfigured] = useState(false)
-  const { token, notificationPermissionStatus, requestPermission } = useFcmToken()
+export default function DashboardPage() {
+  const [stats, setStats] = useState({
+    projects: { total: 0, active: 0, paused: 0, completed: 0 },
+    contractors: 0,
+    labours: 0,
+    drawings: 0,
+    loading: true,
+  })
 
   useEffect(() => {
-    // Check if Firebase is configured
-    const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
-    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
-    setFirebaseConfigured(!!(apiKey && authDomain && projectId &&
-      apiKey !== 'your-api-key' &&
-      authDomain !== 'your-auth-domain' &&
-      projectId !== 'your-project-id'))
+    async function loadDashboardData() {
+      try {
+        const [projects, contractors, labours, drawings] = await Promise.all([
+          fetchProjects(),
+          fetchContractors(),
+          fetchLabours(),
+          fetchDrawings(),
+        ])
+
+        const projectStats = projects.reduce(
+          (acc: any, project: any) => {
+            acc.total++
+            if (project.status === "ACTIVE") acc.active++
+            else if (project.status === "PAUSED") acc.paused++
+            else if (project.status === "COMPLETED") acc.completed++
+            return acc
+          },
+          { total: 0, active: 0, paused: 0, completed: 0 }
+        )
+
+        setStats({
+          projects: projectStats,
+          contractors: contractors.length,
+          labours: labours.length,
+          drawings: drawings.length,
+          loading: false,
+        })
+      } catch (error) {
+        console.error("Error loading dashboard data:", error)
+        setStats((prev) => ({ ...prev, loading: false }))
+      }
+    }
+
+    loadDashboardData()
   }, [])
-
-  const handleRequestFcm = async () => {
-    console.log("handleRequestFcm called");
-    setIsLoading(true)
-    setMessage(null)
-    try {
-      console.log("Calling requestPermission...");
-      const fcmToken = await requestPermission()
-      console.log("requestPermission returned token:", fcmToken);
-      if (fcmToken) {
-        // Get device info for token storage
-        const deviceId = localStorage.getItem("fcm_device_id") || "web-device-" + Date.now()
-        const deviceType = "WEB"
-        console.log("Calling updateUserToken with:", { deviceId, deviceType });
-
-        await updateUserToken(fcmToken, deviceId, deviceType)
-        localStorage.setItem("fcm_device_id", deviceId)
-        setMessage('FCM token stored successfully!')
-      } else {
-        setMessage('Failed to get FCM token. Check notification permissions.')
-      }
-    } catch (error) {
-      console.error("Error in handleRequestFcm:", error);
-      setMessage(error instanceof Error ? error.message : 'Failed to setup FCM')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleTestFcm = async () => {
-    setIsLoading(true)
-    setMessage(null)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/fcm/test`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`,
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to send test notification')
-      }
-
-      const result = await response.json()
-      setMessage(result.message || 'Test notification sent!')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to send test notification')
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   return (
     <SidebarProvider>
@@ -100,69 +79,150 @@ export default function Page() {
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                <BreadcrumbPage>Dashboard</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50 flex items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold mb-2">FCM Setup</h3>
-                {!firebaseConfigured && (
-                  <p className="text-sm text-orange-500 mb-2">
-                    ⚠️ Firebase not configured. Set NEXT_PUBLIC_FIREBASE_* env vars.
-                  </p>
-                )}
-                <div className="mb-2">
-                  <p className="text-sm text-gray-600">
-                    Permission: <span className={`font-medium ${
-                      notificationPermissionStatus === 'granted' ? 'text-green-600' :
-                      notificationPermissionStatus === 'denied' ? 'text-red-600' :
-                      'text-yellow-600'
-                    }`}>
-                      {notificationPermissionStatus || 'unknown'}
-                    </span>
-                  </p>
-                  {token && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Token: {token.substring(0, 20)}...
-                    </p>
-                  )}
-                </div>
-                <Button
-                  onClick={handleRequestFcm}
-                  disabled={isLoading || !firebaseConfigured}
-                  variant="outline"
-                  className="mb-2 mr-2"
-                >
-                  {isLoading ? 'Setting up...' : 'Setup FCM Token'}
-                </Button>
-                <Button
-                  onClick={handleTestFcm}
-                  disabled={isLoading || !token}
-                >
-                  {isLoading ? 'Sending...' : 'Send Test Notification'}
-                </Button>
-                {message && (
-                  <p className={`text-sm mt-2 ${message.includes('Failed') || message.includes('No FCM') ? 'text-red-500' : 'text-green-500'}`}>
-                    {message}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
+        <div className="flex flex-1 flex-col gap-6 p-6">
+          {/* Welcome Section */}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Welcome to Civil Desk</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your construction projects, teams, and resources
+            </p>
           </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+
+          {/* Stats Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.projects.total}</div>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="default" className="text-xs">
+                    {stats.projects.active} Active
+                  </Badge>
+                  <Badge variant="secondary" className="text-xs">
+                    {stats.projects.completed} Done
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Contractors</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.contractors}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Registered contractor companies
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Workers</CardTitle>
+                <HardHat className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.labours}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Total labour workforce
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Drawings</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.drawings}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Project documents & plans
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Actions & Recent Activity */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Commonly used operations</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <a
+                  href="/projects"
+                  className="block p-3 rounded-lg border hover:bg-accent transition-colors"
+                >
+                  <div className="font-medium">Create New Project</div>
+                  <div className="text-sm text-muted-foreground">
+                    Start a new construction project
+                  </div>
+                </a>
+                <a
+                  href="/drawings"
+                  className="block p-3 rounded-lg border hover:bg-accent transition-colors"
+                >
+                  <div className="font-medium">Upload Drawings</div>
+                  <div className="text-sm text-muted-foreground">
+                    Add plans, CAD files, or documents
+                  </div>
+                </a>
+                <a
+                  href="/contractors"
+                  className="block p-3 rounded-lg border hover:bg-accent transition-colors"
+                >
+                  <div className="font-medium">Manage Contractors</div>
+                  <div className="text-sm text-muted-foreground">
+                    Add or update contractor info
+                  </div>
+                </a>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  System Status
+                </CardTitle>
+                <CardDescription>Platform health overview</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Backend API</span>
+                  <Badge variant="default">Online</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Database</span>
+                  <Badge variant="default">Connected</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">Notifications</span>
+                  <Badge variant="default">Active</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">File Storage</span>
+                  <Badge variant="default">Ready</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

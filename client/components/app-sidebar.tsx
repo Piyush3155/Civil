@@ -1,7 +1,15 @@
 import * as React from "react"
+import { 
+  LayoutDashboard,
+  Building2,
+  Users,
+  HardHat,
+  FileText,
+  Bell,
+  Settings,
+  GalleryVerticalEnd
+} from "lucide-react"
 
-import { SearchForm } from "./search-form"
-import { VersionSwitcher } from "./version-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -15,132 +23,61 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
+// Civil Construction Management Navigation
 const data = {
-  versions: ["1.0.1", "1.1.0-alpha", "2.0.0-beta1"],
   navMain: [
     {
-      title: "Getting Started",
-      url: "#",
+      title: "Overview",
       items: [
         {
-          title: "Installation",
-          url: "#",
-        },
-        {
-          title: "Project Structure",
-          url: "#",
+          title: "Dashboard",
+          url: "/dashboard",
+          icon: LayoutDashboard,
         },
       ],
     },
     {
-      title: "Building Your Application",
-      url: "#",
+      title: "Project Management",
       items: [
         {
-          title: "Routing",
-          url: "#",
+          title: "Projects",
+          url: "/projects",
+          icon: Building2,
         },
         {
-          title: "Data Fetching",
-          url: "#",
-          isActive: true,
-        },
-        {
-          title: "Rendering",
-          url: "#",
-        },
-        {
-          title: "Caching",
-          url: "#",
-        },
-        {
-          title: "Styling",
-          url: "#",
-        },
-        {
-          title: "Optimizing",
-          url: "#",
-        },
-        {
-          title: "Configuring",
-          url: "#",
-        },
-        {
-          title: "Testing",
-          url: "#",
-        },
-        {
-          title: "Authentication",
-          url: "#",
-        },
-        {
-          title: "Deploying",
-          url: "#",
-        },
-        {
-          title: "Upgrading",
-          url: "#",
-        },
-        {
-          title: "Examples",
-          url: "#",
+          title: "Drawings",
+          url: "/drawings",
+          icon: FileText,
         },
       ],
     },
     {
-      title: "API Reference",
-      url: "#",
+      title: "Team & Resources",
       items: [
         {
-          title: "Components",
-          url: "#",
+          title: "Contractors",
+          url: "/contractors",
+          icon: Users,
         },
         {
-          title: "File Conventions",
-          url: "#",
-        },
-        {
-          title: "Functions",
-          url: "#",
-        },
-        {
-          title: "next.config.js Options",
-          url: "#",
-        },
-        {
-          title: "CLI",
-          url: "#",
-        },
-        {
-          title: "Edge Runtime",
-          url: "#",
+          title: "Labours",
+          url: "/labours",
+          icon: HardHat,
         },
       ],
     },
     {
-      title: "Architecture",
-      url: "#",
+      title: "System",
       items: [
         {
-          title: "Accessibility",
-          url: "#",
+          title: "Notifications",
+          url: "/notifications",
+          icon: Bell,
         },
         {
-          title: "Fast Refresh",
-          url: "#",
-        },
-        {
-          title: "Next.js Compiler",
-          url: "#",
-        },
-        {
-          title: "Supported Browsers",
-          url: "#",
-        },
-        {
-          title: "Turbopack",
-          url: "#",
+          title: "Settings",
+          url: "/settings",
+          icon: Settings,
         },
       ],
     },
@@ -151,23 +88,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar {...props}>
       <SidebarHeader>
-        <VersionSwitcher
-          versions={data.versions}
-          defaultVersion={data.versions[0]}
-        />
-        <SearchForm />
+        <div className="flex items-center gap-2 px-4 py-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+            <GalleryVerticalEnd className="size-5" />
+          </div>
+          <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent font-semibold text-lg">
+            CIVIL DESK
+          </span>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         {/* We create a SidebarGroup for each parent. */}
-        {data.navMain.map((item) => (
-          <SidebarGroup key={item.title}>
-            <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+        {data.navMain.map((group) => (
+          <SidebarGroup key={group.title}>
+            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {item.items.map((item) => (
+                {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={item.isActive}>
-                      <a href={item.url}>{item.title}</a>
+                    <SidebarMenuButton asChild>
+                      <a href={item.url} className="flex items-center gap-2">
+                        {item.icon && <item.icon className="h-4 w-4" />}
+                        <span>{item.title}</span>
+                      </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
