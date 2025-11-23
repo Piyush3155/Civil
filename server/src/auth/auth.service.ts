@@ -20,9 +20,27 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { username: user.username, sub: user.id };
+    // Fetch user with roles
+    const userWithRoles = await this.usersService.findByIdWithRoles(user.id);
+    const roles = userWithRoles?.roles.map((ur) => ur.role.name) || [];
+    
+    const payload = { 
+      username: user.username, 
+      sub: user.id,
+      roles: roles,
+      isAdmin: user.isAdmin || false
+    };
+    
     return {
       access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        name: user.name,
+        roles: roles,
+        isAdmin: user.isAdmin || false
+      }
     };
   }
 

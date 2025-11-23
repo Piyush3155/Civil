@@ -20,9 +20,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@prisma/client": ["./generated/prisma"]
-    }
-  }
+    "noFallthroughCasesInSwitch": false
+  },
+  "exclude": ["prisma/seed.ts", "node_modules", "dist"]
 }

@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
+// This is your Prisma schema file
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -12,6 +9,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// -------------------------
+// USER MANAGEMENT
+// -------------------------
 
 model user {
   id                        String    @id @default(cuid())
@@ -37,6 +38,14 @@ model user {
   roles                     UserRole[]
   notificationHistories     NotificationHistory[]
   fcmDeliveryStatuses       FcmDeliveryStatus[]
+
+  // Civil construction relations
+  projectMembers            ProjectMember[]
+  contractor                Contractor?             @relation("ContractorUsers", fields: [contractorId], references: [id])
+  contractorId              String?
+  labourProfile             Labour?
+  drawingsUploaded          Drawing[]               @relation("DrawingUploader")
+  drawingAccesses           DrawingAccess[]
 }
 
 enum ForgotPasswordStatus {
@@ -64,6 +73,10 @@ model ForgotPasswordRequest {
   @@index([processedBy])
 }
 
+// -------------------------
+// ROLES & PERMISSIONS
+// -------------------------
+
 model Role {
   id          String   @id @default(cuid())
   name        String   @unique
@@ -72,7 +85,9 @@ model Role {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  userRoles   UserRole[]
+  userRoles       UserRole[]
+  projectMembers  ProjectMember[]
+  drawingAccesses DrawingAccess[]
 }
 
 model UserRole {
@@ -84,6 +99,17 @@ model UserRole {
 
   @@unique([userId, roleId])
 }
+
+enum CivilUserRole {
+  PROJECT_MANAGER
+  SITE_ENGINEER
+  CONTRACTOR
+  LABOUR
+}
+
+// -------------------------
+// NOTIFICATIONS & FCM
+// -------------------------
 
 enum DeviceType {
   ANDROID
@@ -98,9 +124,9 @@ enum DeviceType {
 
 model UserTokens {
   id         Int         @id @default(autoincrement())
-  userId     String? // This will reference either the user table or the borrowers table
-  token      String // FCM token
-  deviceType DeviceType? // Using the enum here
+  userId     String?
+  token      String
+  deviceType DeviceType?
   deviceId   String?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -131,18 +157,17 @@ model NotificationHistory {
   id           Int                    @id @default(autoincrement())
   title        String
   body         String
-  data         Json? // Additional data sent with notification
+  data         Json?
   targetType   NotificationTargetType
-  targetIds    Json // Array of IDs (users or roles) as JSON
-  successCount Int                    @default(0) // Number of successful deliveries
-  failureCount Int                    @default(0) // Number of failed deliveries
+  targetIds    Json
+  successCount Int                    @default(0)
+  failureCount Int                    @default(0)
   status       NotificationStatus     @default(PENDING)
   sentAt       DateTime               @default(now())
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
-  sentById     String? // ID of the user who sent the notification
+  sentById     String?
 
-  // Relations
   sentBy user?               @relation(fields: [sentById], references: [id], onDelete: SetNull)
   tokens FcmDeliveryStatus[]
 
@@ -164,7 +189,6 @@ model FcmDeliveryStatus {
   readAt         DateTime?
   createdAt      DateTime           @default(now())
 
-  // Relations
   notification NotificationHistory @relation(fields: [notificationId], references: [id], onDelete: Cascade)
   token        UserTokens          @relation(fields: [tokenId], references: [id], onDelete: Cascade)
   user         user                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -173,4 +197,203 @@ model FcmDeliveryStatus {
   @@index([tokenId])
   @@index([userId])
   @@index([status])
+}
+
+// -------------------------
+// PROJECT MANAGEMENT
+// -------------------------
+
+model Project {
+  id        String        @id @default(cuid())
+  name      String
+  code      String        @unique
+  location  String?
+  status    ProjectStatus @default(ACTIVE)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  members     ProjectMember[]
+  contractors ProjectContractor[]
+  drawings    Drawing[]
+  models      ProjectModel[]
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+model ProjectMember {
+  id        String @id @default(cuid())
+  projectId String
+  userId    String
+  roleId    String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+// -------------------------
+// CONTRACTORS
+// -------------------------
+
+model Contractor {
+  id        String         @id @default(cuid())
+  name      String
+  phone     String?
+  type      ContractorType
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  // Login accounts for contractor
+  contractorUsers user[]              @relation("ContractorUsers")
+  labours         Labour[]
+  projects        ProjectContractor[]
+}
+
+enum ContractorType {
+  MAIN
+  SUB
+  LABOUR_SUPPLY
+}
+
+model ProjectContractor {
+  id           String @id @default(cuid())
+  projectId    String
+  contractorId String
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, contractorId])
+  @@index([projectId])
+  @@index([contractorId])
+}
+
+// -------------------------
+// LABOURS
+// -------------------------
+
+model Labour {
+  id           String      @id @default(cuid())
+  contractorId String
+  userId       String?     @unique
+  name         String
+  gender       String?
+  age          Int?
+  skill        LabourSkill
+  phone        String?
+  aadhaar      String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  user       user?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([contractorId])
+  @@index([userId])
+}
+
+enum LabourSkill {
+  UNSKILLED
+  SEMI_SKILLED
+  SKILLED
+  MASON
+  CARPENTER
+  ELECTRICIAN
+  PLUMBER
+  OPERATOR
+  HELPER
+}
+
+// -------------------------
+// DRAWINGS & DOCUMENTS
+// -------------------------
+
+model Drawing {
+  id          String      @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  fileUrl     String
+  fileType    DrawingType
+  version     Int         @default(1)
+  uploadedBy  String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader       user            @relation("DrawingUploader", fields: [uploadedBy], references: [id], onDelete: Cascade)
+  accessControls DrawingAccess[]
+
+  @@index([projectId])
+  @@index([uploadedBy])
+  @@index([fileType])
+}
+
+enum DrawingType {
+  PDF
+  IMAGE
+  DWG
+  DXF
+  IFC
+  RVT
+  GLB
+  MAP
+  MP4
+}
+
+model DrawingAccess {
+  id        String  @id @default(cuid())
+  drawingId String
+  roleId    String?
+  userId    String?
+  canView   Boolean @default(true)
+
+  drawing Drawing @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  user    user?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role?   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([drawingId])
+  @@index([roleId])
+  @@index([userId])
+}
+
+// -------------------------
+// 3D MODELS / BIM / MAPS
+// -------------------------
+
+model ProjectModel {
+  id        String    @id @default(cuid())
+  projectId String
+  type      ModelType
+  fileUrl   String
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([type])
+}
+
+enum ModelType {
+  SITE_MAP
+  CONTOUR_MAP
+  CAD_3D
+  BIM_3D
+  STRUCTURAL_MODEL
+  ARCHITECTURAL_MODEL
+  MEP_MODEL
+  WALKTHROUGH
 }
