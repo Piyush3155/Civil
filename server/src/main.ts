@@ -3,13 +3,31 @@ import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import * as os from 'os';
+import * as fs from 'fs';
 
 dotenv.config();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // Load HTTPS SSL certificates
+  const httpsOptions = {
+    key: fs.readFileSync('certificates/localhost-key.pem'),
+    cert: fs.readFileSync('certificates/localhost.pem'),
+  };
+
+  // Create HTTPS NestJS server
+  const app = await NestFactory.create(AppModule, {
+    httpsOptions,
+  });
 
   const port = Number(process.env.PORT) || 3000;
+
+  // Enable CORS for client requests
+  app.enableCors({
+    origin: ['https://localhost:7000', 'https://localhost:7001'], // Allow client and server origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
   // --- Swagger Setup ---
   const config = new DocumentBuilder()
@@ -24,7 +42,7 @@ async function bootstrap() {
   await app.listen(port);
 
   // --- URL Logs ---
-  const localUrl = `http://localhost:${port}`;
+  const localUrl = `https://localhost:${port}`;
   const networkInterfaces = os.networkInterfaces();
   let ipAddress = '0.0.0.0';
 
@@ -37,10 +55,10 @@ async function bootstrap() {
     }
   }
 
-  const ipUrl = `http://${ipAddress}:${port}`;
+  const ipUrl = `https://${ipAddress}:${port}`;
   const swaggerUrl = `${localUrl}/api`;
 
-  console.log('\n🙂 App is running at:');
+  console.log('\n🔐 HTTPS App is running at:');
   console.log(`   Local:   ${localUrl}`);
   console.log(`   Network: ${ipUrl}`);
   console.log(`   Swagger: ${swaggerUrl}\n`);

@@ -1,151 +1,18 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as admin from 'firebase-admin';
 
 @Injectable()
-export class FcmService {
-  private readonly logger = new Logger(FcmService.name);
+export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private prisma: PrismaService) {
-    // Initialize Firebase Admin SDK
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        }),
-      });
-    }
-  }
+  constructor(private prisma: PrismaService) {}
 
   /**
-   * Upsert FCM token for a user
-   * @param data The token data including userId, token, deviceId, and deviceType
-   * @returns The created or updated token record
-   */
-  async upsertToken(data: {
-    token: string;
-    deviceId: string;
-    deviceType: string;
-    userId: string;
-  }) {
-    try {
-      this.logger.log(`upsertToken called with data:`, {
-        userId: data.userId,
-        deviceId: data.deviceId,
-        deviceType: data.deviceType,
-        tokenLength: data.token.length
-      });
-
-      const { token, deviceId, deviceType, userId } = data;
-
-      // Validate deviceType against enum
-      const validDeviceTypes = [
-        'ANDROID',
-        'IOS',
-        'WEB',
-        'MAC',
-        'WINDOWS',
-        'LINUX',
-        'DESKTOP',
-        'OTHER',
-      ];
-
-      const normalizedDeviceType = deviceType.toUpperCase();
-      if (!validDeviceTypes.includes(normalizedDeviceType)) {
-        throw new Error(
-          `Invalid device type: ${deviceType}. Must be one of: ${validDeviceTypes.join(', ')}`,
-        );
-      }
-
-      // Check if token already exists for this user and device
-      const existingToken = await this.prisma.userTokens.findFirst({
-        where: {
-          userId,
-          deviceId,
-        },
-      });
-
-      if (existingToken) {
-        // Update existing token if it has changed
-        if (existingToken.token !== token) {
-          this.logger.log(
-            `Updating token for user ${userId} on device ${deviceId}`,
-          );
-          return await this.prisma.userTokens.update({
-            where: {
-              id: existingToken.id,
-            },
-            data: {
-              token,
-              lastUsed: new Date(),
-            },
-          });
-        } else {
-          // Just update the lastUsed timestamp
-          this.logger.log(
-            `Refreshing token timestamp for user ${userId} on device ${deviceId}`,
-          );
-          return await this.prisma.userTokens.update({
-            where: {
-              id: existingToken.id,
-            },
-            data: {
-              lastUsed: new Date(),
-            },
-          });
-        }
-      } else {
-        // Check if token exists for another device of the same user
-        const tokenExists = await this.prisma.userTokens.findFirst({
-          where: {
-            token,
-            userId,
-          },
-        });
-
-        if (tokenExists) {
-          this.logger.warn(
-            `Token already exists for user ${userId} on a different device. Updating device info.`,
-          );
-          // Update the existing token record with the new device info
-          return await this.prisma.userTokens.update({
-            where: {
-              id: tokenExists.id,
-            },
-            data: {
-              deviceId,
-              deviceType: normalizedDeviceType as any,
-              lastUsed: new Date(),
-            },
-          });
-        }
-
-        // Create new token record
-        this.logger.log(
-          `Creating new token for user ${userId} on device ${deviceId}`,
-        );
-        return await this.prisma.userTokens.create({
-          data: {
-            userId,
-            token,
-            deviceId,
-            deviceType: normalizedDeviceType as any,
-          },
-        });
-      }
-    } catch (error) {
-      this.logger.error(`Error upserting token: ${error.message}`, error.stack);
-      throw error;
-    }
-  }
-
-  /**
-   * Send notification to users with a specific role
-   * @param role The role name users should have
+   * Send notification to a specific role
+   * @param roleId The role ID to send the notification to
    * @param notification The notification payload to send
-   * @returns Results of the notification sending
+   * @returns Result of the notification sending
    */
   async sendNotificationToRole(
     roleId: string,
@@ -608,26 +475,26 @@ export class FcmService {
     limit: number = 10,
     targetType?: string,
   ) {
-    const skip = (page - 1) * limit;
+    const take = Math.max(1, Math.min(limit, 100));
+    const skip = Math.max(0, (Math.max(1, page) - 1) * take);
 
-    // Build where condition
     const where: any = {};
     if (targetType) {
       where.targetType = targetType;
     }
 
-    const [items, totalCount] = await Promise.all([
+    const [total, items] = await Promise.all([
+      this.prisma.notificationHistory.count({ where }),
       this.prisma.notificationHistory.findMany({
         where,
         skip,
-        take: limit,
-        orderBy: { sentAt: 'desc' },
+        take,
+        orderBy: { createdAt: 'desc' },
         include: {
           sentBy: {
             select: {
               id: true,
               name: true,
-              username: true,
               email: true,
               roles: {
                 select: {
@@ -643,25 +510,37 @@ export class FcmService {
           },
         },
       }),
-      this.prisma.notificationHistory.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / take);
+
+    // Transform items to flatten the sentBy structure
+    const transformedItems = items.map(item => ({
+      ...item,
+      sentBy: item.sentBy ? {
+        id: item.sentBy.id,
+        name: item.sentBy.name,
+        email: item.sentBy.email,
+        role: item.sentBy.roles?.[0]?.role || null,
+      } : null,
+    }));
+
     return {
-      items,
+      items: transformedItems,
       meta: {
         currentPage: page,
         itemCount: items.length,
-        itemsPerPage: limit,
-        totalItems: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
+        itemsPerPage: take,
+        totalItems: total,
+        totalPages,
       },
     };
   }
 
   /**
-   * Get detailed information about a specific notification
-   * @param id Notification ID
-   * @returns Notification details including delivery status
+   * Get notification details by ID
+   * @param id Notification history ID
+   * @returns Notification details
    */
   async getNotificationDetails(id: number) {
     const notification = await this.prisma.notificationHistory.findUnique({
@@ -671,7 +550,6 @@ export class FcmService {
           select: {
             id: true,
             name: true,
-            username: true,
             email: true,
             roles: {
               select: {
@@ -687,30 +565,11 @@ export class FcmService {
         },
         tokens: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                username: true,
-                email: true,
-                roles: {
-                  select: {
-                    role: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
             token: {
               select: {
-                id: true,
-                deviceType: true,
+                userId: true,
                 deviceId: true,
-                lastUsed: true,
+                deviceType: true,
               },
             },
           },
@@ -719,324 +578,180 @@ export class FcmService {
     });
 
     if (!notification) {
-      throw new NotFoundException(`Notification with ID ${id} not found`);
+      throw new Error('Notification not found');
     }
 
-    // Transform the notification data to include target information
-    const result: any = { ...notification };
+    // Transform the notification
+    return {
+      ...notification,
+      sentBy: notification.sentBy ? {
+        id: notification.sentBy.id,
+        name: notification.sentBy.name,
+        email: notification.sentBy.email,
+        role: notification.sentBy.roles?.[0]?.role || null,
+      } : null,
+      deliveries: notification.tokens.map(delivery => ({
+        ...delivery,
+        user: delivery.token,
+      })),
+    };
+  }
 
-    // Enhance with target information based on target type
-    if (notification.targetType === 'ROLE') {
-      const roleIds = notification.targetIds as string[];
-      const roles = await this.prisma.role.findMany({
+  /**
+   * Get notification statistics
+   * @returns Notification statistics
+   */
+  async getNotificationStats() {
+    const [
+      totalNotifications,
+      sentCount,
+      failedCount,
+      pendingCount,
+    ] = await Promise.all([
+      this.prisma.notificationHistory.count(),
+      this.prisma.notificationHistory.count({ where: { status: 'SENT' } }),
+      this.prisma.notificationHistory.count({ where: { status: 'FAILED' } }),
+      this.prisma.notificationHistory.count({ where: { status: 'PENDING' } }),
+    ]);
+
+    const partiallySentCount = await this.prisma.notificationHistory.count({
+      where: { status: 'PARTIALLY_SENT' }
+    });
+
+    const deliveryRate = totalNotifications > 0
+      ? ((sentCount + partiallySentCount) / totalNotifications) * 100
+      : 0;
+
+    return {
+      totalNotifications,
+      sentCount,
+      failedCount,
+      pendingCount,
+      deliveryRate: Math.round(deliveryRate * 100) / 100,
+    };
+  }
+
+  /**
+   * Mark notifications as read for a user
+   * @param userId User ID
+   * @param notificationIds Array of notification IDs to mark as read
+   * @returns Result of the operation
+   */
+  async markNotificationsAsRead(userId: string, notificationIds: number[]) {
+    try {
+      const result = await this.prisma.fcmDeliveryStatus.updateMany({
         where: {
-          id: {
-            in: roleIds,
+          notificationId: {
+            in: notificationIds,
           },
+          userId: userId,
         },
-        select: {
-          id: true,
-          name: true,
-          description: true,
+        data: {
+          readAt: new Date(),
         },
       });
 
-      result.targetDetails = roles;
-    } else if (
-      notification.targetType === 'USER' ||
-      notification.targetType === 'MULTIPLE_USERS'
-    ) {
-      const userIds = notification.targetIds as string[];
-      const users = await this.prisma.user.findMany({
-        where: {
-          id: {
-            in: userIds,
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          email: true,
-          roles: {
-            select: {
-              role: {
+      return {
+        success: true,
+        message: `${result.count} notifications marked as read`,
+        count: result.count,
+      };
+    } catch (error) {
+      this.logger.error(`Error marking notifications as read: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user notification history
+   * @param userId User ID
+   * @param page Page number
+   * @param limit Items per page
+   * @param targetType Optional filter by target type
+   * @returns Paginated user notification history
+   */
+  async getUserNotificationHistory(
+    userId: string,
+    page: number = 1,
+    limit: number = 10,
+    targetType?: string,
+  ) {
+    const take = Math.max(1, Math.min(limit, 100));
+    const skip = Math.max(0, (Math.max(1, page) - 1) * take);
+
+    const where: any = {
+      fcmToken: {
+        userId: userId,
+      },
+    };
+
+    if (targetType) {
+      where.notificationHistory = {
+        targetType: targetType,
+      };
+    }
+
+    const [total, items] = await Promise.all([
+      this.prisma.fcmDeliveryStatus.count({ where }),
+      this.prisma.fcmDeliveryStatus.findMany({
+        where,
+        skip,
+        take,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          notification: {
+            include: {
+              sentBy: {
                 select: {
                   id: true,
                   name: true,
+                  email: true,
+                  roles: {
+                    select: {
+                      role: {
+                        select: {
+                          id: true,
+                          name: true,
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
           },
         },
-      });
+      }),
+    ]);
 
-      result.targetDetails = users;
-    }
+    const totalPages = Math.ceil(total / take);
 
-    // Group delivery results by status
-    const deliveryStats = {
-      PENDING: 0,
-      SENT: 0,
-      FAILED: 0,
-    };
-
-    notification.tokens.forEach((token) => {
-      deliveryStats[token.status] = (deliveryStats[token.status] || 0) + 1;
-    });
-
-    result.deliveryStats = deliveryStats;
-
-    return result;
-  }
-
-  /**
-   * Get notification system statistics
-   * @returns Statistics about notifications
-   */
-  async getNotificationStats() {
-    try {
-      const [
-        totalNotifications,
-        sentLast24Hours,
-        sentLast7Days,
-        sentLast30Days,
-        byTargetType,
-        byStatus,
-        successCount,
-        totalCount,
-      ] = await Promise.all([
-        // Total notifications
-        this.prisma.notificationHistory.count(),
-
-        // Sent in last 24 hours
-        this.prisma.notificationHistory.count({
-          where: {
-            sentAt: {
-              gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Sent in last 7 days
-        this.prisma.notificationHistory.count({
-          where: {
-            sentAt: {
-              gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Sent in last 30 days
-        this.prisma.notificationHistory.count({
-          where: {
-            sentAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Group by target type
-        this.prisma.notificationHistory.groupBy({
-          by: ['targetType'],
-          _count: true,
-          where: {
-            sentAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Group by status
-        this.prisma.notificationHistory.groupBy({
-          by: ['status'],
-          _count: true,
-          where: {
-            sentAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Count successful notifications (with successCount > 0) in last 30 days
-        this.prisma.notificationHistory.count({
-          where: {
-            successCount: {
-              gt: 0,
-            },
-            sentAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-
-        // Count total notifications in last 30 days (for calculating success rate)
-        this.prisma.notificationHistory.count({
-          where: {
-            sentAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            },
-          },
-        }),
-      ]);
-
-      // Format target type stats
-      const targetTypeStats = {};
-      byTargetType.forEach((item) => {
-        targetTypeStats[item.targetType] = item._count;
-      });
-
-      // Format status stats
-      const statusStats = {};
-      byStatus.forEach((item) => {
-        statusStats[item.status] = item._count;
-      });
-
-      // Calculate success rate without using raw SQL
-      const successRate =
-        totalCount > 0
-          ? ((successCount / totalCount) * 100).toFixed(2)
-          : '0.00';
-
-      return {
-        totalNotifications,
-        sentCount: successCount,
-        failedCount: totalCount - successCount,
-        pendingCount: statusStats['PENDING'] || 0,
-        deliveryRate: parseFloat(successRate),
-        recentActivity: {
-          last24Hours: sentLast24Hours,
-          last7Days: sentLast7Days,
-          last30Days: sentLast30Days,
-        },
-        successRate: successRate,
-        byTargetType: targetTypeStats,
-        byStatus: statusStats,
-      };
-    } catch (error) {
-      this.logger.error(
-        `Error fetching notification stats: ${error.message}`,
-        error.stack,
-      );
-      // Return minimal stats to prevent UI from breaking
-      return {
-        totalNotifications: 0,
-        sentCount: 0,
-        failedCount: 0,
-        pendingCount: 0,
-        deliveryRate: 0,
-        recentActivity: { last24Hours: 0, last7Days: 0, last30Days: 0 },
-        successRate: '0.00',
-        byTargetType: {},
-        byStatus: {},
-      };
-    }
-  }
-
-  async getUserNotificationHistory(
-    userId: string,
-    page = 1,
-    limit = 10,
-    targetType?: string,
-  ): Promise<any> {
-    const skip = (page - 1) * limit;
-
-    // Build the where clause for filtering
-    const where: any = {
-      OR: [
-        // Direct notifications to this user
-        {
-          targetType: 'USER',
-          targetIds: { array_contains: String(userId) },
-        },
-        // Notifications to multiple users that include this user
-        {
-          targetType: 'MULTIPLE_USERS',
-          targetIds: { array_contains: String(userId) },
-        },
-        // Role-based notifications for roles this user has
-        {
-          targetType: 'ROLE',
-          tokens: {
-            some: {
-              userId: userId,
-            },
-          },
-        },
-      ],
-    };
-
-    // Add target type filter if specified
-    if (targetType) {
-      where.targetType = targetType;
-    }
-
-    // Count total matching notifications for pagination metadata
-    const totalCount = await this.prisma.notificationHistory.count({ where });
-    console.log(`Total notifications found for user ${userId}: ${totalCount}`);
-
-    // Get paginated notifications
-    const notifications = await this.prisma.notificationHistory.findMany({
-      where,
-      include: {
-        sentBy: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-          },
-        },
-        tokens: {
-          where: {
-            userId,
-          },
-          select: {
-            status: true,
-            errorMessage: true,
-            processedAt: true,
-          },
-        },
-      },
-      orderBy: {
-        sentAt: 'desc',
-      },
-      skip,
-      take: Number(limit),
-    });
-
-    // Transform results to include user-specific delivery status
-    const formattedNotifications = notifications.map((notification) => {
-      // Get delivery status for this specific user
-      const userDeliveryStatus =
-        notification.tokens.length > 0 ? notification.tokens[0] : null;
-
-      return {
-        id: notification.id,
-        title: notification.title,
-        body: notification.body,
-        data: notification.data,
-        targetType: notification.targetType,
-        sentAt: notification.sentAt,
-        createdAt: notification.createdAt,
-        sentBy: notification.sentBy,
-        // User-specific delivery information
-        deliveryStatus: userDeliveryStatus
-          ? userDeliveryStatus.status
-          : 'UNKNOWN',
-        deliveredAt: userDeliveryStatus ? userDeliveryStatus.processedAt : null,
-        errorInfo: userDeliveryStatus?.errorMessage && {
-          message: userDeliveryStatus.errorMessage,
-        },
-      };
-    });
+    // Transform items
+    const transformedItems = items.map(item => ({
+      id: item.notification.id,
+      title: item.notification.title,
+      body: item.notification.body,
+      data: item.notification.data,
+      status: item.status,
+      deliveredAt: item.deliveredAt,
+      readAt: item.readAt,
+      createdAt: item.notification.createdAt,
+      sentBy: (item.notification.sentBy ? {
+        id: item.notification.sentBy.id,
+        name: item.notification.sentBy.name,
+        email: item.notification.sentBy.email,
+        role: item.notification.sentBy.roles?.[0]?.role || null,
+      } : null),
+    }));
 
     return {
-      data: formattedNotifications,
+      items: transformedItems,
       meta: {
-        total: totalCount,
-        page,
-        limit,
-        totalPages: Math.ceil(totalCount / limit),
+        currentPage: page,
+        itemCount: items.length,
+        itemsPerPage: take,
+        totalItems: total,
+        totalPages,
       },
     };
   }

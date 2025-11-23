@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Lock } from "lucide-react";
-import { login, storeFcmToken } from "@/app/actions/user/main";
+import { login } from "@/app/actions/user/main";
+import { updateUserToken } from "@/app/actions/notification/main";
 import { useRouter } from "next/navigation";
 import { setAuthenticated } from "@/lib/session";
-import { requestNotificationPermission } from "@/lib/firebase";
+import useFcmToken from "@/hooks/useFcmToken";
 
 export function LoginForm({
   className,
@@ -18,22 +19,20 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { token, requestPermission } = useFcmToken();
 
-  // Fetch FCM Token
+  // Request FCM permission on component mount
   useEffect(() => {
-    async function getTokenFCM() {
-      // Example: Replace with your own FCM token fetch logic
-      try {
-        const token = localStorage.getItem("fcm_token");
-        if (token) {
-          // Optional: store existing token
+    const setupFCM = async () => {
+      if ("Notification" in window) {
+        // Request permission if not already granted
+        if (Notification.permission === "default") {
+          await requestPermission();
         }
-      } catch (err) {
-        console.log("FCM Token error:", err);
       }
-    }
-    getTokenFCM();
-  }, []);
+    };
+    setupFCM();
+  }, [requestPermission]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,13 +41,22 @@ export function LoginForm({
 
     try {
       const formData = new FormData(e.currentTarget as HTMLFormElement);
-      await login(formData);
+      const result = await login(formData);
+      
+      // Store the access token in localStorage for client-side API calls
+      if (result.token) {
+        localStorage.setItem('accessToken', result.token);
+      }
+      
       setAuthenticated(true);
 
-      // Request notification permission and store FCM token
-      const fcmToken = await requestNotificationPermission();
-      if (fcmToken) {
-        await storeFcmToken(fcmToken);
+      // Store FCM token if available
+      if (token) {
+        // Get device info for token storage
+        const deviceId = localStorage.getItem("fcm_device_id") || "web-device";
+        const deviceType = "WEB";
+
+        await updateUserToken(token, deviceId, deviceType);
       }
 
       router.push('/dashboard');

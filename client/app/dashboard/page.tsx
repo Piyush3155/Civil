@@ -16,47 +16,76 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { sendTestFcm, storeFcmToken } from "../actions/user/main"
-import { requestNotificationPermission } from "@/lib/firebase"
 import { useState, useEffect } from "react"
+import useFcmToken from "@/hooks/useFcmToken"
+import { updateUserToken } from "@/app/actions/notification/main"
 
 export default function Page() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [firebaseConfigured, setFirebaseConfigured] = useState(false)
+  const { token, notificationPermissionStatus, requestPermission } = useFcmToken()
 
   useEffect(() => {
     // Check if Firebase is configured
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
-    setFirebaseConfigured(!!(apiKey && apiKey !== 'your-api-key'))
+    const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    setFirebaseConfigured(!!(apiKey && authDomain && projectId &&
+      apiKey !== 'your-api-key' &&
+      authDomain !== 'your-auth-domain' &&
+      projectId !== 'your-project-id'))
   }, [])
 
-  const handleTestFcm = async () => {
+  const handleRequestFcm = async () => {
+    console.log("handleRequestFcm called");
     setIsLoading(true)
     setMessage(null)
     try {
-      const result = await sendTestFcm()
-      setMessage(result.message || 'Test notification sent!')
+      console.log("Calling requestPermission...");
+      const fcmToken = await requestPermission()
+      console.log("requestPermission returned token:", fcmToken);
+      if (fcmToken) {
+        // Get device info for token storage
+        const deviceId = localStorage.getItem("fcm_device_id") || "web-device-" + Date.now()
+        const deviceType = "WEB"
+        console.log("Calling updateUserToken with:", { deviceId, deviceType });
+
+        await updateUserToken(fcmToken, deviceId, deviceType)
+        localStorage.setItem("fcm_device_id", deviceId)
+        setMessage('FCM token stored successfully!')
+      } else {
+        setMessage('Failed to get FCM token. Check notification permissions.')
+      }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to send test notification')
+      console.error("Error in handleRequestFcm:", error);
+      setMessage(error instanceof Error ? error.message : 'Failed to setup FCM')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleRequestFcm = async () => {
+  const handleTestFcm = async () => {
     setIsLoading(true)
     setMessage(null)
     try {
-      const token = await requestNotificationPermission()
-      if (token) {
-        await storeFcmToken(token)
-        setMessage('FCM token stored successfully!')
-      } else {
-        setMessage('Failed to get FCM token. Check notification permissions and Firebase config.')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/fcm/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken') || ''}`,
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to send test notification')
       }
+
+      const result = await response.json()
+      setMessage(result.message || 'Test notification sent!')
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to setup FCM')
+      setMessage(error instanceof Error ? error.message : 'Failed to send test notification')
     } finally {
       setIsLoading(false)
     }
@@ -93,17 +122,33 @@ export default function Page() {
                     ⚠️ Firebase not configured. Set NEXT_PUBLIC_FIREBASE_* env vars.
                   </p>
                 )}
-                <Button 
-                  onClick={handleRequestFcm} 
+                <div className="mb-2">
+                  <p className="text-sm text-gray-600">
+                    Permission: <span className={`font-medium ${
+                      notificationPermissionStatus === 'granted' ? 'text-green-600' :
+                      notificationPermissionStatus === 'denied' ? 'text-red-600' :
+                      'text-yellow-600'
+                    }`}>
+                      {notificationPermissionStatus || 'unknown'}
+                    </span>
+                  </p>
+                  {token && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Token: {token.substring(0, 20)}...
+                    </p>
+                  )}
+                </div>
+                <Button
+                  onClick={handleRequestFcm}
                   disabled={isLoading || !firebaseConfigured}
                   variant="outline"
                   className="mb-2 mr-2"
                 >
                   {isLoading ? 'Setting up...' : 'Setup FCM Token'}
                 </Button>
-                <Button 
-                  onClick={handleTestFcm} 
-                  disabled={isLoading}
+                <Button
+                  onClick={handleTestFcm}
+                  disabled={isLoading || !token}
                 >
                   {isLoading ? 'Sending...' : 'Send Test Notification'}
                 </Button>

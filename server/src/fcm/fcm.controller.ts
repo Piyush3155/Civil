@@ -1,44 +1,158 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiParam, ApiQuery, ApiProperty } from '@nestjs/swagger';
 import { FcmService } from './fcm.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PrismaClient } from '@prisma/client';
 
-class SendNotificationDto {
+class TokenDto {
+  @ApiProperty({ description: 'FCM token' })
   token: string;
-  title: string;
-  body: string;
-  data?: any;
+
+  @ApiProperty({ description: 'Device ID' })
+  deviceId: string;
+
+  @ApiProperty({ description: 'Device type (ANDROID, IOS, WEB, etc.)' })
+  deviceType: string;
+
+  @ApiProperty({ description: 'User ID' })
+  userId: string;
 }
 
-class SendMultipleNotificationsDto {
-  tokens: string[];
+class NotificationDto {
+  @ApiProperty({ description: 'Notification title' })
   title: string;
+
+  @ApiProperty({ description: 'Notification body' })
   body: string;
-  data?: any;
+
+  @ApiProperty({ description: 'Click action URL', required: false })
+  click_action?: string;
+
+  @ApiProperty({ description: 'Additional data', required: false })
+  data?: Record<string, string>;
+}
+
+class RoleNotificationDto extends NotificationDto {
+  @ApiProperty({ description: 'Role ID to send notification to' })
+  roleId: string;
+}
+
+class MultipleUsersNotificationDto extends NotificationDto {
+  @ApiProperty({ description: 'Array of user IDs to send notifications to' })
+  userIds: string[];
+}
+
+class PaginationDto {
+  @ApiProperty({ description: 'Page number', required: false })
+  page?: number;
+
+  @ApiProperty({ description: 'Items per page', required: false })
+  limit?: number;
+}
+
+class UserNotificationHistoryDto extends PaginationDto {
+  @ApiProperty({ description: 'Filter by target type', required: false })
+  targetType?: string;
 }
 
 @ApiTags('FCM')
 @Controller('fcm')
 export class FcmController {
-  private prisma = new PrismaClient();
-
   constructor(private readonly fcmService: FcmService) {}
 
-  @Post('send')
-  @ApiOperation({ summary: 'Send FCM notification to single device' })
+  @UseGuards(JwtAuthGuard)
+  @Post('upsert-token')
+  @ApiOperation({ summary: 'Upsert FCM token for a user' })
+  @ApiBody({ type: TokenDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Token upserted successfully',
+    schema: {
+      example: {
+        id: 1,
+        token: 'fcm_token',
+        deviceId: 'device-123',
+        deviceType: 'WEB',
+        userId: 'user-123',
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z'
+      }
+    }
+  })
+  async upsertToken(@Body() tokenDto: TokenDto) {
+    try {
+      return await this.fcmService.upsertToken(tokenDto);
+    } catch (error) {
+      throw new HttpException(
+        `Failed to upsert FCM token: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('send-to-role')
+  @ApiOperation({ summary: 'Send notification to users with a specific role' })
+  @ApiBody({ type: RoleNotificationDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Notifications sent successfully',
+    schema: {
+      example: {
+        success: 5,
+        failure: 0,
+        notificationId: 123,
+        targetDescription: 'Role 1'
+      }
+    }
+  })
+  async sendToRole(@Body() body: RoleNotificationDto, @Request() req) {
+    try {
+      return await this.fcmService.sendNotificationToRole(
+        body.roleId,
+        {
+          title: body.title,
+          body: body.body,
+          click_action: body.click_action,
+          data: body.data,
+        },
+        req.user.userId,
+      );
+    } catch (error) {
+      throw new HttpException(
+        `Failed to send notification to role: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('send-to-user')
+  @ApiOperation({ summary: 'Send notification to a specific user' })
   @ApiBody({
-    type: SendNotificationDto,
+    type: NotificationDto,
     examples: {
       'default': {
-        summary: 'Send notification example',
+        summary: 'Send to user example',
         value: {
-          token: 'fcm_device_token_here',
-          title: 'Test Notification',
-          body: 'This is a test message from FCM',
+          userId: 'user-123',
+          title: 'Personal Notification',
+          body: 'This is a personal notification for you',
+          click_action: 'https://app.com/profile',
           data: {
-            customKey: 'customValue',
-            action: 'navigate_to_screen'
+            type: 'personal',
+            userId: 'user-123'
           }
         }
       }
@@ -49,53 +163,40 @@ export class FcmController {
     description: 'Notification sent successfully',
     schema: {
       example: {
-        success: true,
-        messageId: 'projects/your-project/messages/123456789'
+        success: 1,
+        failure: 0,
+        notificationId: 124,
+        targetDescription: 'User user-123'
       }
     }
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - invalid token or parameters'
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error - FCM service error'
-  })
-  async sendNotification(
-    @Body() body: { token: string; title: string; body: string; data?: any },
+  async sendToUser(
+    @Body() body: { userId: string } & NotificationDto,
+    @Request() req
   ) {
-    return this.fcmService.sendNotification(
-      body.token,
-      body.title,
-      body.body,
-      body.data,
-    );
+    try {
+      return await this.fcmService.sendNotificationToUser(
+        body.userId,
+        {
+          title: body.title,
+          body: body.body,
+          click_action: body.click_action,
+          data: body.data,
+        },
+        req.user.userId,
+      );
+    } catch (error) {
+      throw new HttpException(
+        `Failed to send notification to user: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
-  @Post('send-multiple')
-  @ApiOperation({ summary: 'Send FCM notification to multiple devices' })
-  @ApiBody({
-    type: SendMultipleNotificationsDto,
-    examples: {
-      'default': {
-        summary: 'Send multiple notifications example',
-        value: {
-          tokens: [
-            'fcm_token_1',
-            'fcm_token_2',
-            'fcm_token_3'
-          ],
-          title: 'Bulk Notification',
-          body: 'This message goes to multiple devices',
-          data: {
-            type: 'broadcast',
-            priority: 'high'
-          }
-        }
-      }
-    }
-  })
+  @UseGuards(JwtAuthGuard)
+  @Post('send-to-multiple-users')
+  @ApiOperation({ summary: 'Send notification to multiple users' })
+  @ApiBody({ type: MultipleUsersNotificationDto })
   @ApiResponse({
     status: 200,
     description: 'Notifications sent successfully',
@@ -103,31 +204,32 @@ export class FcmController {
       example: {
         success: 3,
         failure: 0,
-        responses: [
-          'projects/your-project/messages/123',
-          'projects/your-project/messages/456',
-          'projects/your-project/messages/789'
-        ]
+        notificationId: 125,
+        targetDescription: '3 users'
       }
     }
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad request - invalid tokens or parameters'
-  })
-  @ApiResponse({
-    status: 500,
-    description: 'Internal server error - FCM service error'
-  })
-  async sendToMultipleTokens(
-    @Body() body: { tokens: string[]; title: string; body: string; data?: any },
+  async sendToMultipleUsers(
+    @Body() body: MultipleUsersNotificationDto,
+    @Request() req
   ) {
-    return this.fcmService.sendToMultipleTokens(
-      body.tokens,
-      body.title,
-      body.body,
-      body.data,
-    );
+    try {
+      return await this.fcmService.sendNotificationToMultipleUsers(
+        body.userIds,
+        {
+          title: body.title,
+          body: body.body,
+          click_action: body.click_action,
+          data: body.data,
+        },
+        req.user.userId,
+      );
+    } catch (error) {
+      throw new HttpException(
+        `Failed to send notifications to multiple users: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @UseGuards(JwtAuthGuard)
@@ -138,51 +240,49 @@ export class FcmController {
     description: 'Test notification sent successfully',
     schema: {
       example: {
-        success: true,
-        messageId: 'projects/your-project/messages/123456789',
+        success: 1,
+        failure: 0,
+        notificationId: 126,
+        targetDescription: 'User current-user',
         message: 'Test notification sent to your device'
       }
     }
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized - user not authenticated'
   })
   @ApiResponse({
     status: 404,
     description: 'No FCM token found for user'
   })
   async sendTestNotification(@Request() req) {
-    const userId = req.user.id;
-    
-    // Get user's FCM token from database
-    const userTokenRecord = await this.prisma.userTokens.findFirst({
-      where: { userId },
-      orderBy: { lastUsed: 'desc' }, // Get the most recently used token
-    });
-    
-    if (!userTokenRecord) {
+    try {
+      const result = await this.fcmService.sendNotificationToUser(
+        req.user.userId,
+        {
+          title: 'Test Notification',
+          body: 'This is a test FCM message from Civil Desk!',
+          data: {
+            type: 'test',
+            timestamp: new Date().toISOString(),
+            userId: req.user.userId,
+          },
+        },
+        req.user.userId,
+      );
+
       return {
-        success: false,
-        message: 'No FCM token found. Please login again with notification permissions enabled.'
+        ...result,
+        message: 'Test notification sent to your device',
       };
-    }
-
-    const result = await this.fcmService.sendNotification(
-      userTokenRecord.token,
-      'Test Notification',
-      'This is a test FCM message from Civil Desk!',
-      {
-        type: 'test',
-        timestamp: new Date().toISOString(),
-        userId: String(userId)
+    } catch (error) {
+      if (error.message.includes('No FCM tokens found')) {
+        throw new HttpException(
+          'No FCM token found. Please refresh the page and allow notification permissions.',
+          HttpStatus.NOT_FOUND,
+        );
       }
-    );
-
-    return {
-      success: true,
-      messageId: result.messageId,
-      message: 'Test notification sent to your device'
-    };
+      throw new HttpException(
+        `Failed to send test notification: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

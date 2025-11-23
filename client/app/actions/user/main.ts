@@ -29,7 +29,7 @@ export async function login(formData: FormData) {
     const data = await response.json();
     const token = data.access_token;
 
-    // Store token in httpOnly cookie
+    // Store token in httpOnly cookie for server-side use
     const cookieStore = await cookies();
     cookieStore.set('auth-token', token, {
       httpOnly: true,
@@ -38,7 +38,8 @@ export async function login(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
-    return { success: true };
+    // Also return the token so client can store it in localStorage
+    return { success: true, token };
   } catch (error) {
     console.error('Login error:', error);
     throw error;

@@ -32,6 +32,9 @@ importers:
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/passport-jwt':
         specifier: ^4.0.1
         version: 4.0.1
@@ -47,6 +50,9 @@ importers:
       firebase-admin:
         specifier: ^13.6.0
         version: 13.6.0
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       passport:
         specifier: ^0.7.0
         version: 0.7.0

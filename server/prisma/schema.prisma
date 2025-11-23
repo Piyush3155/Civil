@@ -160,6 +160,8 @@ model FcmDeliveryStatus {
   errorMessage   String?
   errorCode      String?
   processedAt    DateTime?
+  deliveredAt    DateTime?
+  readAt         DateTime?
   createdAt      DateTime           @default(now())
 
   // Relations
