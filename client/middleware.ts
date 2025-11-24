@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sessionOptions } from '@/lib/sessionLib'
 
 // Public routes that don't require a session
-const PUBLIC_PATHS = ['/login','/dashboard','/signout', '/forgot-password', '/favicon.ico', '/images', '/android', '/ios', '/windows11', '/service-worker.js', '/manifest.webmanifest', '/api/firebase-messaging-config', '/firebase-messaging-sw.js','/logo.png']
+const PUBLIC_PATHS = ['/login','/signout','/civil.webp', '/forgot-password', '/favicon.ico', '/images', '/android', '/ios', '/windows11', '/service-worker.js', '/manifest.webmanifest', '/api/firebase-messaging-config', '/firebase-messaging-sw.js','/logo.png']
 
 // Cookie name used by iron-session (defined in sessionLib)
 const SESSION_COOKIE_NAME = sessionOptions.cookieName || 'auth-token'

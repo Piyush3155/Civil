@@ -54,6 +54,19 @@ export class ProjectsService {
             role: true,
           },
         },
+        owners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                username: true,
+                phone: true,
+              },
+            },
+          },
+        },
         contractors: {
           include: {
             contractor: {
@@ -138,11 +151,22 @@ export class ProjectsService {
   async getProjectsByUser(userId: string) {
     return this.prisma.project.findMany({
       where: {
-        members: {
-          some: {
-            userId,
+        OR: [
+          {
+            members: {
+              some: {
+                userId,
+              },
+            },
           },
-        },
+          {
+            owners: {
+              some: {
+                userId,
+              },
+            },
+          },
+        ],
       },
       include: {
         members: {
@@ -151,6 +175,11 @@ export class ProjectsService {
           },
           include: {
             role: true,
+          },
+        },
+        owners: {
+          where: {
+            userId,
           },
         },
         _count: {
@@ -162,5 +191,113 @@ export class ProjectsService {
         },
       },
     });
+  }
+
+  async addOwner(projectId: string, userId: string) {
+    return this.prisma.projectOwner.create({
+      data: {
+        projectId,
+        userId,
+      },
+    });
+  }
+
+  async removeOwner(projectId: string, userId: string) {
+    return this.prisma.projectOwner.delete({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+  }
+
+  async updateProgress(
+    projectId: string,
+    data: { progress: number; nextMilestone?: string },
+  ) {
+    return this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        progress: data.progress,
+        nextMilestone: data.nextMilestone,
+      },
+    });
+  }
+
+  async getOwnerDashboard(projectId: string, userId: string) {
+    // Verify user is owner or admin
+    const isOwner = await this.prisma.projectOwner.findUnique({
+      where: {
+        projectId_userId: {
+          projectId,
+          userId,
+        },
+      },
+    });
+
+    // Also check if user is admin or project manager (optional, but good for testing)
+    // For now, strict owner check or if they are a member with high privileges?
+    // The prompt says "Owner Dashboard (Read-Only View)".
+    // Let's assume if they call this endpoint they want the owner view.
+
+    if (!isOwner) {
+       // Check if they are a member, maybe they can view it too?
+       // For now, let's restrict to actual owners for this specific "Owner Dashboard" view
+       // Or just return the data if they have access to the project via other means.
+       // But the requirement says "Owner sees...".
+       
+       // Let's allow if they are owner.
+       // If not owner, check if they are admin?
+       // For simplicity, let's stick to the requirement: Owner Dashboard.
+       // If the user is not an owner, we might throw, but let's see if they are a member.
+       const isMember = await this.prisma.projectMember.findUnique({
+           where: { projectId_userId: { projectId, userId } }
+       });
+       
+       if (!isMember) {
+           // Check if admin
+           const user = await this.prisma.user.findUnique({ where: { id: userId } });
+           if (!user?.isAdmin) {
+                throw new Error('Access denied: User is not an owner or member of this project');
+           }
+       }
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        drawings: {
+          orderBy: { createdAt: 'desc' },
+        },
+        materialDeliveries: {
+          orderBy: { deliveryDate: 'desc' },
+          take: 10,
+          include: {
+              material: true
+          }
+        },
+        materialUsages: {
+            orderBy: { usageDate: 'desc' },
+            take: 10,
+            include: {
+                material: true
+            }
+        },
+        siteDiaries: {
+          orderBy: { date: 'desc' },
+          take: 5,
+          // where: { status: 'APPROVED' }, // Uncomment if approval workflow is strict
+        },
+        contractors: {
+          include: {
+            contractor: true,
+          },
+        },
+      },
+    });
+
+    return project;
   }
 }

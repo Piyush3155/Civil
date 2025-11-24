@@ -44,7 +44,6 @@ import {
   Calendar,
   Building2,
   File,
-  Loader
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { 
@@ -54,6 +53,7 @@ import {
   deleteDrawing 
 } from "@/app/actions/drawings/main"
 import { fetchProjects } from "@/app/actions/projects/main"
+import Loader from "@/components/ui/loader";
 
 interface Drawing {
   id: string

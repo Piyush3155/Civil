@@ -238,3 +238,86 @@ export async function addProjectMember(
     throw error;
   }
 }
+
+export async function fetchOwnerDashboard(projectId: string) {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/projects/${projectId}/owner-dashboard`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch owner dashboard");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching owner dashboard:", error);
+    throw error;
+  }
+}
+
+export async function addProjectOwner(projectId: string, userId: string) {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/projects/${projectId}/owners`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to add project owner");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error adding project owner:", error);
+    throw error;
+  }
+}
+
+export async function updateProjectProgress(projectId: string, progress: number, nextMilestone?: string) {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/projects/${projectId}/progress`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({ progress, nextMilestone }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update project progress");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating project progress:", error);
+    throw error;
+  }
+}
+

@@ -31,9 +31,15 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR', 'LABOUR')
+  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR', 'LABOUR', 'CLIENT')
   async findOne(@Param('id') id: string) {
     return this.projectsService.findOne(id);
+  }
+
+  @Get(':id/owner-dashboard')
+  @Roles('CLIENT', 'ADMIN', 'PROJECT_MANAGER')
+  async getOwnerDashboard(@Param('id') id: string, @Request() req) {
+    return this.projectsService.getOwnerDashboard(id, req.user.userId);
   }
 
   @Post()
@@ -105,5 +111,32 @@ export class ProjectsController {
     @Param('userId') userId: string,
   ) {
     return this.projectsService.removeMember(id, userId);
+  }
+
+  @Post(':id/owners')
+  @Roles('ADMIN', 'PROJECT_MANAGER')
+  async addOwner(
+    @Param('id') id: string,
+    @Body() body: { userId: string },
+  ) {
+    return this.projectsService.addOwner(id, body.userId);
+  }
+
+  @Delete(':id/owners/:userId')
+  @Roles('ADMIN', 'PROJECT_MANAGER')
+  async removeOwner(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.projectsService.removeOwner(id, userId);
+  }
+
+  @Post(':id/progress')
+  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER')
+  async updateProgress(
+    @Param('id') id: string,
+    @Body() body: { progress: number; nextMilestone?: string },
+  ) {
+    return this.projectsService.updateProgress(id, body);
   }
 }

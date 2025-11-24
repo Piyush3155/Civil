@@ -11,6 +11,8 @@ import { LaboursModule } from './labours/labours.module';
 import { DrawingsModule } from './drawings/drawings.module';
 import { RolesModule } from './roles/roles.module';
 import { MaterialsModule } from './materials/materials.module';
+import { SiteDiaryModule } from './site-diary/site-diary.module';
+import { ProjectProgressModule } from './project-progress/project-progress.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { MaterialsModule } from './materials/materials.module';
     DrawingsModule,
     RolesModule,
     MaterialsModule,
+    SiteDiaryModule,
+    ProjectProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService],

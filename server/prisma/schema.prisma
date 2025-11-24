@@ -41,11 +41,15 @@ model user {
 
   // Civil construction relations
   projectMembers            ProjectMember[]
+  projectOwners             ProjectOwner[]
   contractor                Contractor?             @relation("ContractorUsers", fields: [contractorId], references: [id])
   contractorId              String?
   labourProfile             Labour?
   drawingsUploaded          Drawing[]               @relation("DrawingUploader")
   drawingAccesses           DrawingAccess[]
+  createdDiaries            SiteDiary[]            @relation("DiaryCreator")
+  approvedDiaries           SiteDiary[]            @relation("DiaryApprover")
+  progressLogs              ProjectProgressLog[]
 }
 
 enum ForgotPasswordStatus {
@@ -105,6 +109,7 @@ enum CivilUserRole {
   SITE_ENGINEER
   CONTRACTOR
   LABOUR
+  CLIENT
 }
 
 // -------------------------
@@ -208,18 +213,25 @@ model Project {
   name      String
   code      String        @unique
   location  String?
+  progress    Decimal       @default(0.0)
+  area        String?
+  nextMilestone String?
   status    ProjectStatus @default(ACTIVE)
   startDate DateTime?
   endDate   DateTime?
+  progressLastUpdated DateTime?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
   members     ProjectMember[]
+  owners      ProjectOwner[]
   contractors ProjectContractor[]
   drawings    Drawing[]
   models      ProjectModel[]
   materialDeliveries MaterialDelivery[]
   materialUsages     MaterialUsage[]
+  siteDiaries        SiteDiary[]
+  progressLogs       ProjectProgressLog[]
 }
 
 enum ProjectStatus {
@@ -245,6 +257,35 @@ model ProjectMember {
   @@index([roleId])
 }
 
+model ProjectOwner {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model ProjectProgressLog {
+  id        String   @id @default(cuid())
+  projectId String
+  progress  Decimal
+  milestone String?
+  notes     String?
+  loggedBy  String
+  loggedAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    user    @relation(fields: [loggedBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([loggedBy])
+}
+
 // -------------------------
 // CONTRACTORS
 // -------------------------
@@ -263,6 +304,7 @@ model Contractor {
   projects        ProjectContractor[]
   materialDeliveries MaterialDelivery[]
   materialUsages     MaterialUsage[]
+  diaryLabourLogs   DiaryLabourLog[]
 }
 
 enum ContractorType {
@@ -304,6 +346,7 @@ model Labour {
   contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
   user       user?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   materialUsages MaterialUsage[]
+  diaryLabourLogs DiaryLabourLog[]
 
   @@index([contractorId])
   @@index([userId])
@@ -325,10 +368,23 @@ enum LabourSkill {
 // DRAWINGS & DOCUMENTS
 // -------------------------
 
+enum DrawingCategory {
+  LAYOUT
+  STRUCTURAL
+  ARCHITECTURAL
+  ELECTRICAL
+  PLUMBING
+  HVAC
+  MODEL_3D
+  PROGRESS
+  OTHER
+}
+
 model Drawing {
   id          String      @id @default(cuid())
   projectId   String
   title       String
+  category    DrawingCategory @default(LAYOUT)
   description String?
   fileUrl     String
   fileType    DrawingType
@@ -423,6 +479,7 @@ model Material {
 
   deliveries MaterialDelivery[]
   usages     MaterialUsage[]
+  diaryMaterialLogs DiaryMaterialLog[]
 }
 
 model MaterialDelivery {
@@ -471,4 +528,77 @@ model MaterialUsage {
   @@index([materialId])
   @@index([contractorId])
   @@index([labourId])
+}
+
+// -------------------------
+// SITE DIARY
+// -------------------------
+
+enum DiaryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model SiteDiary {
+  id          String     @id @default(cuid())
+  projectId   String
+  date        DateTime
+  weather     String?
+  location    String?   // optional: "Footing Area", "Block A Level 1"
+  notes       String?
+  issues      String?
+  photos      Json?      // ["url1", "url2"]
+  createdBy   String
+  approvedBy  String?
+  status      DiaryStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id])
+  creator     user    @relation("DiaryCreator", fields: [createdBy], references: [id])
+  approver    user?   @relation("DiaryApprover", fields: [approvedBy], references: [id])
+
+  // relations
+  labourLogs   DiaryLabourLog[]
+  materialLogs DiaryMaterialLog[]
+  equipmentLogs DiaryEquipmentLog[]
+}
+
+model DiaryLabourLog {
+  id         String   @id @default(cuid())
+  diaryId    String
+  contractorId String?
+  labourId   String?   // optional – log individual labour
+  count      Int       // e.g. 8 labourers today
+  workDone   String?
+  createdAt  DateTime @default(now())
+
+  diary       SiteDiary   @relation(fields: [diaryId], references: [id])
+  contractor  Contractor? @relation(fields: [contractorId], references: [id])
+  labour      Labour?     @relation(fields: [labourId], references: [id])
+}
+
+model DiaryMaterialLog {
+  id            String   @id @default(cuid())
+  diaryId       String
+  materialId    String
+  quantityUsed  Decimal
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  diary     SiteDiary @relation(fields: [diaryId], references: [id])
+  material  Material  @relation(fields: [materialId], references: [id])
+}
+
+model DiaryEquipmentLog {
+  id           String   @id @default(cuid())
+  diaryId      String
+  equipmentName String
+  hoursUsed    Decimal
+  operatorName String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  diary  SiteDiary @relation(fields: [diaryId], references: [id])
 }
