@@ -13,6 +13,7 @@ import { RolesModule } from './roles/roles.module';
 import { MaterialsModule } from './materials/materials.module';
 import { SiteDiaryModule } from './site-diary/site-diary.module';
 import { ProjectProgressModule } from './project-progress/project-progress.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProjectProgressModule } from './project-progress/project-progress.modul
     MaterialsModule,
     SiteDiaryModule,
     ProjectProgressModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -37,16 +37,18 @@ import {
   addProjectMember,
   fetchUsers,
   fetchRoles,
+  updateProjectProgress,
 } from "@/app/actions/projects/main"
 import { fetchLabours } from "@/app/actions/labours/main"
-import { updateProjectProgress } from "@/app/actions/projects/progress"
-import { MaterialManagement } from "@/components/materials/material-management"
-import SiteDiaryManagement from "@/components/site-diary-management"
+import { fetchProjectTasks, bulkCreateTasks } from "@/app/actions/tasks/main"
 import { useRouter, useParams } from "next/navigation"
 import { getCurrentUser, isOwner } from "@/lib/auth"
 import { ClientDashboard } from "@/components/client-dashboard"
 import Loader from "@/components/ui/loader"
 import { Building2 } from "lucide-react" // Import Building2 component
+import { MaterialManagement } from "@/components/materials/material-management"
+import SiteDiaryManagement from "@/components/site-diary-management"
+import { TaskManagement } from "@/components/tasks/task-management"
 
 interface Project {
   id: string
@@ -240,7 +242,7 @@ export default function ProjectDetailPage() {
     setUpdatingProgress(true)
 
     try {
-      await updateProjectProgress(projectId, progressFormData)
+      await updateProjectProgress(projectId, progressFormData.progress, progressFormData.milestone)
       setProgressDialogOpen(false)
       setProgressFormData({ progress: 0, milestone: "", notes: "" })
       await loadProject()
@@ -343,9 +345,12 @@ export default function ProjectDetailPage() {
 
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 h-auto md:h-9 gap-1 md:gap-0">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto md:h-9 gap-1 md:gap-0">
               <TabsTrigger value="overview" className="text-xs md:text-sm">
                 Overview
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="text-xs md:text-sm">
+                Tasks
               </TabsTrigger>
               <TabsTrigger value="team" className="text-xs md:text-sm">
                 Team
@@ -474,6 +479,10 @@ export default function ProjectDetailPage() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="mt-6">
+              <TaskManagement projectId={projectId} />
             </TabsContent>
 
             <TabsContent value="team" className="mt-6">

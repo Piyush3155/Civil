@@ -37,7 +37,7 @@ export class ProjectsService {
   }
 
   async findOne(id: string) {
-    return this.prisma.project.findUnique({
+    const project = await this.prisma.project.findUnique({
       where: { id },
       include: {
         members: {
@@ -88,6 +88,65 @@ export class ProjectsService {
         },
       },
     });
+
+    // Recalculate project progress based on tasks
+    if (project) {
+      await this.recalculateProjectProgress(id);
+      // Fetch updated project with new progress
+      return this.prisma.project.findUnique({
+        where: { id },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  username: true,
+                  phone: true,
+                },
+              },
+              role: true,
+            },
+          },
+          owners: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  username: true,
+                  phone: true,
+                },
+              },
+            },
+          },
+          contractors: {
+            include: {
+              contractor: {
+                include: {
+                  labours: true,
+                },
+              },
+            },
+          },
+          drawings: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+          models: {
+            orderBy: {
+              createdAt: 'desc',
+            },
+          },
+        },
+      });
+    }
+
+    return project;
   }
 
   async create(data: {
@@ -222,6 +281,46 @@ export class ProjectsService {
       data: {
         progress: data.progress,
         nextMilestone: data.nextMilestone,
+      },
+    });
+  }
+
+  async recalculateProjectProgress(projectId: string) {
+    // Get all tasks for the project with their latest progress
+    const tasks = await this.prisma.task.findMany({
+      where: { projectId },
+      include: {
+        progressLogs: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+        },
+      },
+    });
+
+    if (tasks.length === 0) return;
+
+    // Calculate weighted average progress
+    let totalWeightage: number = 0;
+    let weightedProgress: number = 0;
+
+    for (const task of tasks) {
+      const weightage = Number(task.weightage) || 0;
+      const progress = task.progressLogs.length > 0 ? Number(task.progressLogs[0].progress) : 0;
+
+      totalWeightage += weightage;
+      weightedProgress += (progress * weightage) / 100;
+    }
+
+    const overallProgress = totalWeightage > 0 ? Math.round((weightedProgress / totalWeightage) * 100) : 0;
+
+    // Update project progress
+    await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        progress: overallProgress,
+        progressLastUpdated: new Date(),
       },
     });
   }

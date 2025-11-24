@@ -50,6 +50,9 @@ model user {
   createdDiaries            SiteDiary[]            @relation("DiaryCreator")
   approvedDiaries           SiteDiary[]            @relation("DiaryApprover")
   progressLogs              ProjectProgressLog[]
+  createdTasks              Task[]                  @relation("TaskCreator")
+  updatedTasks              Task[]                  @relation("TaskUpdater")
+  taskProgressLogs          TaskProgressLog[]
 }
 
 enum ForgotPasswordStatus {
@@ -213,9 +216,10 @@ model Project {
   name      String
   code      String        @unique
   location  String?
-  progress    Decimal       @default(0.0)
+  progress    Decimal       @db.Decimal(5,2) @default(0.0)
   area        String?
   nextMilestone String?
+  milestoneDate DateTime?
   status    ProjectStatus @default(ACTIVE)
   startDate DateTime?
   endDate   DateTime?
@@ -232,6 +236,7 @@ model Project {
   materialUsages     MaterialUsage[]
   siteDiaries        SiteDiary[]
   progressLogs       ProjectProgressLog[]
+  tasks              Task[]
 }
 
 enum ProjectStatus {
@@ -273,7 +278,7 @@ model ProjectOwner {
 model ProjectProgressLog {
   id        String   @id @default(cuid())
   projectId String
-  progress  Decimal
+  progress  Decimal  @db.Decimal(5,2)
   milestone String?
   notes     String?
   loggedBy  String
@@ -284,6 +289,76 @@ model ProjectProgressLog {
 
   @@index([projectId])
   @@index([loggedBy])
+}
+
+// -------------------------
+// TASK MANAGEMENT
+// -------------------------
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  BLOCKED
+}
+
+enum TaskCategory {
+  PRE_CONSTRUCTION
+  FOUNDATION
+  PLINTH
+  STRUCTURE
+  MASONRY
+  PLASTERING
+  ELECTRICAL
+  PLUMBING
+  FLOORING
+  DOORS_WINDOWS
+  PAINTING
+  FINISHING
+  EXTERNAL_WORK
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  projectId    String
+  title        String
+  description  String?
+  category     TaskCategory?
+  status       TaskStatus   @default(PENDING)
+  startDate    DateTime?
+  endDate      DateTime?
+  weightage    Decimal      @db.Decimal(5,2) @default(0.0)
+
+  // Assign contractor responsible
+  contractorId String?
+
+  // Track who created and updated
+  createdBy    String
+  updatedBy    String?
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  project      Project      @relation(fields: [projectId], references: [id])
+  contractor   Contractor?  @relation(fields: [contractorId], references: [id])
+  creator      user         @relation("TaskCreator", fields: [createdBy], references: [id])
+  updater      user?        @relation("TaskUpdater", fields: [updatedBy], references: [id])
+
+  progressLogs TaskProgressLog[]
+}
+
+model TaskProgressLog {
+  id         String    @id @default(cuid())
+  taskId     String
+  updatedBy  String
+  progress   Decimal   @db.Decimal(5,2)
+  notes      String?
+  photos     Json?
+  createdAt  DateTime  @default(now())
+
+  task       Task      @relation(fields: [taskId], references: [id])
+  user       user      @relation(fields: [updatedBy], references: [id])
 }
 
 // -------------------------
@@ -305,6 +380,7 @@ model Contractor {
   materialDeliveries MaterialDelivery[]
   materialUsages     MaterialUsage[]
   diaryLabourLogs   DiaryLabourLog[]
+  tasks             Task[]
 }
 
 enum ContractorType {
