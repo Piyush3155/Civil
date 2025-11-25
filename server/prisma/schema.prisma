@@ -53,6 +53,10 @@ model user {
   createdTasks              Task[]                  @relation("TaskCreator")
   updatedTasks              Task[]                  @relation("TaskUpdater")
   taskProgressLogs          TaskProgressLog[]
+  measurementBooksCreated   MeasurementBook[]       @relation("MeasurementCreator")
+  measurementBooksApproved  MeasurementBook[]       @relation("MeasurementApprover")
+  contractorBillsCreated    ContractorBill[]        @relation("BillCreator")
+  contractorBillsApproved   ContractorBill[]        @relation("BillApprover")
 }
 
 enum ForgotPasswordStatus {
@@ -237,6 +241,10 @@ model Project {
   siteDiaries        SiteDiary[]
   progressLogs       ProjectProgressLog[]
   tasks              Task[]
+  boqItems           BOQItem[]
+  rateContracts      RateContract[]
+  measurementBooks   MeasurementBook[]
+  contractorBills    ContractorBill[]
 }
 
 enum ProjectStatus {
@@ -346,6 +354,7 @@ model Task {
   updater      user?        @relation("TaskUpdater", fields: [updatedBy], references: [id])
 
   progressLogs TaskProgressLog[]
+  boqItems     BOQItem[]
 }
 
 model TaskProgressLog {
@@ -381,6 +390,9 @@ model Contractor {
   materialUsages     MaterialUsage[]
   diaryLabourLogs   DiaryLabourLog[]
   tasks             Task[]
+  rateContracts     RateContract[]
+  measurementBooks  MeasurementBook[]
+  contractorBills   ContractorBill[]
 }
 
 enum ContractorType {
@@ -677,4 +689,115 @@ model DiaryEquipmentLog {
   createdAt    DateTime @default(now())
 
   diary  SiteDiary @relation(fields: [diaryId], references: [id])
+}
+
+// -------------------------
+// BILLING & CONTRACTOR PAYMENT
+// -------------------------
+
+enum BillStatus {
+  DRAFT
+  SUBMITTED
+  VERIFIED
+  APPROVED
+  PAID
+  REJECTED
+}
+
+model RateContract {
+  id          String   @id @default(cuid())
+  projectId   String
+  contractorId String?
+  boqItemId   String
+  rate        Decimal  @db.Decimal(10,2)
+  unit        String   // e.g. SQFT, CFT, KG, M3
+  createdAt   DateTime @default(now())
+
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  contractor  Contractor? @relation(fields: [contractorId], references: [id])
+  boqItem     BOQItem     @relation(fields: [boqItemId], references: [id])
+
+  @@index([projectId])
+  @@index([contractorId])
+}
+
+model BOQItem {
+  id          String   @id @default(cuid())
+  projectId   String
+  taskId      String?     // Optional link to WBS item
+  name        String
+  unit        String
+  estimatedQty Decimal?    // Planned quantity
+  createdAt   DateTime @default(now())
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task     Task?   @relation(fields: [taskId], references: [id])
+  rateContracts RateContract[]
+  measurements  MeasurementBook[]
+  billItems     ContractorBillItem[]
+}
+
+model MeasurementBook {
+  id          String   @id @default(cuid())
+  boqItemId   String
+  projectId   String
+  contractorId String?
+  measuredQty Decimal   @db.Decimal(10,3)
+  description String?
+  createdBy   String
+  approvedBy  String?
+  createdAt   DateTime  @default(now())
+  approvedAt  DateTime?
+
+  boqItem   BOQItem     @relation(fields: [boqItemId], references: [id])
+  project   Project     @relation(fields: [projectId], references: [id])
+  contractor Contractor? @relation(fields: [contractorId], references: [id])
+  creator   user        @relation("MeasurementCreator", fields: [createdBy], references: [id])
+  approver  user?       @relation("MeasurementApprover", fields: [approvedBy], references: [id])
+}
+
+model ContractorBill {
+  id            String   @id @default(cuid())
+  projectId     String
+  contractorId  String
+  billNumber    String   @unique
+  periodFrom    DateTime
+  periodTo      DateTime
+  totalAmount   Decimal  @db.Decimal(12,2) @default(0)
+  status        BillStatus @default(DRAFT)
+  createdBy     String
+  approvedBy    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contractor Contractor  @relation(fields: [contractorId], references: [id])
+  project    Project     @relation(fields: [projectId], references: [id])
+  billItems  ContractorBillItem[]
+  payments   ContractorPayment[]
+  creator    user        @relation("BillCreator", fields: [createdBy], references: [id])
+  approver   user?       @relation("BillApprover", fields: [approvedBy], references: [id])
+}
+
+model ContractorBillItem {
+  id          String   @id @default(cuid())
+  billId      String
+  boqItemId   String
+  measuredQty Decimal   @db.Decimal(10,3)
+  rate        Decimal   @db.Decimal(10,2)
+  amount      Decimal   @db.Decimal(12,2)
+  createdAt   DateTime  @default(now())
+
+  bill     ContractorBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  boqItem  BOQItem        @relation(fields: [boqItemId], references: [id])
+}
+
+model ContractorPayment {
+  id          String   @id @default(cuid())
+  billId      String
+  amountPaid  Decimal  @db.Decimal(12,2)
+  paymentMode String?
+  paymentDate DateTime @default(now())
+  remarks     String?
+
+  bill ContractorBill @relation(fields: [billId], references: [id], onDelete: Cascade)
 }

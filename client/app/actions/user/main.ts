@@ -102,3 +102,30 @@ export async function sendTestFcm() {
     throw error;
   }
 }
+
+export async function fetchUsers() {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('auth-token')?.value;
+
+  if (!authToken) {
+    throw new Error('Not authenticated');
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/users`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch users');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Fetch users error:', error);
+    throw error;
+  }
+}

@@ -14,6 +14,7 @@ import { MaterialsModule } from './materials/materials.module';
 import { SiteDiaryModule } from './site-diary/site-diary.module';
 import { ProjectProgressModule } from './project-progress/project-progress.module';
 import { TasksModule } from './tasks/tasks.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TasksModule } from './tasks/tasks.module';
     SiteDiaryModule,
     ProjectProgressModule,
     TasksModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
