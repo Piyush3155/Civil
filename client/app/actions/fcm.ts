@@ -4,7 +4,7 @@ import { getSession } from "@/lib/sessionAction";
 interface FCMNotificationPayload {
   title: string;
   body: string;
-  click_action?: string;
+  clickAction?: string; // Renamed from click_action
   data?: Record<string, string>;
 }
 
@@ -24,7 +24,10 @@ export async function sendFCMToRole(roleId: string, payload: FCMNotificationPayl
       },
       body: JSON.stringify({
         roleId,
-        ...payload,
+        title: payload.title,
+        body: payload.body,
+        clickAction: payload.clickAction,
+        data: payload.data,
       }),
     });
 
@@ -57,7 +60,10 @@ export async function sendFCMToUser(userId: string, payload: FCMNotificationPayl
       },
       body: JSON.stringify({
         userId,
-        ...payload,
+        title: payload.title,
+        body: payload.body,
+        clickAction: payload.clickAction,
+        data: payload.data,
       }),
     });
 
@@ -90,7 +96,10 @@ export async function sendFCMToMultipleUsers(userIds: string[], payload: FCMNoti
       },
       body: JSON.stringify({
         userIds,
-        ...payload,
+        title: payload.title,
+        body: payload.body,
+        clickAction: payload.clickAction,
+        data: payload.data,
       }),
     });
 

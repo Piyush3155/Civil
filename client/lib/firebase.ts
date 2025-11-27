@@ -147,4 +147,4 @@ export const handleTokenRefresh = async () => {
   }
 };
 
-export { app, messaging };
+export { app, messaging, getDeviceId };

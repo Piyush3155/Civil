@@ -108,3 +108,57 @@ export interface Project {
   name: string;
   // other fields
 }
+
+// Dashboard related interfaces
+export interface ProgressLog {
+  id: string;
+  projectId: string;
+  progress: number;
+  milestone?: string;
+  notes?: string;
+  loggedAt: string;
+  user: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface Drawing {
+  id: string;
+  title: string;
+  category: string;
+  version: number;
+  fileUrl: string;
+  createdAt: string;
+}
+
+export interface MaterialDelivery {
+  id: string;
+  material: {
+    id: string;
+    name: string;
+    unit: string;
+  };
+  supplierName: string;
+  quantity: number;
+  deliveryDate: string;
+  qcStatus: string;
+}
+
+export interface SiteDiary {
+  id: string;
+  date: string;
+  weather?: string;
+  notes?: string;
+  issues?: string;
+}
+
+export interface OwnerDashboardData {
+  project: Project;
+  progress: number;
+  totalTasks: number;
+  completedTasks: number;
+  drawings: Drawing[];
+  materialDeliveries: MaterialDelivery[];
+  siteDiaries: SiteDiary[];
+}

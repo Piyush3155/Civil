@@ -1,8 +1,21 @@
 'use server';
 
 import { cookies } from 'next/headers';
+import { getIronSession } from 'iron-session';
+import { ironSessionOptions } from '../../../lib/sessionLib';
+import * as jwt from 'jsonwebtoken';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+
+interface SessionData {
+  isLoggedIn: boolean;
+  userId?: string;
+  accessToken?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  roles?: string[];
+}
 
 export async function login(formData: FormData) {
   const email = formData.get('email') as string;
@@ -29,16 +42,25 @@ export async function login(formData: FormData) {
     const data = await response.json();
     const token = data.access_token;
 
-    // Store token in httpOnly cookie for server-side use
-    const cookieStore = await cookies();
-    cookieStore.set('auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    });
+    // Decode JWT to get user info
+    const decoded = jwt.decode(token) as jwt.JwtPayload;
 
-    // Also return the token so client can store it in localStorage
+    if (!decoded || !decoded.sub) {
+      throw new Error('Invalid token');
+    }
+
+    // Set session using iron-session
+    const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+    session.isLoggedIn = true;
+    session.userId = decoded.sub as string;
+    session.accessToken = token;
+    session.username = decoded.username as string;
+    session.name = decoded.name as string;
+    session.email = decoded.email as string;
+    session.roles = decoded.roles as string[] || [];
+    await session.save();
+
+    // Also return the token so client can store it in localStorage if needed
     return { success: true, token };
   } catch (error) {
     console.error('Login error:', error);
@@ -47,8 +69,8 @@ export async function login(formData: FormData) {
 }
 
 export async function storeFcmToken(token: string, deviceType: string = 'WEB') {
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get('auth-token')?.value;
+  const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+  const authToken = session.accessToken;
 
   if (!authToken) {
     throw new Error('Not authenticated');
@@ -76,8 +98,8 @@ export async function storeFcmToken(token: string, deviceType: string = 'WEB') {
 }
 
 export async function sendTestFcm() {
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get('auth-token')?.value;
+  const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+  const authToken = session.accessToken;
 
   if (!authToken) {
     throw new Error('Not authenticated');
@@ -104,8 +126,8 @@ export async function sendTestFcm() {
 }
 
 export async function fetchUsers() {
-  const cookieStore = await cookies();
-  const authToken = cookieStore.get('auth-token')?.value;
+  const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+  const authToken = session.accessToken;
 
   if (!authToken) {
     throw new Error('Not authenticated');

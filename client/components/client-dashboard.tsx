@@ -5,11 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Building2, 
-  Calendar, 
-  FileText, 
-  Truck, 
+import {
+  Building2,
+  Calendar,
+  FileText,
+  Truck,
   CheckCircle2,
   Clock,
   AlertCircle,
@@ -17,18 +17,17 @@ import {
 } from "lucide-react";
 import { fetchOwnerDashboard } from "@/app/actions/projects/main";
 import { fetchProgressTimeline } from "@/app/actions/projects/progress";
+import { OwnerDashboardData, ProgressLog, Drawing, MaterialDelivery, SiteDiary } from "@/types/billing";
 
 interface ClientDashboardProps {
   projectId: string;
 }
 
 export function ClientDashboard({ projectId }: ClientDashboardProps) {
-  const [data, setData] = useState<any>(null);
-  const [timeline, setTimeline] = useState<any[]>([]);
+  const [data, setData] = useState<OwnerDashboardData | null>(null);
+  const [timeline, setTimeline] = useState<ProgressLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [error, setError] = useState<string | null>(null);  useEffect(() => {
     async function loadData() {
       try {
         const [dashboardData, timelineData] = await Promise.all([
@@ -147,7 +146,7 @@ export function ClientDashboard({ projectId }: ClientDashboardProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {timeline?.slice(0, 10).map((log: any) => (
+                {timeline?.slice(0, 10).map((log: ProgressLog) => (
                   <div key={log.id} className="flex items-start gap-3 p-3 border rounded">
                     <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <TrendingUp className="h-4 w-4 text-primary" />
@@ -195,7 +194,7 @@ export function ClientDashboard({ projectId }: ClientDashboardProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {data.drawings?.slice(0, 6).map((drawing: any) => (
+                {data.drawings?.slice(0, 6).map((drawing: Drawing) => (
                   <div key={drawing.id} className="group relative flex flex-col gap-2 p-3 border rounded hover:bg-accent transition-colors cursor-pointer">
                     <div className="flex items-center justify-between">
                       <Badge variant="secondary" className="text-xs">{drawing.category}</Badge>
@@ -232,7 +231,7 @@ export function ClientDashboard({ projectId }: ClientDashboardProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {data.materialDeliveries?.slice(0, 10).map((delivery: any) => (
+                {data.materialDeliveries?.slice(0, 10).map((delivery: MaterialDelivery) => (
                   <div key={delivery.id} className="flex items-center justify-between p-3 border rounded">
                     <div className="flex items-center gap-3">
                       <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -276,7 +275,7 @@ export function ClientDashboard({ projectId }: ClientDashboardProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {data.siteDiaries?.slice(0, 10).map((diary: any) => (
+                {data.siteDiaries?.slice(0, 10).map((diary: SiteDiary) => (
                   <div key={diary.id} className="p-3 border rounded space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="font-medium text-sm flex items-center gap-2">

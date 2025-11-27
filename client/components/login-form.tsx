@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Mail, Lock } from "lucide-react";
-import { login } from "@/app/actions/user/main";
+import { login, storeFcmToken } from "@/app/actions/user/main";
 import { updateUserToken } from "@/app/actions/notification/main";
 import { useRouter } from "next/navigation";
 import { setAuthenticated } from "@/lib/session";
 import useFcmToken from "@/hooks/useFcmToken";
+import { getDeviceId } from "@/lib/firebase";
 
 export function LoginForm({
   className,
@@ -50,13 +51,41 @@ export function LoginForm({
       
       setAuthenticated(true);
 
+      // Try to get FCM token - if not available, request it
+      let fcmToken = token;
+      if (!fcmToken) {
+        console.log("FCM token not available, requesting permission...");
+        fcmToken = await requestPermission();
+      }
+
       // Store FCM token if available
-      if (token) {
+      if (fcmToken) {
         // Get device info for token storage
-        const deviceId = localStorage.getItem("fcm_device_id") || "web-device";
+        const deviceId = await getDeviceId();
         const deviceType = "WEB";
 
-        await updateUserToken(token, deviceId, deviceType);
+        console.log("Storing FCM token after login:", { token: fcmToken.substring(0, 20) + "...", deviceId, deviceType });
+
+        // Small delay to ensure session is fully established
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        try {
+          await updateUserToken(fcmToken, deviceId, deviceType);
+          console.log("FCM token stored successfully");
+        } catch (fcmError) {
+          console.error("Failed to store FCM token with updateUserToken, trying alternative method:", fcmError);
+
+          // Try alternative method using storeFcmToken
+          try {
+            await storeFcmToken(fcmToken, deviceType);
+            console.log("FCM token stored successfully using alternative method");
+          } catch (altError) {
+            console.error("Failed to store FCM token with alternative method:", altError);
+            // Don't fail login if FCM storage fails
+          }
+        }
+      } else {
+        console.log("No FCM token available to store after login");
       }
 
       router.push('/dashboard');

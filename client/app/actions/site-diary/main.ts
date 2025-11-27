@@ -10,7 +10,7 @@ export async function createDiary(projectId: string, data: {
   location?: string;
   notes?: string;
   issues?: string;
-  photos?: any;
+  photos?: File[] | string[];
 }) {
   const session = await getSession();
 

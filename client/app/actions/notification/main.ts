@@ -6,7 +6,7 @@ interface NotificationPayload {
   title: string;
   body: string;
   type: 'single' | 'multiple' | 'squad' | 'branch' | 'category';
-  click_action?: string;
+  clickAction?: string; // Renamed from click_action
   userId?: string;
   userIds?: string[];
   roleIds?: number[];
@@ -18,10 +18,16 @@ export async function updateUserToken(token: string, deviceId: string, deviceTyp
   console.log("updateUserToken called with:", { token: token.substring(0, 20) + "...", deviceId, deviceType });
 
   const session = await getSession();
-  console.log("Session retrieved:", { isLoggedIn: session.isLoggedIn, userId: session.userId });
+  console.log("Session retrieved:", { isLoggedIn: session.isLoggedIn, userId: session.userId, hasToken: !!session.accessToken });
 
   if (!session.isLoggedIn || !session.userId) {
+    console.error("User not authenticated or no userId");
     throw new Error("User not authenticated");
+  }
+
+  if (!session.accessToken) {
+    console.error("No access token in session");
+    throw new Error("No access token available");
   }
 
   try {
@@ -32,13 +38,17 @@ export async function updateUserToken(token: string, deviceId: string, deviceTyp
       userId: session.userId,
     };
     console.log("Making request to:", `${process.env.NEXT_PUBLIC_BACKEND_URL}/fcm/upsert-token`);
+    console.log("Request headers:", {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.accessToken.substring(0, 20)}...`
+    });
     console.log("Request body:", { ...requestBody, token: token.substring(0, 20) + "..." });
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/fcm/upsert-token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.accessToken}`,
+        "Authorization": `Bearer ${session.accessToken}`,
       },
       body: JSON.stringify(requestBody),
     });
@@ -47,9 +57,16 @@ export async function updateUserToken(token: string, deviceId: string, deviceTyp
     console.log("Response ok:", response.ok);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error response:", errorData);
-      throw new Error(errorData.message || "Failed to update FCM token");
+      const errorText = await response.text();
+      console.error("Error response text:", errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText };
+      }
+      console.error("Error response parsed:", errorData);
+      throw new Error(errorData.message || `Failed to update FCM token (${response.status})`);
     }
 
     const data = await response.json();
@@ -85,7 +102,7 @@ export async function sendCustomNotification(
       type,
     };
 
-    if (link) payload.click_action = link;
+    if (link) payload.clickAction = link;
     if (singleUserCardNumber) payload.userId = singleUserCardNumber;
     if (multipleUserCardNumbers) payload.userIds = multipleUserCardNumbers.split(',').map((id: string) => id.trim());
     if (squads) payload.roleIds = squads.map(squad => parseInt(squad.value));
