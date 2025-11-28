@@ -6,7 +6,7 @@ export class DrawingsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(projectId?: string) {
-    return this.prisma.drawing.findMany({
+    const result = await this.prisma.drawing.findMany({
       where: projectId ? { projectId } : undefined,
       include: {
         project: {
@@ -40,6 +40,9 @@ export class DrawingsService {
         createdAt: 'desc',
       },
     });
+    console.log('findAll result count:', result.length);
+    console.log('findAll result:', result);
+    return result;
   }
 
   async findOne(id: string) {
@@ -95,8 +98,10 @@ export class DrawingsService {
     fileUrl: string;
     fileType: string;
     uploadedBy: string;
+    version?: number;
   }) {
-    return this.prisma.drawing.create({
+    console.log('Creating drawing with data:', data);
+    const result = await this.prisma.drawing.create({
       data: {
         ...data,
         fileType: data.fileType as any,
@@ -112,6 +117,8 @@ export class DrawingsService {
         },
       },
     });
+    console.log('Created drawing result:', result);
+    return result;
   }
 
   async update(

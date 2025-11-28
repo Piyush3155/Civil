@@ -44,22 +44,35 @@ import {
   Calendar,
   Building2,
   File,
+  Eye,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { 
   fetchDrawings, 
   createDrawing,
   updateDrawing,
-  deleteDrawing 
+  deleteDrawing,
+  uploadDrawingAttachment
 } from "@/app/actions/drawings/main"
 import { fetchProjects } from "@/app/actions/projects/main"
 import Loader from "@/components/ui/loader";
+import dynamic from "next/dynamic";
+
+// Dynamic import for DrawingViewer to avoid SSR issues
+const DrawingViewer = dynamic(() => import("./DrawingViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  ),
+});
 
 interface Drawing {
   id: string
   title: string
   description?: string
-  type: string
+  fileType: string
   version: number
   filePath?: string
   fileUrl?: string
@@ -83,14 +96,16 @@ export default function DrawingsPage() {
   const [loading, setLoading] = useState(true)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [viewingDrawing, setViewingDrawing] = useState<Drawing | null>(null)
   const [selectedDrawing, setSelectedDrawing] = useState<Drawing | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     type: "PDF",
     version: 1,
     projectId: "",
-    filePath: "",
   })
 
   useEffect(() => {
@@ -114,15 +129,39 @@ export default function DrawingsPage() {
 
   async function handleCreateDrawing(e: React.FormEvent) {
     e.preventDefault()
+    if (!selectedFile) {
+      alert("Please select a file")
+      return
+    }
     try {
-      await createDrawing({
+      console.log("Starting upload to CDN...")
+      // Upload file to CDN
+      const uploadFormData = new FormData()
+      uploadFormData.append('files', selectedFile)
+      const uploadResult = await uploadDrawingAttachment(uploadFormData)
+      console.log("Upload result:", uploadResult)
+      
+      if (!uploadResult.success || !uploadResult.data) {
+        alert(uploadResult.error || "Failed to upload file")
+        return
+      }
+      const fileUrl = uploadResult.data.attachmentUrls[0]
+      console.log("File URL:", fileUrl)
+
+      console.log("Creating drawing in server...")
+      const createData = {
         projectId: formData.projectId,
         title: formData.title,
         description: formData.description,
-        fileUrl: formData.filePath,
+        fileUrl,
         fileType: formData.type,
         version: formData.version,
-      })
+      }
+      console.log("Create data:", createData)
+      
+      await createDrawing(createData)
+      console.log("Drawing created successfully")
+      
       setCreateDialogOpen(false)
       resetForm()
       await loadData()
@@ -167,12 +206,21 @@ export default function DrawingsPage() {
     setFormData({
       title: drawing.title,
       description: drawing.description || "",
-      type: drawing.type,
+      type: drawing.fileType,
       version: drawing.version,
       projectId: drawing.project?.id || "",
-      filePath: drawing.filePath || "",
     })
     setEditDialogOpen(true)
+  }
+
+  function openViewDialog(drawing: Drawing) {
+    setViewingDrawing(drawing)
+    setViewDialogOpen(true)
+  }
+
+  function getDrawingFileUrl(drawing: Drawing): string {
+    const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL || "https://localhost:3000"
+    return `${cdnUrl}${drawing.fileUrl}`
   }
 
   function resetForm() {
@@ -182,8 +230,8 @@ export default function DrawingsPage() {
       type: "PDF",
       version: 1,
       projectId: "",
-      filePath: "",
     })
+    setSelectedFile(null)
   }
 
   function getFileIcon(type: string) {
@@ -210,111 +258,6 @@ export default function DrawingsPage() {
     }
     return colorMap[type] || "default"
   }
-
-  const DrawingForm = ({ onSubmit, submitText }: { onSubmit: (e: React.FormEvent) => void, submitText: string }) => (
-    <form onSubmit={onSubmit}>
-      <div className="grid gap-4 py-4">
-        <div className="grid gap-2">
-          <Label htmlFor="title">Drawing Title *</Label>
-          <Input
-            id="title"
-            placeholder="Site Plan - Ground Floor"
-            value={formData.title}
-            onChange={(e) =>
-              setFormData({ ...formData, title: e.target.value })
-            }
-            required
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="project">Project *</Label>
-          <Select
-            value={formData.projectId}
-            onValueChange={(value) =>
-              setFormData({ ...formData, projectId: value })
-            }
-            required
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select project" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.name} ({project.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="type">File Type</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) =>
-                setFormData({ ...formData, type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PDF">PDF</SelectItem>
-                <SelectItem value="DWG">DWG (AutoCAD)</SelectItem>
-                <SelectItem value="DXF">DXF</SelectItem>
-                <SelectItem value="IFC">IFC (BIM)</SelectItem>
-                <SelectItem value="RVT">RVT (Revit)</SelectItem>
-                <SelectItem value="IMAGE">Image</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="version">Version</Label>
-            <Input
-              id="version"
-              type="number"
-              step="0.1"
-              placeholder="1.0"
-              value={formData.version}
-              onChange={(e) =>
-                setFormData({ ...formData, version: parseFloat(e.target.value) || 1 })
-              }
-            />
-          </div>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            placeholder="Brief description of the drawing..."
-            value={formData.description}
-            onChange={(e) =>
-              setFormData({ ...formData, description: e.target.value })
-            }
-            rows={3}
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="filePath">File Path</Label>
-          <Input
-            id="filePath"
-            placeholder="/uploads/drawings/file.pdf"
-            value={formData.filePath}
-            onChange={(e) =>
-              setFormData({ ...formData, filePath: e.target.value })
-            }
-          />
-          <p className="text-xs text-muted-foreground">
-            Note: File upload functionality requires backend storage configuration
-          </p>
-        </div>
-      </div>
-      <DialogFooter>
-        <Button type="submit">{submitText}</Button>
-      </DialogFooter>
-    </form>
-  )
 
   return (
     <SidebarProvider>
@@ -348,7 +291,103 @@ export default function DrawingsPage() {
                     Add a new technical drawing or document
                   </DialogDescription>
                 </DialogHeader>
-                <DrawingForm onSubmit={handleCreateDrawing} submitText="Upload Drawing" />
+                <form onSubmit={handleCreateDrawing}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="create-title">Drawing Title *</Label>
+                      <Input
+                        id="create-title"
+                        placeholder="Site Plan - Ground Floor"
+                        value={formData.title}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, title: e.target.value }))
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="create-project">Project *</Label>
+                      <Select
+                        value={formData.projectId}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, projectId: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name} ({project.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="create-type">File Type</Label>
+                        <Select
+                          value={formData.type}
+                          onValueChange={(value) =>
+                            setFormData((prev) => ({ ...prev, type: value }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PDF">PDF</SelectItem>
+                            <SelectItem value="DWG">DWG (AutoCAD)</SelectItem>
+                            <SelectItem value="DXF">DXF</SelectItem>
+                            <SelectItem value="IFC">IFC (BIM)</SelectItem>
+                            <SelectItem value="RVT">RVT (Revit)</SelectItem>
+                            <SelectItem value="IMAGE">Image</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="create-version">Version</Label>
+                        <Input
+                          id="create-version"
+                          type="number"
+                          step="0.1"
+                          placeholder="1.0"
+                          value={formData.version}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, version: parseFloat(e.target.value) || 1 }))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="create-description">Description</Label>
+                      <Textarea
+                        id="create-description"
+                        placeholder="Brief description of the drawing..."
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, description: e.target.value }))
+                        }
+                        rows={3}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="create-file">File *</Label>
+                      <Input
+                        id="create-file"
+                        type="file"
+                        accept=".pdf,.dwg,.dxf,.ifc,.rvt,image/*"
+                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit">Upload Drawing</Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
@@ -379,14 +418,14 @@ export default function DrawingsPage() {
                   <CardContent className="p-6">
                     <div className="flex items-start gap-3 mb-4">
                       <div className="p-2 bg-primary/10 rounded-lg">
-                        {getFileIcon(drawing.type)}
+                        {getFileIcon(drawing.fileType)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold truncate">{drawing.title}</h3>
                         <p className="text-sm text-muted-foreground">v{drawing.version}</p>
                       </div>
-                      <Badge variant={getTypeBadge(drawing.type) as "default" | "secondary" | "outline"}>
-                        {drawing.type}
+                      <Badge variant={getTypeBadge(drawing.fileType) as "default" | "secondary" | "outline"}>
+                        {drawing.fileType}
                       </Badge>
                     </div>
                     
@@ -412,16 +451,27 @@ export default function DrawingsPage() {
                     <div className="flex gap-2">
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         className="flex-1"
-                        onClick={() => openEditDialog(drawing)}
+                        onClick={() => openViewDialog(drawing)}
                       >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
+                        <Eye className="mr-2 h-4 w-4" />
+                        View
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
+                        onClick={() => openEditDialog(drawing)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const url = getDrawingFileUrl(drawing)
+                          window.open(url, '_blank')
+                        }}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -454,7 +504,121 @@ export default function DrawingsPage() {
                   Update drawing information
                 </DialogDescription>
               </DialogHeader>
-              <DrawingForm onSubmit={handleUpdateDrawing} submitText="Save Changes" />
+              <form onSubmit={handleUpdateDrawing}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-title">Drawing Title *</Label>
+                    <Input
+                      id="edit-title"
+                      placeholder="Site Plan - Ground Floor"
+                      value={formData.title}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, title: e.target.value }))
+                      }
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-project">Project *</Label>
+                    <Select
+                      value={formData.projectId}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, projectId: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name} ({project.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-type">File Type</Label>
+                      <Select
+                        value={formData.type}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, type: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PDF">PDF</SelectItem>
+                          <SelectItem value="DWG">DWG (AutoCAD)</SelectItem>
+                          <SelectItem value="DXF">DXF</SelectItem>
+                          <SelectItem value="IFC">IFC (BIM)</SelectItem>
+                          <SelectItem value="RVT">RVT (Revit)</SelectItem>
+                          <SelectItem value="IMAGE">Image</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="edit-version">Version</Label>
+                      <Input
+                        id="edit-version"
+                        type="number"
+                        step="0.1"
+                        placeholder="1.0"
+                        value={formData.version}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, version: parseFloat(e.target.value) || 1 }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      placeholder="Brief description of the drawing..."
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, description: e.target.value }))
+                      }
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* View Dialog */}
+          <Dialog open={viewDialogOpen} onOpenChange={(open) => {
+            setViewDialogOpen(open)
+            if (!open) {
+              setViewingDrawing(null)
+            }
+          }}>
+            <DialogContent className="max-w-[90vw] max-h-[90vh] w-full h-full">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {viewingDrawing && getFileIcon(viewingDrawing.fileType)}
+                  {viewingDrawing?.title}
+                </DialogTitle>
+                <DialogDescription>
+                  {viewingDrawing?.project?.name} • v{viewingDrawing?.version}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-auto min-h-[60vh]">
+                {viewingDrawing && (
+                  <DrawingViewer
+                    fileUrl={getDrawingFileUrl(viewingDrawing)}
+                    fileType={viewingDrawing.fileType}
+                  />
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>

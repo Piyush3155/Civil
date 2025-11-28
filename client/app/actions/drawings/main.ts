@@ -2,7 +2,69 @@
 
 import { getSession } from "@/lib/sessionAction";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7001";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:7001';
+
+
+export async function uploadDrawingAttachment(formData: FormData): Promise<{ success: boolean; data?: { attachmentUrls: string[] }; message?: string; error?: string }> {
+  try {
+    console.log("Upload function called")
+    const session = await getSession();
+    const accessToken = session.accessToken;
+    const userId = session.userId;
+
+    console.log("Session data:", { userId: !!userId, accessToken: !!accessToken })
+
+    if (!userId) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    if (!accessToken) {
+      return { success: false, error: 'No access token' };
+    }
+
+    const cdnUrl = `${process.env.CDN_API || process.env.NEXT_PUBLIC_CDN_URL}/drawings/attachments`
+    console.log("CDN URL:", cdnUrl)
+
+    // Upload files to CDN
+    const cdnResponse = await fetch(cdnUrl, {
+      method: 'POST',
+      body: formData,
+    });
+
+    console.log("CDN response status:", cdnResponse.status)
+    console.log("CDN response headers:", Object.fromEntries(cdnResponse.headers.entries()))
+
+    let cdnResult: any = {};
+    try {
+      const responseText = await cdnResponse.text()
+      console.log("CDN response text:", responseText)
+      cdnResult = JSON.parse(responseText)
+    } catch (e) {
+      console.error('Failed to parse CDN response:', e);
+    }
+
+    console.log("Parsed CDN result:", cdnResult)
+
+    if (!cdnResponse.ok) {
+      return { success: false, error: cdnResult.message || 'Failed to upload file' };
+    }
+
+    // Expecting cdnResult.data.attachmentUrls
+    const uploadedUrls: string[] = cdnResult?.data?.attachmentUrls || cdnResult?.attachmentUrls || [];
+
+    console.log("Uploaded URLs:", uploadedUrls)
+
+    if (!uploadedUrls || uploadedUrls.length === 0) {
+      return { success: false, error: 'No URLs returned from CDN' };
+    }
+
+    return { success: true, data: { attachmentUrls: uploadedUrls }, message: 'File uploaded successfully' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred while uploading the file';
+    console.error('Error in uploadDrawingAttachment:', error);
+    return { success: false, error: errorMessage };
+  }
+}
 
 export async function fetchDrawings(projectId?: string) {
   const session = await getSession();
@@ -16,6 +78,8 @@ export async function fetchDrawings(projectId?: string) {
       ? `${BACKEND_URL}/drawings?projectId=${projectId}`
       : `${BACKEND_URL}/drawings`;
 
+    console.log("Fetching drawings from:", url)
+
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${session.accessToken}`,
@@ -23,11 +87,17 @@ export async function fetchDrawings(projectId?: string) {
       cache: "no-store",
     });
 
+    console.log("Fetch response status:", response.status)
+
     if (!response.ok) {
+      const errorText = await response.text()
+      console.log("Fetch error:", errorText)
       throw new Error("Failed to fetch drawings");
     }
 
-    return await response.json();
+    const result = await response.json()
+    console.log("Fetched drawings:", result)
+    return result
   } catch (error) {
     console.error("Error fetching drawings:", error);
     throw error;
@@ -100,6 +170,10 @@ export async function createDrawing(data: {
     throw new Error("User not authenticated");
   }
 
+  console.log("Creating drawing with data:", data)
+  console.log("Backend URL:", BACKEND_URL)
+  console.log("Access token:", !!session.accessToken)
+
   try {
     const response = await fetch(`${BACKEND_URL}/drawings`, {
       method: "POST",
@@ -110,12 +184,19 @@ export async function createDrawing(data: {
       body: JSON.stringify(data),
     });
 
+    console.log("Create response status:", response.status)
+    console.log("Create response headers:", Object.fromEntries(response.headers.entries()))
+
     if (!response.ok) {
-      const error = await response.json();
+      const errorText = await response.text()
+      console.log("Create error response:", errorText)
+      const error = JSON.parse(errorText)
       throw new Error(error.message || "Failed to create drawing");
     }
 
-    return await response.json();
+    const result = await response.json()
+    console.log("Create success result:", result)
+    return result
   } catch (error) {
     console.error("Error creating drawing:", error);
     throw error;
