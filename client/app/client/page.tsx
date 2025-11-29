@@ -1,7 +1,7 @@
 import { ClientDashboard } from '@/components/client-dashboard'
 import React from 'react'
 
-export const Client = () => {
+export default function ClientPage() {
   return (
     <div>
         <ClientDashboard projectId={''}/>

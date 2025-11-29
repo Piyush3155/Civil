@@ -28,7 +28,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Calendar, Edit, Trash2, UserPlus, FileText, TrendingUp, ChevronRight } from "lucide-react"
+import { MapPin, Calendar, Edit, Trash2, UserPlus, FileText, TrendingUp, ChevronRight, ReceiptText } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import {
   fetchProjectById,
@@ -48,7 +48,8 @@ import { Building2 } from "lucide-react" // Import Building2 component
 import { MaterialManagement } from "@/components/materials/material-management"
 import SiteDiaryManagement from "@/components/site-diary-management"
 import { TaskManagement } from "@/components/tasks/task-management"
-import { QCManagement } from "@/components/quality-control/qc-management"
+import { QCManagement } from "@/components/quality-control/qc-management";
+import { ProcurementDashboard } from "@/components/procurement/procurement-dashboard";
 
 interface Project {
   id: string
@@ -345,29 +346,82 @@ export default function ProjectDetailPage() {
 
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 h-auto md:h-9 gap-1 md:gap-0">
-              <TabsTrigger value="overview" className="text-xs md:text-sm">
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="tasks" className="text-xs md:text-sm">
-                Tasks
-              </TabsTrigger>
-              <TabsTrigger value="team" className="text-xs md:text-sm">
-                Team
-              </TabsTrigger>
-              <TabsTrigger value="drawings" className="text-xs md:text-sm">
-                Drawings
-              </TabsTrigger>
-              <TabsTrigger value="materials" className="text-xs md:text-sm">
-                Materials
-              </TabsTrigger>
-              <TabsTrigger value="diaries" className="text-xs md:text-sm">
-                Diaries
-              </TabsTrigger>
-              <TabsTrigger value="quality" className="text-xs md:text-sm">
-                Quality
-              </TabsTrigger>
-            </TabsList>
+            <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 border-b">
+              <TabsList className="inline-flex h-auto w-full items-center justify-start gap-1 rounded-lg bg-muted/50 p-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide">
+                <TabsTrigger 
+                  value="overview" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                    Overview
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="tasks" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12h.01"/><path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M22 13a18.15 18.15 0 0 1-20 0"/><rect width="20" height="14" x="2" y="6" rx="2"/></svg>
+                    Tasks
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="team" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Team
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="drawings" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                    Drawings
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="materials" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg>
+                    Materials
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="procurement" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <ReceiptText />
+                    Procurement
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="diaries" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                    Diaries
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="quality" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                    Quality
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="overview" className="mt-6 space-y-6">
               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -575,6 +629,10 @@ export default function ProjectDetailPage() {
                 contractors={project.contractors?.map((pc) => pc.contractor) || []}
                 labours={labours}
               />
+            </TabsContent>
+
+            <TabsContent value="procurement" className="mt-6">
+              <ProcurementDashboard projectId={projectId} />
             </TabsContent>
 
             <TabsContent value="diaries" className="mt-6">

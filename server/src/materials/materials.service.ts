@@ -31,7 +31,9 @@ export class MaterialsService {
     data: {
       materialId: string;
       contractorId?: string;
+      supplierId?: string;
       supplierName: string;
+      poId?: string;
       quantity: number;
       unitPrice?: number;
       totalPrice?: number;
@@ -54,6 +56,8 @@ export class MaterialsService {
       include: {
         material: true,
         contractor: true,
+        supplier: true,
+        purchaseOrder: true,
         project: true,
       },
     });

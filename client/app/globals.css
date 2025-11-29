@@ -120,3 +120,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom scrollbar hiding for horizontal tabs */
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Smooth scroll behavior for tabs */
+  .scroll-smooth-tabs {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+}

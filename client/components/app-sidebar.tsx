@@ -8,7 +8,8 @@ import {
   FileText,
   Bell,
   Settings,
-  Send
+  Send,
+  BarChart3
 } from "lucide-react"
 
 import {
@@ -49,6 +50,11 @@ const data = {
           title: "Drawings",
           url: "/drawings",
           icon: FileText,
+        },
+        {
+          title: "Analytics",
+          url: "/analytics",
+          icon: BarChart3,
         },
       ],
     },

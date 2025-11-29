@@ -155,9 +155,9 @@ export interface SiteDiary {
 
 export interface OwnerDashboardData {
   nextMilestone: string;
-  startDate: any;
-  endDate: any;
-  location: ReactNode;
+  startDate: string | null;
+  endDate: string | null;
+  location: string | null;
   project: Project;
   progress: number;
   totalTasks: number;

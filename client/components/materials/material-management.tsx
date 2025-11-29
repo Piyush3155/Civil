@@ -45,6 +45,7 @@ import {
   createMaterialUsage,
   fetchMaterialLedger,
 } from "@/app/actions/materials/main";
+import { StockManagement } from "@/components/inventory/stock-management";
 
 interface Material {
   id: string;
@@ -328,10 +329,11 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="ledger" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="ledger">Material Ledger</TabsTrigger>
             <TabsTrigger value="deliveries">Record Delivery</TabsTrigger>
             <TabsTrigger value="usage">Record Usage</TabsTrigger>
+            <TabsTrigger value="inventory">Stock Management</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ledger" className="space-y-4">
@@ -763,6 +765,10 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                 </form>
               </DialogContent>
             </Dialog>
+          </TabsContent>
+
+          <TabsContent value="inventory" className="space-y-4">
+            <StockManagement projectId={projectId} />
           </TabsContent>
         </Tabs>
       </CardContent>

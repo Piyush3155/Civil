@@ -17,6 +17,8 @@ import { TasksModule } from './tasks/tasks.module';
 import { BillingModule } from './billing/billing.module';
 import { QualityControlModule } from './quality-control/quality-control.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { ProcurementModule } from './procurement/procurement.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { InventoryModule } from './inventory/inventory.module';
     BillingModule,
     QualityControlModule,
     InventoryModule,
+    ProcurementModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
