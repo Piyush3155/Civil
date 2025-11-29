@@ -57,6 +57,16 @@ model user {
   measurementBooksApproved  MeasurementBook[]       @relation("MeasurementApprover")
   contractorBillsCreated    ContractorBill[]        @relation("BillCreator")
   contractorBillsApproved   ContractorBill[]        @relation("BillApprover")
+
+  // QC/NCR relations
+  qcIssuesCreated           QCIssue[]               @relation("QCCreator")
+  qcIssuesVerified          QCIssue[]               @relation("QCVerifier")
+  qcIssuesClosed            QCIssue[]               @relation("QCCloser")
+  qcUpdates                 QCUpdate[]
+
+  // Inventory relations
+  materialTransfers         MaterialTransfer[]
+  materialAdjustments       MaterialAdjustment[]
 }
 
 enum ForgotPasswordStatus {
@@ -245,6 +255,11 @@ model Project {
   rateContracts      RateContract[]
   measurementBooks   MeasurementBook[]
   contractorBills    ContractorBill[]
+  qcIssues           QCIssue[]
+  materialStock      MaterialStock[]
+  stockLedger        MaterialStockLedger[]
+  materialTransfers  MaterialTransfer[]
+  materialAdjustments MaterialAdjustment[]
 }
 
 enum ProjectStatus {
@@ -355,6 +370,7 @@ model Task {
 
   progressLogs TaskProgressLog[]
   boqItems     BOQItem[]
+  qcIssues     QCIssue[]
 }
 
 model TaskProgressLog {
@@ -393,6 +409,7 @@ model Contractor {
   rateContracts     RateContract[]
   measurementBooks  MeasurementBook[]
   contractorBills   ContractorBill[]
+  qcIssues          QCIssue[]
 }
 
 enum ContractorType {
@@ -568,6 +585,10 @@ model Material {
   deliveries MaterialDelivery[]
   usages     MaterialUsage[]
   diaryMaterialLogs DiaryMaterialLog[]
+  stock      MaterialStock[]
+  stockLedger MaterialStockLedger[]
+  transfers  MaterialTransfer[]
+  adjustments MaterialAdjustment[]
 }
 
 model MaterialDelivery {
@@ -801,3 +822,201 @@ model ContractorPayment {
 
   bill ContractorBill @relation(fields: [billId], references: [id], onDelete: Cascade)
 }
+
+// -------------------------
+// QUALITY CONTROL / NCR
+// -------------------------
+
+enum QCType {
+  QUALITY
+  SAFETY
+  DEFECT        // Owner complaint / snag
+  REWORK
+}
+
+enum NCRStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  FIXED
+  VERIFIED
+  CLOSED
+  REJECTED
+}
+
+enum QCPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model QCIssue {
+  id            String      @id @default(cuid())
+  projectId     String
+  taskId        String?     // Optional link to WBS task
+  type          QCType
+  title         String
+  description   String?
+  priority      QCPriority  @default(MEDIUM)
+  status        NCRStatus   @default(OPEN)
+
+  // Who created this NCR (engineer, PM, or owner)
+  createdBy     String
+  assignedTo    String?     // contractorId
+  verifiedBy    String?     // engineer who verified fix
+  closedBy      String?     // PM who closed NCR
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  dueDate       DateTime?
+
+  // Evidence
+  photos        Json?       // Array of photo URLs
+  location      String?     // e.g. "Slab 1", "Masonry Level 2"
+
+  // Cost impact for billing integration
+  costImpact    Decimal?    @db.Decimal(12,2)
+
+  // Relations
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task          Task?       @relation(fields: [taskId], references: [id])
+  creator       user        @relation("QCCreator", fields: [createdBy], references: [id])
+  contractor    Contractor? @relation(fields: [assignedTo], references: [id])
+  verifier      user?       @relation("QCVerifier", fields: [verifiedBy], references: [id])
+  closer        user?       @relation("QCCloser", fields: [closedBy], references: [id])
+  updates       QCUpdate[]
+
+  @@index([projectId])
+  @@index([taskId])
+  @@index([assignedTo])
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+}
+
+model QCUpdate {
+  id          String    @id @default(cuid())
+  qcIssueId   String
+  updatedBy   String
+  status      NCRStatus
+  notes       String?
+  photos      Json?     // Array of photo URLs
+  createdAt   DateTime  @default(now())
+
+  qcIssue     QCIssue   @relation(fields: [qcIssueId], references: [id], onDelete: Cascade)
+  user        user      @relation(fields: [updatedBy], references: [id])
+
+  @@index([qcIssueId])
+  @@index([updatedBy])
+}
+
+// -------------------------
+// INVENTORY / STOCK MANAGEMENT
+// -------------------------
+
+enum StockEntryType {
+  DELIVERY
+  USAGE
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT
+}
+
+enum AdjustmentType {
+  DAMAGE
+  LOSS
+  THEFT
+  AUDIT
+  CORRECTION
+}
+
+// Live stock balance per material per project
+model MaterialStock {
+  id          String   @id @default(cuid())
+  projectId   String
+  materialId  String
+  openingQty  Decimal  @db.Decimal(12,3) @default(0)
+  receivedQty Decimal  @db.Decimal(12,3) @default(0)
+  usedQty     Decimal  @db.Decimal(12,3) @default(0)
+  adjustedQty Decimal  @db.Decimal(12,3) @default(0)
+  closingQty  Decimal  @db.Decimal(12,3) @default(0)
+  location    String?  // warehouse, site, floor-1, etc.
+
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, materialId])
+  @@index([projectId])
+  @@index([materialId])
+}
+
+// Complete audit trail of all stock movements
+model MaterialStockLedger {
+  id          String         @id @default(cuid())
+  projectId   String
+  materialId  String
+  type        StockEntryType
+  quantity    Decimal        @db.Decimal(12,3)
+  notes       String?
+  location    String?        // where material is stored
+  relatedId   String?        // deliveryId, usageId, adjustmentId, transferId
+  createdBy   String?        // user who made this entry
+  createdAt   DateTime       @default(now())
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([materialId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// Transfer materials between locations
+model MaterialTransfer {
+  id             String   @id @default(cuid())
+  projectId      String
+  materialId     String
+  fromLocation   String?  // warehouse, site, floor-1, etc.
+  toLocation     String?
+  quantity       Decimal  @db.Decimal(12,3)
+  notes          String?
+  transferredBy  String
+  createdAt      DateTime @default(now())
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     user     @relation(fields: [transferredBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([materialId])
+  @@index([transferredBy])
+}
+
+// Stock adjustments for damage, loss, audit corrections
+model MaterialAdjustment {
+  id            String         @id @default(cuid())
+  projectId     String
+  materialId    String
+  type          AdjustmentType
+  quantity      Decimal        @db.Decimal(12,3)  // positive or negative
+  reason        String?
+  photos        Json?          // evidence photos
+  adjustedBy    String
+  createdAt     DateTime       @default(now())
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  user     user     @relation(fields: [adjustedBy], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([materialId])
+  @@index([type])
+  @@index([adjustedBy])
+}
+

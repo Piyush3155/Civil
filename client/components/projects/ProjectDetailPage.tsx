@@ -48,6 +48,7 @@ import { Building2 } from "lucide-react" // Import Building2 component
 import { MaterialManagement } from "@/components/materials/material-management"
 import SiteDiaryManagement from "@/components/site-diary-management"
 import { TaskManagement } from "@/components/tasks/task-management"
+import { QCManagement } from "@/components/quality-control/qc-management"
 
 interface Project {
   id: string
@@ -344,7 +345,7 @@ export default function ProjectDetailPage() {
 
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">
           <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-6 h-auto md:h-9 gap-1 md:gap-0">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-7 h-auto md:h-9 gap-1 md:gap-0">
               <TabsTrigger value="overview" className="text-xs md:text-sm">
                 Overview
               </TabsTrigger>
@@ -362,6 +363,9 @@ export default function ProjectDetailPage() {
               </TabsTrigger>
               <TabsTrigger value="diaries" className="text-xs md:text-sm">
                 Diaries
+              </TabsTrigger>
+              <TabsTrigger value="quality" className="text-xs md:text-sm">
+                Quality
               </TabsTrigger>
             </TabsList>
 
@@ -583,6 +587,10 @@ export default function ProjectDetailPage() {
                   <SiteDiaryManagement projectId={projectId} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="quality" className="mt-6">
+              <QCManagement projectId={projectId} />
             </TabsContent>
           </Tabs>
         </div>

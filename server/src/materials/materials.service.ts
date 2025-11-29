@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class MaterialsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private inventoryService: InventoryService,
+  ) {}
 
   async createMaterial(data: {
     name: string;
@@ -38,7 +42,7 @@ export class MaterialsService {
       qcStatus?: string;
     },
   ) {
-    return this.prisma.materialDelivery.create({
+    const delivery = await this.prisma.materialDelivery.create({
       data: {
         projectId,
         ...data,
@@ -53,6 +57,21 @@ export class MaterialsService {
         project: true,
       },
     });
+
+    // Auto-update inventory stock
+    try {
+      await this.inventoryService.recordDelivery(
+        delivery.id,
+        projectId,
+        data.materialId,
+        data.quantity,
+      );
+    } catch (error) {
+      console.error('Failed to update inventory:', error);
+      // Continue even if inventory update fails
+    }
+
+    return delivery;
   }
 
   async createUsage(
@@ -67,7 +86,7 @@ export class MaterialsService {
       notes?: string;
     },
   ) {
-    return this.prisma.materialUsage.create({
+    const usage = await this.prisma.materialUsage.create({
       data: {
         projectId,
         ...data,
@@ -80,6 +99,21 @@ export class MaterialsService {
         project: true,
       },
     });
+
+    // Auto-update inventory stock
+    try {
+      await this.inventoryService.recordUsage(
+        usage.id,
+        projectId,
+        data.materialId,
+        data.quantityUsed,
+      );
+    } catch (error) {
+      console.error('Failed to update inventory:', error);
+      // Continue even if inventory update fails
+    }
+
+    return usage;
   }
 
   async getMaterialLedger(projectId: string) {
