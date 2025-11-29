@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, FileText } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getCompleteAnalytics, getAllProjects } from "@/app/actions/analytics/main";
-import type { ProjectListItem } from "@/types/analytics";
+import { getCompleteAnalytics, getAllProjects, getProjectOverview, getProgressAnalytics } from "@/app/actions/analytics/main";
+import type { ProjectListItem, ProjectOverview, ProgressAnalytics } from "@/types/analytics";
+import { pdf } from "@react-pdf/renderer";
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -17,10 +18,17 @@ export default function ReportsPage() {
   const [projects, setProjects] = useState<ProjectListItem[]>([]);
   const [selectedProject, setSelectedProject] = useState(projectId || "");
   const [generating, setGenerating] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    fetchProjects();
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchProjects();
+    }
+  }, [mounted]);
 
   const fetchProjects = async () => {
     try {
@@ -34,35 +42,88 @@ export default function ReportsPage() {
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchProjects();
+    }
+  }, [mounted, fetchProjects]);
 
   const generateReport = async (type: string) => {
     if (!selectedProject) return;
     
     setGenerating(true);
     try {
-      // For now, just fetch the JSON data
-      // In production, this would call a PDF generation endpoint
-      const result = await getCompleteAnalytics(selectedProject);
+      let reportData: {
+        overview?: ProjectOverview;
+        progress?: ProgressAnalytics;
+      } = {};
       
-      if (result.success && result.data) {
-        // Convert data to JSON and download
-        const jsonString = JSON.stringify(result.data, null, 2);
-        const blob = new Blob([jsonString], { type: "application/json" });
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.setAttribute("download", `${type}-report-${Date.now()}.json`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
-      } else {
-        alert("Failed to generate report: " + (result.error || "Unknown error"));
+      // Map report types to data fetching
+      // Daily, Weekly, Monthly reports all use overview + progress data
+      const needsOverview = ["daily", "weekly", "monthly", "overview", "complete"].includes(type);
+      const needsProgress = ["daily", "weekly", "monthly", "progress", "complete"].includes(type);
+      
+      // Fetch data based on report type
+      if (needsOverview) {
+        const overviewResult = await getProjectOverview(selectedProject);
+        console.log("Overview Result:", overviewResult);
+        if (overviewResult.success) {
+          reportData.overview = overviewResult.data;
+        } else {
+          console.error("Overview fetch failed:", overviewResult.error);
+          throw new Error(overviewResult.error || "Failed to fetch overview data");
+        }
       }
+      
+      if (needsProgress) {
+        // Adjust days based on report type
+        const days = type === "daily" ? 1 : type === "weekly" ? 7 : 30;
+        const progressResult = await getProgressAnalytics(selectedProject, days);
+        console.log("Progress Result:", progressResult);
+        if (progressResult.success) {
+          reportData.progress = progressResult.data;
+        } else {
+          console.error("Progress fetch failed:", progressResult.error);
+          throw new Error(progressResult.error || "Failed to fetch progress data");
+        }
+      }
+      
+      if (type === "complete") {
+        const completeResult = await getCompleteAnalytics(selectedProject);
+        console.log("Complete Result:", completeResult);
+        if (completeResult.success) {
+          reportData = { ...reportData, ...completeResult.data };
+        } else {
+          console.error("Complete fetch failed:", completeResult.error);
+          throw new Error(completeResult.error || "Failed to fetch complete data");
+        }
+      }
+      
+      console.log("Final Report Data:", reportData);
+      
+      // Generate PDF
+      const AnalyticsReportPDF = (await import("@/components/templates/pdf/page")).default;
+      const blob = await pdf(
+        <AnalyticsReportPDF 
+          data={reportData} 
+          reportType={type as "overview" | "progress" | "materials" | "procurement" | "billing" | "complete"}
+        />
+      ).toBlob();
+      
+      // Download PDF
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${type}-report-${Date.now()}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error generating report:", error);
-      alert("Report generation coming soon! For now, downloading as JSON.");
+      alert("Failed to generate PDF report. Please try again.");
     } finally {
       setGenerating(false);
     }
