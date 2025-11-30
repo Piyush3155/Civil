@@ -33,7 +33,6 @@ export function CashFlowDashboard({
 
   const totalCashOut = expenses + advances + supplierPayments + materialCosts;
   const outstandingLiabilities = contractorBills;
-  const netCashFlow = -totalCashOut;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
