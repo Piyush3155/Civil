@@ -19,6 +19,7 @@ import { QualityControlModule } from './quality-control/quality-control.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ProcurementModule } from './procurement/procurement.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { FinanceModule } from './finance/finance.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     InventoryModule,
     ProcurementModule,
     AnalyticsModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

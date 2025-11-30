@@ -50,6 +50,7 @@ import SiteDiaryManagement from "@/components/site-diary-management"
 import { TaskManagement } from "@/components/tasks/task-management"
 import { QCManagement } from "@/components/quality-control/qc-management";
 import { ProcurementDashboard } from "@/components/procurement/procurement-dashboard";
+import { FinanceManagement } from "@/components/finance/finance-management";
 
 interface Project {
   id: string
@@ -420,6 +421,15 @@ export default function ProjectDetailPage() {
                     Quality
                   </span>
                 </TabsTrigger>
+                <TabsTrigger 
+                  value="finance" 
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                >
+                  <span className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    Finance
+                  </span>
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -649,6 +659,10 @@ export default function ProjectDetailPage() {
 
             <TabsContent value="quality" className="mt-6">
               <QCManagement projectId={projectId} />
+            </TabsContent>
+
+            <TabsContent value="finance" className="mt-6">
+              <FinanceManagement projectId={projectId} />
             </TabsContent>
           </Tabs>
         </div>

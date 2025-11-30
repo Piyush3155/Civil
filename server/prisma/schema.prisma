@@ -73,6 +73,9 @@ model user {
   purchaseRequestsApproved  PurchaseRequest[]   @relation("PurchaseRequestApprover")
   purchaseOrdersCreated     PurchaseOrder[]     @relation("POCreator")
   purchaseOrdersApproved    PurchaseOrder[]     @relation("POApprover")
+  expensesPaid              Expense[]
+  contractorAdvancesPaid    ContractorAdvance[]
+  supplierPaymentsPaid      SupplierPayment[]
 }
 
 enum ForgotPasswordStatus {
@@ -268,6 +271,9 @@ model Project {
   materialAdjustments MaterialAdjustment[]
   purchaseRequests   PurchaseRequest[]
   purchaseOrders     PurchaseOrder[]
+  expenses           Expense[]
+  contractorAdvances ContractorAdvance[]
+  supplierPayments   SupplierPayment[]
 }
 
 enum ProjectStatus {
@@ -418,6 +424,7 @@ model Contractor {
   measurementBooks  MeasurementBook[]
   contractorBills   ContractorBill[]
   qcIssues          QCIssue[]
+  advances          ContractorAdvance[]
 }
 
 enum ContractorType {
@@ -1057,6 +1064,7 @@ model Supplier {
 
   purchaseOrders PurchaseOrder[]
   deliveries     MaterialDelivery[]
+  payments       SupplierPayment[]
 
   @@index([name])
   @@index([isActive])
@@ -1130,8 +1138,9 @@ model PurchaseOrder {
   supplier   Supplier           @relation(fields: [supplierId], references: [id])
   creator    user               @relation("POCreator", fields: [createdBy], references: [id])
   approver   user?              @relation("POApprover", fields: [approvedBy], references: [id])
-  items      POItem[]
-  deliveries MaterialDelivery[]
+  items            POItem[]
+  deliveries       MaterialDelivery[]
+  supplierPayments SupplierPayment[]
 
   @@index([projectId])
   @@index([supplierId])
@@ -1160,4 +1169,90 @@ model POItem {
 
   @@index([poId])
   @@index([materialId])
+}
+
+// -------------------------
+// FINANCE / EXPENSES MODULE
+// -------------------------
+
+enum PaymentMode {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+  CARD
+  OTHER
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  expenses  Expense[]
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  projectId   String
+  categoryId  String
+  amount      Decimal   @db.Decimal(12,2)
+  description String?
+  paymentDate DateTime  @default(now())
+  paidById    String?
+  paidTo      String?
+  paymentMode PaymentMode
+  receiptUrl  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  project   Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  category  ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  paidBy    user?           @relation(fields: [paidById], references: [id])
+
+  @@index([projectId])
+  @@index([categoryId])
+  @@index([paidById])
+  @@index([paymentDate])
+}
+
+model ContractorAdvance {
+  id           String   @id @default(cuid())
+  contractorId String
+  projectId    String
+  amount       Decimal  @db.Decimal(12,2)
+  paidDate     DateTime @default(now())
+  notes        String?
+  paidById     String?
+
+  contractor Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  paidBy     user?      @relation(fields: [paidById], references: [id])
+
+  @@index([projectId])
+  @@index([contractorId])
+  @@index([paidById])
+}
+
+model SupplierPayment {
+  id          String   @id @default(cuid())
+  supplierId  String
+  projectId   String
+  poId        String?
+  amount      Decimal  @db.Decimal(12,2)
+  paymentDate DateTime @default(now())
+  notes       String?
+  paidById    String?
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  po       PurchaseOrder? @relation(fields: [poId], references: [id])
+  paidBy   user?    @relation(fields: [paidById], references: [id])
+
+  @@index([projectId])
+  @@index([supplierId])
+  @@index([poId])
+  @@index([paidById])
+  @@index([paymentDate])
 }
