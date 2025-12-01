@@ -9,7 +9,8 @@ import {
   Bell,
   Settings,
   Send,
-  BarChart3
+  BarChart3,
+  UserCheck
 } from "lucide-react"
 
 import {
@@ -73,6 +74,11 @@ const data = {
           title: "Labours",
           url: "/labours",
           icon: HardHat,
+        },
+        {
+          title: "Users",
+          url: "/users",
+          icon: UserCheck,
         },
       ],
     },

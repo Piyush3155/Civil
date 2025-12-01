@@ -151,3 +151,120 @@ export async function fetchUsers() {
     throw error;
   }
 }
+
+export async function getCurrentUserProfile() {
+  const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+  
+  if (!session.isLoggedIn || !session.accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/users/profile`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+
+    const profile = await response.json();
+    
+    return {
+      id: profile.id || session.userId,
+      name: profile.name || session.name || '',
+      username: profile.username || session.username || '',
+      email: profile.email || session.email || '',
+      phone: profile.phone || '',
+      isAdmin: profile.isAdmin || false,
+      roles: session.roles || [],
+      createdAt: profile.createdAt,
+    };
+  } catch (error) {
+    console.error('Fetch profile error:', error);
+    // Return session data as fallback
+    return {
+      id: session.userId || '',
+      name: session.name || '',
+      username: session.username || '',
+      email: session.email || '',
+      phone: '',
+      isAdmin: false,
+      roles: session.roles || [],
+    };
+  }
+}
+
+export async function createUser(userData: {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  phone?: string;
+  role?: string;
+}) {
+  const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+  const authToken = session.accessToken;
+
+  if (!authToken) {
+    throw new Error('Not authenticated');
+  }
+
+  // Check if user has permission (PROJECT_MANAGER or admin)
+  const isAdmin = session.roles?.includes('PROJECT_MANAGER') || 
+                  session.roles?.includes('ADMIN') ||
+                  session.roles?.some(r => r.toLowerCase() === 'admin');
+
+  if (!isAdmin) {
+    throw new Error('You do not have permission to create users');
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        name: userData.name,
+        username: userData.username,
+        email: userData.email,
+        password: userData.password,
+        phone: userData.phone,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create user');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Create user error:', error);
+    throw error;
+  }
+}
+
+export async function checkUserPermissions() {
+  const session = await getIronSession<SessionData>(await cookies(), ironSessionOptions);
+  
+  if (!session.isLoggedIn) {
+    return { canManageUsers: false, isAdmin: false, roles: [] };
+  }
+
+  const roles = session.roles || [];
+  const isAdmin = roles.includes('PROJECT_MANAGER') || 
+                  roles.includes('ADMIN') ||
+                  roles.some(r => r.toLowerCase() === 'admin');
+
+  return {
+    canManageUsers: isAdmin,
+    isAdmin,
+    roles,
+  };
+}

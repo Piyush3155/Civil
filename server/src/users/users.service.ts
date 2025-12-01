@@ -12,6 +12,19 @@ export class UsersService {
         name: true,
         email: true,
         username: true,
+        phone: true,
+        isAdmin: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
   }
