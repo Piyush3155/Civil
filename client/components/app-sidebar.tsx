@@ -155,10 +155,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar {...props}>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg overflow-hidden">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary-foreground shadow-lg overflow-hidden border border-border">
             <Image src="/ios/1024.png" alt="Logo" width={40} height={40} className="object-cover rounded-xl" />
           </div>
-          <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent font-semibold text-lg">
+          <span className="bg-gradient-to-r from-yellow-400 to-primary/70 bg-clip-text text-transparent font-semibold text-lg">
             CIVIL DESK
           </span>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -42,13 +42,13 @@ export default function ReportsPage() {
     } catch (error) {
       console.error("Error fetching projects:", error);
     }
-  }, []);
+  };
 
   useEffect(() => {
     if (mounted) {
       fetchProjects();
     }
-  }, [mounted, fetchProjects]);
+  }, [mounted]);
 
   const generateReport = async (type: string) => {
     if (!selectedProject) return;

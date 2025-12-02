@@ -220,3 +220,46 @@ export interface SiteDiaryAnalytics {
     daysWithIssues: number;
   };
 }
+
+export interface ProjectOverview {
+  project: {
+    id: string;
+    name: string;
+    code: string;
+    progress: number;
+    status: string;
+    startDate: string;
+    endDate: string;
+    nextMilestone: string;
+    milestoneDate: string;
+  };
+  overview: {
+    overallProgress: number;
+    tasks: {
+      total: number;
+      completed: number;
+      inProgress: number;
+      pending: number;
+    };
+    materials: {
+      totalConsumed: number;
+    };
+    procurement: {
+      pendingPOs: number;
+      totalPOs: number;
+    };
+    qc: {
+      openIssues: number;
+      totalIssues: number;
+    };
+    billing: {
+      totalBills: number;
+      totalAmount: number;
+      paidAmount: number;
+      pendingAmount: number;
+    };
+    labour: {
+      todayCount: number;
+    };
+  };
+}

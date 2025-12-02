@@ -9,50 +9,7 @@ import { Download, TrendingUp, Users, Package, AlertTriangle, IndianRupee, FileT
 import { useRouter, useSearchParams } from "next/navigation";
 import { getProjectOverview, getAllProjects } from "@/app/actions/analytics/main";
 import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from "recharts";
-import type { ProjectListItem } from "@/types/analytics";
-
-interface ProjectOverview {
-  project: {
-    id: string;
-    name: string;
-    code: string;
-    progress: number;
-    status: string;
-    startDate: string;
-    endDate: string;
-    nextMilestone: string;
-    milestoneDate: string;
-  };
-  overview: {
-    overallProgress: number;
-    tasks: {
-      total: number;
-      completed: number;
-      inProgress: number;
-      pending: number;
-    };
-    materials: {
-      totalConsumed: number;
-    };
-    procurement: {
-      pendingPOs: number;
-      totalPOs: number;
-    };
-    qc: {
-      openIssues: number;
-      totalIssues: number;
-    };
-    billing: {
-      totalBills: number;
-      totalAmount: number;
-      paidAmount: number;
-      pendingAmount: number;
-    };
-    labour: {
-      todayCount: number;
-    };
-  };
-}
+import type { ProjectListItem, ProjectOverview } from "@/types/analytics";
 
 export default function AnalyticsOverviewPage() {
   const router = useRouter();

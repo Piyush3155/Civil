@@ -20,6 +20,8 @@ import { InventoryModule } from './inventory/inventory.module';
 import { ProcurementModule } from './procurement/procurement.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { FinanceModule } from './finance/finance.module';
+import { EstimationModule } from './estimation/estimation.module';
+import { PdfModule } from './pdf/pdf.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { FinanceModule } from './finance/finance.module';
     ProcurementModule,
     AnalyticsModule,
     FinanceModule,
+    EstimationModule,
+    PdfModule,
   ],
   controllers: [AppController],
   providers: [AppService],

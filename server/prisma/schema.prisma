@@ -76,6 +76,7 @@ model user {
   expensesPaid              Expense[]
   contractorAdvancesPaid    ContractorAdvance[]
   supplierPaymentsPaid      SupplierPayment[]
+  estimates                 Estimate[]
 }
 
 enum ForgotPasswordStatus {
@@ -274,6 +275,7 @@ model Project {
   expenses           Expense[]
   contractorAdvances ContractorAdvance[]
   supplierPayments   SupplierPayment[]
+  estimates          Estimate[]
 }
 
 enum ProjectStatus {
@@ -1255,4 +1257,69 @@ model SupplierPayment {
   @@index([poId])
   @@index([paidById])
   @@index([paymentDate])
+}
+
+// -------------------------
+// ESTIMATION MODULE
+// -------------------------
+
+enum ComponentType {
+  MATERIAL
+  LABOUR
+  EQUIPMENT
+  OVERHEAD
+}
+
+model Estimate {
+  id          String   @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  totalCost   Decimal  @db.Decimal(12,2) @default(0)
+
+  project   Project @relation(fields: [projectId], references: [id])
+  creator   user    @relation(fields: [createdBy], references: [id])
+  sections  EstimateSection[]
+  items     EstimateItem[]
+}
+
+model EstimateSection {
+  id         String   @id @default(cuid())
+  estimateId String
+  name       String
+  order      Int       @default(0)
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  items    EstimateItem[]
+}
+
+model EstimateItem {
+  id          String   @id @default(cuid())
+  estimateId  String
+  sectionId   String?
+  description String
+  unit        String
+  quantity    Decimal  @db.Decimal(12,3)
+  rate        Decimal  @db.Decimal(12,2)
+  amount      Decimal  @db.Decimal(12,2)
+
+  estimate Estimate       @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  section  EstimateSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  components EstimateRateComponent[]
+}
+
+model EstimateRateComponent {
+  id          String   @id @default(cuid())
+  itemId      String
+  type        ComponentType
+  name        String
+  unit        String?
+  quantity    Decimal? @db.Decimal(12,3)
+  rate        Decimal? @db.Decimal(12,2)
+  cost        Decimal? @db.Decimal(12,2)
+
+  item EstimateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
 }
