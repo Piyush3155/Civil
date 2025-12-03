@@ -8,7 +8,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Download, TrendingUp, Users, Package, AlertTriangle, IndianRupee, FileText, Calendar } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getProjectOverview, getAllProjects } from "@/app/actions/analytics/main";
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid } from "recharts";
 import type { ProjectListItem, ProjectOverview } from "@/types/analytics";
 
 export default function AnalyticsOverviewPage() {
