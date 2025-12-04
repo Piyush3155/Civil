@@ -8,28 +8,35 @@ import * as fs from 'fs';
 dotenv.config();
 
 async function bootstrap() {
-  // Load HTTPS SSL certificates
-  const httpsOptions = {
-    key: fs.readFileSync('certificates/localhost-key.pem'),
-    cert: fs.readFileSync('certificates/localhost.pem'),
-  };
+  const isRender = process.env.RENDER === "true";
 
-  // Create HTTPS NestJS server
-  const app = await NestFactory.create(AppModule, {
-    httpsOptions,
-  });
+  let httpsOptions;
+  if (!isRender) {
+    try {
+      if (
+        fs.existsSync('certificates/localhost-key.pem') &&
+        fs.existsSync('certificates/localhost.pem')
+      ) {
+        httpsOptions = {
+          key: fs.readFileSync('certificates/localhost-key.pem'),
+          cert: fs.readFileSync('certificates/localhost.pem'),
+        };
+      }
+    } catch (error) {
+      console.log('SSL certificates not found, running without HTTPS');
+    }
+  }
+
+  const app = await NestFactory.create(AppModule, httpsOptions ? { httpsOptions } : {});
 
   const port = Number(process.env.PORT) || 3000;
 
-  // Enable CORS for client requests
   app.enableCors({
-    origin: ['https://localhost:7000', 'https://localhost:7001'], // Allow client and server origins
+    origin: ['https://localhost:7000', 'https://localhost:7001', 'http://localhost:7000'],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // --- Swagger Setup ---
+  // Swagger
   const config = new DocumentBuilder()
     .setTitle('API Docs')
     .setDescription('NestJS API Documentation')
@@ -39,29 +46,10 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  await app.listen(port);
+  // 🔥 REQUIRED FOR RENDER
+  await app.listen(port, '0.0.0.0');
 
-  // --- URL Logs ---
-  const localUrl = `https://localhost:${port}`;
-  const networkInterfaces = os.networkInterfaces();
-  let ipAddress = '0.0.0.0';
-
-  for (const iface of Object.values(networkInterfaces)) {
-    if (!iface) continue;
-    for (const info of iface) {
-      if (info.family === 'IPv4' && !info.internal) {
-        ipAddress = info.address;
-      }
-    }
-  }
-
-  const ipUrl = `https://${ipAddress}:${port}`;
-  const swaggerUrl = `${localUrl}/api`;
-
-  console.log('\n🔐 HTTPS App is running at:');
-  console.log(`   Local:   ${localUrl}`);
-  console.log(`   Network: ${ipUrl}`);
-  console.log(`   Swagger: ${swaggerUrl}\n`);
+  console.log(`Server running on port ${port}`);
 }
 
 bootstrap();
