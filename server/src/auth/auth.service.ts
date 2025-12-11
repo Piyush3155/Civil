@@ -53,4 +53,34 @@ export class AuthService {
     const { password, ...result } = user;
     return result;
   }
+
+  async refresh(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+      const user = await this.usersService.findByIdWithRoles(payload.sub);
+      if (!user) {
+        throw new UnauthorizedException();
+      }
+      const roles = user.roles.map((ur) => ur.role.name) || [];
+      const newPayload = { 
+        username: user.username, 
+        sub: user.id,
+        roles: roles,
+        isAdmin: user.isAdmin || false
+      };
+      return {
+        access_token: this.jwtService.sign(newPayload),
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          name: user.name,
+          roles: roles,
+          isAdmin: user.isAdmin || false
+        }
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
 }

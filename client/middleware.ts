@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { unsealData } from 'iron-session'
+import { unsealData, sealData } from 'iron-session'
 import { ironSessionOptions } from '@/lib/sessionLib'
 import * as jwt from 'jsonwebtoken'
 
@@ -86,8 +86,8 @@ export async function middleware(request: NextRequest) {
     const sessionData = await unsealData(cookieValue, ironSessionOptions);
     const session = sessionData as SessionData;
 
-    if (!session.isLoggedIn || !session.accessToken || isTokenExpired(session.accessToken)) {
-      // Session invalid or expired — redirect to signin
+    if (!session.isLoggedIn || !session.accessToken) {
+      // No session or token — redirect to signin
       const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
       const signInUrl = new URL('/login', host);
       const redirectUrl = host + request.nextUrl.pathname;
@@ -95,6 +95,49 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(signInUrl);
       } else {
         signInUrl.searchParams.set('redirect', redirectUrl);
+        return NextResponse.redirect(signInUrl);
+      }
+    }
+
+    if (isTokenExpired(session.accessToken)) {
+      // Token expired, try to refresh
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+      try {
+        const refreshResponse = await fetch(`${backendUrl}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token: session.accessToken }),
+        });
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          // Update session with new token
+          session.accessToken = refreshData.access_token;
+          // Re-seal the session
+          const sealed = await sealData(session, ironSessionOptions);
+          const response = NextResponse.next();
+          response.cookies.set(ironSessionOptions.cookieName, sealed, ironSessionOptions.cookieOptions);
+          // Continue with the request
+          return response;
+        } else {
+          // Refresh failed, redirect to login
+          const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+          const signInUrl = new URL('/login', host);
+          const redirectUrl = host + request.nextUrl.pathname;
+          if (redirectUrl === host + '/' || redirectUrl === host) {
+            return NextResponse.redirect(signInUrl);
+          } else {
+            signInUrl.searchParams.set('redirect', redirectUrl);
+            return NextResponse.redirect(signInUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        // On refresh error, redirect to login
+        const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+        const signInUrl = new URL('/login', host);
         return NextResponse.redirect(signInUrl);
       }
     }
