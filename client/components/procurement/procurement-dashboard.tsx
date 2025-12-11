@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PurchaseOrder, ProcurementSummary, Supplier } from "@/types/procurement";
 import { 
   ShoppingCart, 
-  Package, 
   TrendingUp, 
   AlertCircle,
   Plus,
