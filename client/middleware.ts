@@ -1,11 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { unsealData } from 'iron-session'
 import { ironSessionOptions } from '@/lib/sessionLib'
+import * as jwt from 'jsonwebtoken'
 
 // Public routes that don't require a session
 const PUBLIC_PATHS = ['/login','/signout','/civil.webp', '/forgot-password', '/favicon.ico', '/images', '/android', '/ios', '/windows11', '/service-worker.js', '/manifest.webmanifest', '/api/firebase-messaging-config', '/firebase-messaging-sw.js','/logo.png']
 
-// Cookie name used by iron-session (defined in sessionLib)
-const SESSION_COOKIE_NAME = ironSessionOptions.cookieName
+interface SessionData {
+  isLoggedIn: boolean;
+  userId?: string;
+  accessToken?: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  roles?: string[];
+}
+
+/**
+ * Safely decodes a JWT token without throwing errors
+ */
+function safeDecodeToken(token: string): jwt.JwtPayload | null {
+  try {
+    if (!token || typeof token !== 'string') {
+      return null;
+    }
+    const decoded = jwt.decode(token);
+    if (decoded && typeof decoded === 'object') {
+      return decoded as jwt.JwtPayload;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks if a token is expired
+ */
+function isTokenExpired(token: string): boolean {
+  const decoded = safeDecodeToken(token);
+  if (!decoded || !decoded.exp) return true;
+  const currentTime = Math.floor(Date.now() / 1000);
+  return decoded.exp < currentTime;
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -28,22 +65,45 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check presence of session cookie. Middleware runs at edge; avoid heavy session decoding here.
-  const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value
+  // Check session validity
+  const cookieName = ironSessionOptions.cookieName;
+  const cookieValue = request.cookies.get(cookieName)?.value;
 
-  if (!cookie) {
-    // No session cookie — redirect to signin with original url as redirect param
-    const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
-    const signInUrl = new URL('/login', host)
-
-    const redirectUrl = host + request.nextUrl.pathname
-    // If the redirect URL contains the main domain (root), don't set redirect parameter, just go to signin
+  if (!cookieValue) {
+    // No session cookie — redirect to signin
+    const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+    const signInUrl = new URL('/login', host);
+    const redirectUrl = host + request.nextUrl.pathname;
     if (redirectUrl === host + '/' || redirectUrl === host) {
-      return NextResponse.redirect(signInUrl)
+      return NextResponse.redirect(signInUrl);
     } else {
-      signInUrl.searchParams.set('redirect', redirectUrl)
-      return NextResponse.redirect(signInUrl)
+      signInUrl.searchParams.set('redirect', redirectUrl);
+      return NextResponse.redirect(signInUrl);
     }
+  }
+
+  try {
+    const sessionData = await unsealData(cookieValue, ironSessionOptions);
+    const session = sessionData as SessionData;
+
+    if (!session.isLoggedIn || !session.accessToken || isTokenExpired(session.accessToken)) {
+      // Session invalid or expired — redirect to signin
+      const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+      const signInUrl = new URL('/login', host);
+      const redirectUrl = host + request.nextUrl.pathname;
+      if (redirectUrl === host + '/' || redirectUrl === host) {
+        return NextResponse.redirect(signInUrl);
+      } else {
+        signInUrl.searchParams.set('redirect', redirectUrl);
+        return NextResponse.redirect(signInUrl);
+      }
+    }
+  } catch (error) {
+    console.error('Error unsealing session in middleware:', error);
+    // On error, redirect to login
+    const host = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin;
+    const signInUrl = new URL('/login', host);
+    return NextResponse.redirect(signInUrl);
   }
 
   if(pathname === '/') {
