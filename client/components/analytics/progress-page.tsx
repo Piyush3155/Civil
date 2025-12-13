@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,8 +65,23 @@ export default function ProgressAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex gap-4 w-full md:w-auto">
+            <Skeleton className="h-10 w-full md:w-[250px]" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-[400px] w-full" />
       </div>
     );
   }
@@ -96,19 +112,19 @@ export default function ProgressAnalyticsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Progress Analytics</h1>
-            <p className="text-muted-foreground">Track project and task-level progress</p>
+            <h1 className="text-2xl md:text-3xl font-bold">Progress Analytics</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Track project and task-level progress</p>
           </div>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <Select value={selectedProject} onValueChange={setSelectedProject}>
-            <SelectTrigger className="w-[250px]">
+            <SelectTrigger className="w-full sm:w-[250px]">
               <SelectValue placeholder="Select project" />
             </SelectTrigger>
             <SelectContent>
@@ -120,7 +136,7 @@ export default function ProgressAnalyticsPage() {
             </SelectContent>
           </Select>
           <Select value={days} onValueChange={setDays}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Period" />
             </SelectTrigger>
             <SelectContent>
@@ -134,7 +150,7 @@ export default function ProgressAnalyticsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
@@ -183,29 +199,27 @@ export default function ProgressAnalyticsPage() {
                 color: "hsl(var(--chart-1))",
               },
             }}
-            className="h-[300px]"
+            className="h-[300px] w-full"
           >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={analytics.progressTimeline}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickFormatter={(value: string) => new Date(value).toLocaleDateString()}
-                />
-                <YAxis domain={[0, 100]} />
-                <ChartTooltip
-                  content={<ChartTooltipContent />}
-                  labelFormatter={(value: string) => new Date(value).toLocaleDateString()}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="progress"
-                  stroke="var(--color-progress)"
-                  strokeWidth={2}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <LineChart data={analytics.progressTimeline}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value: string) => new Date(value).toLocaleDateString()}
+              />
+              <YAxis domain={[0, 100]} />
+              <ChartTooltip
+                content={<ChartTooltipContent />}
+                labelFormatter={(value: string) => new Date(value).toLocaleDateString()}
+              />
+              <Line
+                type="monotone"
+                dataKey="progress"
+                stroke="var(--color-progress)"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+              />
+            </LineChart>
           </ChartContainer>
         </CardContent>
       </Card>

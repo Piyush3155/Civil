@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -66,8 +67,27 @@ export default function AnalyticsOverviewPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <div className="p-6 space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <div className="flex gap-4 w-full md:w-auto">
+            <Skeleton className="h-10 w-full md:w-[300px]" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+        <Skeleton className="h-48 w-full" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-[400px] w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
       </div>
     );
   }
@@ -83,16 +103,16 @@ export default function AnalyticsOverviewPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Project Analytics</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl md:text-3xl font-bold">Project Analytics</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             Comprehensive analytics and insights for your construction project
           </p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <Select value={selectedProject} onValueChange={handleProjectChange}>
-            <SelectTrigger className="w-[300px]">
+            <SelectTrigger className="w-full sm:w-[300px]">
               <SelectValue placeholder="Select project" />
             </SelectTrigger>
             <SelectContent>
@@ -103,7 +123,7 @@ export default function AnalyticsOverviewPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline">
+          <Button variant="outline" className="w-full sm:w-auto">
             <Download className="mr-2 h-4 w-4" />
             Export Report
           </Button>
@@ -149,7 +169,7 @@ export default function AnalyticsOverviewPage() {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tasks</CardTitle>
@@ -225,7 +245,7 @@ export default function AnalyticsOverviewPage() {
                   color: "hsl(var(--chart-3))",
                 },
               }}
-              className="h-[300px]"
+              className="h-[300px] w-full"
             >
               <BarChart
                 data={[
@@ -267,7 +287,7 @@ export default function AnalyticsOverviewPage() {
                   color: "hsl(var(--chart-5))",
                 },
               }}
-              className="h-[300px]"
+              className="h-[300px] w-full"
             >
               <BarChart
                 data={[
