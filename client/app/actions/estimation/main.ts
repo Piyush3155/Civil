@@ -60,6 +60,11 @@ export async function createEstimate(data: {
   title: string;
   projectId: string;
   description?: string;
+  type?: string;
+  status?: string;
+  overheadPercentage?: number;
+  profitPercentage?: number;
+  contingencyPercentage?: number;
 }) {
   const session = await getSession();
 
@@ -96,6 +101,7 @@ export async function createEstimateSection(data: {
   name: string;
   order: number;
   estimateId: string;
+  category?: string;
 }) {
   const session = await getSession();
 

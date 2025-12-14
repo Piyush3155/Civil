@@ -1,5 +1,6 @@
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { 
   LayoutDashboard,
   Building2,
@@ -173,10 +174,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <a href={item.url} className="flex items-center gap-2">
+                      <Link href={item.url} className="flex items-center gap-2">
                         {item.icon && <item.icon className="h-4 w-4" />}
                         <span>{item.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

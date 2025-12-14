@@ -1,118 +1,230 @@
-"use client";
+"use client"
+
+import type React from "react"
 
 import { AppSidebar } from "@/components/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  Building2, 
-  Users, 
-  HardHat, 
-  FileText, 
-  Activity, 
-  AlertCircle, 
-  Loader2, 
-  Plus, 
-  ArrowUpRight,
-  CheckCircle2
+import {
+  Building2,
+  Users,
+  HardHat,
+  FileText,
+  Activity,
+  Loader2,
+  Plus,
+  TrendingUp,
+  Calendar,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-// Assuming these are implemented and working
 import { fetchProjects } from "@/app/actions/projects/main"
 import { fetchContractors } from "@/app/actions/contractors/main"
 import { fetchLabours } from "@/app/actions/labours/main"
 import { fetchDrawings } from "@/app/actions/drawings/main"
 import { Badge } from "@/components/ui/badge"
-import Link from "next/link";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Project } from "@/types/project";
-import { MetricCardProps } from "@/types/dashboard";
+import Link from "next/link"
+import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
 
 // --- Types ---
+interface Project {
+  id?: string
+  name?: string
+  location?: string
+  status?: "ACTIVE" | "PAUSED" | "COMPLETED" | "PLANNING"
+  startDate?: string
+  endDate?: string
+  progress?: number
+}
+
 interface ProjectStats {
-  total: number;
-  active: number;
-  paused: number;
-  completed: number;
+  total: number
+  active: number
+  paused: number
+  completed: number
 }
 
 interface DashboardStats {
-  projects: ProjectStats;
-  contractors: number;
-  labours: number;
-  drawings: number;
-  loading: boolean;
-  recentProjects?: Project[]; // For the list view
+  projects: ProjectStats
+  contractors: number
+  labours: number
+  drawings: number
+  loading: boolean
+  recentProjects?: Project[]
+}
+
+interface MetricCardProps {
+  title: string
+  value: number | string
+  icon: React.ElementType
+  description?: string
+  trend?: string
+  colorClass: string
+  href?: string
 }
 
 // --- Helper Components ---
-
 const StatCardSkeleton = () => (
-  <Card className="border-border/50 shadow-sm">
+  <Card className="border-border/50 shadow-sm overflow-hidden">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
       <div className="h-4 w-24 bg-muted animate-pulse rounded"></div>
-      <div className="h-8 w-8 bg-muted animate-pulse rounded-full"></div>
+      <div className="h-10 w-10 bg-muted animate-pulse rounded-lg"></div>
     </CardHeader>
     <CardContent>
-      <div className="h-8 w-16 bg-muted animate-pulse rounded-lg mb-1"></div>
-      <div className="h-3 w-32 bg-muted animate-pulse rounded"></div>
+      <div className="h-8 w-20 bg-muted animate-pulse rounded-lg mb-2"></div>
+      <div className="h-3 w-36 bg-muted animate-pulse rounded"></div>
     </CardContent>
   </Card>
-);
+)
 
-const MetricCard = ({ 
-  title, 
-  value, 
-  icon: Icon, 
-  description, 
-  trend, 
-  colorClass 
-}: MetricCardProps) => (
-  <Card className="overflow-hidden border-l-4 border-l-transparent hover:border-l-primary transition-all duration-300 hover:shadow-md">
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{title}</CardTitle>
-      <div className={`p-2 rounded-full ${colorClass} bg-opacity-10`}>
-        <Icon className={`h-4 w-4 ${colorClass.replace('bg-', 'text-')}`} />
-      </div>
-    </CardHeader>
-    <CardContent>
-      <div className="text-3xl font-bold tracking-tight">{value}</div>
-      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-        {trend && <span className="text-green-600 font-medium flex items-center">{trend} <ArrowUpRight className="h-3 w-3" /></span>}
-        {description}
-      </p>
-    </CardContent>
-  </Card>
-);
-
-const Greeting = () => {
-  const hour = new Date().getHours();
-  let greeting = "Good Evening";
-  if (hour < 12) greeting = "Good Morning";
-  else if (hour < 18) greeting = "Good Afternoon";
+const MetricCard = ({ title, value, icon: Icon, description, trend, colorClass, href }: MetricCardProps) => {
+  const CardWrapper = href ? Link : "div"
+  const cardProps = href ? { href } : {}
 
   return (
-    <div className="mb-2">
-      <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-        {greeting}, Admin 👋
-      </h1>
-      <p className="text-muted-foreground text-lg mt-2 max-w-2xl">
-        Here is what&apos;s happening with your construction sites today.
+    <CardWrapper {...cardProps} className={href ? "block" : ""}>
+      <Card
+        className={`group relative overflow-hidden border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${href ? "cursor-pointer" : ""}`}
+      >
+        <div
+          className={`absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 ${colorClass}`}
+        ></div>
+
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</CardTitle>
+          <div
+            className={`p-2.5 rounded-lg ${colorClass} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}
+          >
+            <Icon className={`h-5 w-5 ${colorClass.replace("bg-", "text-")}`} />
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          <div className="text-3xl font-bold tracking-tight">{value}</div>
+          {(description || trend) && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              {trend && (
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+                  <TrendingUp className="h-3 w-3" />
+                  {trend}
+                </span>
+              )}
+              {description}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </CardWrapper>
+  )
+}
+
+const Greeting = () => {
+  const [currentTime, setCurrentTime] = useState(new Date())
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const hour = currentTime.getHours()
+  let greeting = "Good Evening"
+  let emoji = "🌙"
+
+  if (hour >= 3 && hour < 12) {
+  greeting = "Good Morning";
+  emoji = "☀️";
+} else if (hour >= 12 && hour < 18) {
+  greeting = "Good Afternoon";
+  emoji = "🌤️";
+} else {
+  greeting = "Good Night";
+  emoji = "🌙";
+}
+
+
+  const formattedDate = currentTime.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-3 mb-2">
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-balance">
+          {greeting}, Admin <span className="inline-block animate-wave">{emoji}</span>
+        </h1>
+      </div>
+      <p className="text-muted-foreground text-base md:text-lg max-w-2xl text-balance">
+        Here&apos;s what&apos;s happening with your construction sites today.
+      </p>
+      <p className="text-sm text-muted-foreground/80 flex items-center gap-2 mt-2">
+        <Calendar className="h-4 w-4" />
+        {formattedDate}
       </p>
     </div>
-  );
-};
+  )
+}
+
+const QuickActionCard = ({
+  href,
+  icon: Icon,
+  title,
+  description,
+  colorClass,
+}: {
+  href: string
+  icon: React.ElementType
+  title: string
+  description: string
+  colorClass: string
+}) => (
+  <Link href={href} className="group">
+    <Card className="h-full hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-2 hover:border-primary/20">
+      <CardContent className="flex flex-col items-center justify-center p-6 text-center gap-3">
+        <div
+          className={`p-3 ${colorClass} bg-opacity-10 rounded-xl group-hover:scale-110 group-hover:bg-opacity-20 transition-all duration-300`}
+        >
+          <Icon className={`h-6 w-6 ${colorClass.replace("bg-", "text-")}`} />
+        </div>
+        <div>
+          <h3 className="font-semibold text-base">{title}</h3>
+          <p className="text-xs text-muted-foreground mt-1.5">{description}</p>
+        </div>
+      </CardContent>
+    </Card>
+  </Link>
+)
+
+const ProjectListItem = ({ project }: { project: Project }) => {
+  const statusColors = {
+    ACTIVE: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+    PAUSED: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+    COMPLETED: "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+    PLANNING: "bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20",
+  }
+
+  return (
+    <Link href={`/projects/${project.id}`} className="block group">
+      <div className="flex items-center justify-between p-3 rounded-lg hover:bg-accent/50 transition-colors">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 border border-border group-hover:border-primary/30 transition-colors shrink-0">
+            <Building2 className="h-5 w-5 text-primary" />
+          </div>
+          <div className="space-y-1 flex-1 min-w-0">
+            <p className="text-sm font-medium leading-none truncate">{project.name || "Untitled Project"}</p>
+            <p className="text-xs text-muted-foreground truncate">{project.location || "Location N/A"}</p>
+          </div>
+        </div>
+        <Badge variant="outline" className={`ml-2 ${statusColors[project.status || "PLANNING"]} shrink-0`}>
+          {project.status}
+        </Badge>
+      </div>
+    </Link>
+  )
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats>({
@@ -121,7 +233,7 @@ export default function DashboardPage() {
     labours: 0,
     drawings: 0,
     loading: true,
-    recentProjects: []
+    recentProjects: [],
   })
 
   useEffect(() => {
@@ -142,7 +254,7 @@ export default function DashboardPage() {
             else if (project.status === "COMPLETED") acc.completed++
             return acc
           },
-          { total: 0, active: 0, paused: 0, completed: 0 } as ProjectStats
+          { total: 0, active: 0, paused: 0, completed: 0 } as ProjectStats,
         )
 
         setStats({
@@ -151,7 +263,7 @@ export default function DashboardPage() {
           labours: labours.length,
           drawings: drawings.length,
           loading: false,
-          recentProjects: projects.slice(0, 5) // Take first 5 for the list
+          recentProjects: projects.slice(0, 5),
         })
       } catch (error) {
         console.error("Error loading dashboard data:", error)
@@ -162,245 +274,234 @@ export default function DashboardPage() {
     loadDashboardData()
   }, [])
 
-  const isLoading = stats.loading;
-  const completionPercentage = stats.projects.total > 0 
-    ? Math.round((stats.projects.completed / stats.projects.total) * 100) 
-    : 0;
+  const isLoading = stats.loading
+  const completionPercentage =
+    stats.projects.total > 0 ? Math.round((stats.projects.completed / stats.projects.total) * 100) : 0
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset className="bg-muted/10"> {/* Subtle background color */}
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur px-4 sticky top-0 z-10">
+      <SidebarInset className="bg-gradient-to-br from-background via-background to-muted/20">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 px-4 sticky top-0 z-10 shadow-sm">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                <BreadcrumbPage className="font-medium">Dashboard</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          {isLoading && <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />}
+          {isLoading && (
+            <div className="ml-auto flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading data...</span>
+            </div>
+          )}
         </header>
 
-        <main className="flex flex-1 flex-col gap-6 p-4 md:p-8 max-w-[1600px] mx-auto w-full">
-          
+        <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8 max-w-[1800px] mx-auto w-full">
           <Greeting />
 
           {/* --- TOP STATS ROW --- */}
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {isLoading ? (
-              Array(4).fill(0).map((_, i) => <StatCardSkeleton key={i} />)
+              Array(4)
+                .fill(0)
+                .map((_, i) => <StatCardSkeleton key={i} />)
             ) : (
               <>
-                <MetricCard 
+                <MetricCard
                   title="Total Projects"
                   value={stats.projects.total}
                   icon={Building2}
                   colorClass="bg-blue-500 text-blue-500"
                   description={`${stats.projects.active} currently active`}
-                  trend="+2" // Example trend
+                  trend="+12%"
+                  href="/projects"
                 />
-                <MetricCard 
+                <MetricCard
                   title="Contractors"
                   value={stats.contractors}
                   icon={Users}
                   colorClass="bg-violet-500 text-violet-500"
                   description="Registered companies"
+                  trend="+3%"
+                  href="/contractors"
                 />
-                <MetricCard 
+                <MetricCard
                   title="Workforce"
                   value={stats.labours}
                   icon={HardHat}
                   colorClass="bg-orange-500 text-orange-500"
                   description="Total labourers"
+                  trend="+8%"
+                  href="/labours"
                 />
-                <MetricCard 
+                <MetricCard
                   title="Documents"
                   value={stats.drawings}
                   icon={FileText}
                   colorClass="bg-emerald-500 text-emerald-500"
                   description="Drawings & specs"
+                  trend="+15%"
+                  href="/drawings"
                 />
               </>
             )}
           </section>
 
-          {/* --- MAIN DASHBOARD CONTENT GRID --- */}
-          <div className="grid gap-6 lg:grid-cols-7 xl:grid-cols-6">
-            
-            {/* LEFT COLUMN (Active Projects & Quick Actions) - Spans 4/7 or 4/6 */}
-            <div className="flex flex-col gap-6 lg:col-span-4">
-              
-              {/* Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Link href="/projects/new" className="group">
-                  <Card className="h-full hover:border-primary/50 hover:bg-accent/40 transition-all cursor-pointer">
-                    <CardContent className="flex flex-col items-center justify-center p-6 text-center gap-3">
-                      <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
-                        <Plus className="h-6 w-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">New Project</h3>
-                        <p className="text-xs text-muted-foreground mt-1">Initialize site setup</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                <Link href="/drawings/upload" className="group">
-                  <Card className="h-full hover:border-blue-500/50 hover:bg-blue-50/40 dark:hover:bg-blue-900/10 transition-all cursor-pointer">
-                    <CardContent className="flex flex-col items-center justify-center p-6 text-center gap-3">
-                      <div className="p-3 bg-blue-500/10 rounded-full group-hover:bg-blue-500/20 transition-colors">
-                        <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Upload Plans</h3>
-                        <p className="text-xs text-muted-foreground mt-1">Add drawings</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-
-                <Link href="/labours" className="group">
-                  <Card className="h-full hover:border-orange-500/50 hover:bg-orange-50/40 dark:hover:bg-orange-900/10 transition-all cursor-pointer">
-                    <CardContent className="flex flex-col items-center justify-center p-6 text-center gap-3">
-                      <div className="p-3 bg-orange-500/10 rounded-full group-hover:bg-orange-500/20 transition-colors">
-                        <Users className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Add Labour</h3>
-                        <p className="text-xs text-muted-foreground mt-1">Update workforce</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+          {/* --- QUICK ACTIONS --- */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">Quick Actions</h2>
+                <p className="text-sm text-muted-foreground mt-0.5">Common tasks and shortcuts</p>
               </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <QuickActionCard
+                href="/projects/new"
+                icon={Plus}
+                title="New Project"
+                description="Initialize site setup"
+                colorClass="bg-primary text-primary"
+              />
+              <QuickActionCard
+                href="/drawings/upload"
+                icon={FileText}
+                title="Upload Plans"
+                description="Add project drawings"
+                colorClass="bg-blue-500 text-blue-500"
+              />
+              <QuickActionCard
+                href="/labours"
+                icon={Users}
+                title="Manage Labour"
+                description="Update workforce"
+                colorClass="bg-orange-500 text-orange-500"
+              />
+              <QuickActionCard
+                href="/contractors"
+                icon={Building2}
+                title="Add Contractor"
+                description="Register new company"
+                colorClass="bg-violet-500 text-violet-500"
+              />
+            </div>
+          </section>
 
-              {/* Recent Activity List */}
-              <Card className="h-full">
+          {/* --- MAIN DASHBOARD CONTENT GRID --- */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* LEFT COLUMN - Recent Projects */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-muted-foreground" />
-                    Recent Projects
-                  </CardTitle>
-                  <CardDescription>Latest construction sites added to the platform.</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-xl">
+                        <Activity className="h-5 w-5 text-primary" />
+                        Recent Projects
+                      </CardTitle>
+                      <CardDescription className="mt-1.5">
+                        Latest construction sites added to the platform
+                      </CardDescription>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/projects">View All</Link>
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
                     <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} className="flex items-center justify-between">
-                          <div className="h-4 w-1/3 bg-muted rounded animate-pulse" />
-                          <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex items-center gap-4 p-3">
+                          <div className="h-10 w-10 bg-muted rounded-lg animate-pulse" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 w-1/3 bg-muted rounded animate-pulse" />
+                            <div className="h-3 w-1/4 bg-muted rounded animate-pulse" />
+                          </div>
+                          <div className="h-6 w-20 bg-muted rounded animate-pulse" />
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      {/* Check if we actually have projects, else show empty state */}
+                    <div className="space-y-2">
                       {stats.recentProjects && stats.recentProjects.length > 0 ? (
-                        stats.recentProjects.map((project: Project, i: number) => (
-                          <div key={i} className="flex items-center justify-between group">
-                            <div className="flex items-center gap-4">
-                              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted border border-border group-hover:border-primary transition-colors">
-                                <Building2 className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm font-medium leading-none">{project.name || "Untitled Project"}</p>
-                                <p className="text-xs text-muted-foreground">{project.location || "Location N/A"}</p>
-                              </div>
-                            </div>
-                            <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"}>
-                              {project.status}
-                            </Badge>
-                          </div>
+                        stats.recentProjects.map((project: Project) => (
+                          <ProjectListItem key={project.id} project={project} />
                         ))
                       ) : (
-                         <div className="text-center py-8 text-muted-foreground">
-                            <p>No projects found. Start by creating one.</p>
-                            <Button variant="outline" size="sm" className="mt-4" asChild>
-                                <Link href="/projects">Create Project</Link>
-                            </Button>
-                         </div>
+                        <div className="text-center py-12">
+                          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                            <Building2 className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                          <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
+                          <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                            Start by creating your first construction project to get started.
+                          </p>
+                          <Button asChild>
+                            <Link href="/projects/new">
+                              <Plus className="h-4 w-4 mr-2" />
+                              Create Project
+                            </Link>
+                          </Button>
+                        </div>
                       )}
                     </div>
                   )}
                 </CardContent>
               </Card>
-
             </div>
 
-            {/* RIGHT COLUMN (Detailed Stats & Status) - Spans 3/7 or 2/6 */}
-            <div className="flex flex-col gap-6 lg:col-span-3 xl:col-span-2">
-              
+            {/* RIGHT COLUMN - Stats & Status */}
+            <div className="space-y-6">
               {/* Project Status Breakdown */}
-              <Card className="flex flex-col">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base font-medium">Project Status</CardTitle>
+              <Card className="shadow-md">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-semibold">Project Overview</CardTitle>
+                  <CardDescription>Current status breakdown</CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 pb-6">
-                  <div className="text-2xl font-bold mb-4">
-                    {completionPercentage}% <span className="text-sm font-normal text-muted-foreground">Completion Rate</span>
+                <CardContent className="space-y-6">
+                  <div>
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <span className="text-3xl font-bold">{completionPercentage}%</span>
+                      <span className="text-sm text-muted-foreground">completion rate</span>
+                    </div>
+                    <Progress value={completionPercentage} className="h-2.5" />
                   </div>
-                  <Progress value={completionPercentage} className="h-2 mb-6" />
-                  
+
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                        <span className="text-muted-foreground">Active</span>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-sm font-medium">Active</span>
                       </div>
-                      <span className="font-medium">{stats.projects.active}</span>
+                      <span className="text-lg font-bold">{stats.projects.active}</span>
                     </div>
-                    <Separator />
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
-                        <span className="text-muted-foreground">Paused</span>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2.5 w-2.5 rounded-full bg-yellow-500"></div>
+                        <span className="text-sm font-medium">Paused</span>
                       </div>
-                      <span className="font-medium">{stats.projects.paused}</span>
+                      <span className="text-lg font-bold">{stats.projects.paused}</span>
                     </div>
-                    <Separator />
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                        <span className="text-muted-foreground">Completed</span>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="h-2.5 w-2.5 rounded-full bg-blue-500"></div>
+                        <span className="text-sm font-medium">Completed</span>
                       </div>
-                      <span className="font-medium">{stats.projects.completed}</span>
+                      <span className="text-lg font-bold">{stats.projects.completed}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* System Health / Status */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-green-500" />
-                    System Health
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { label: "API Status", status: "Operational" },
-                      { label: "Database", status: "Connected" },
-                      { label: "Storage", status: "Available" },
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">{item.label}</span>
-                        <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span className="font-medium text-xs">{item.status}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
+              {/* System Health */}
+              
             </div>
           </div>
         </main>

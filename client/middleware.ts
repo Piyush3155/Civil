@@ -99,6 +99,11 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Redirect root to dashboard if logged in
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+
     if (isTokenExpired(session.accessToken)) {
       // Token expired, try to refresh
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';

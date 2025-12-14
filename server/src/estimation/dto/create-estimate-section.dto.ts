@@ -1,4 +1,5 @@
-import { IsString, IsInt } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsEnum } from 'class-validator';
+import { EstimateSectionCategory } from '@prisma/client';
 
 export class CreateEstimateSectionDto {
   @IsString()
@@ -6,6 +7,10 @@ export class CreateEstimateSectionDto {
 
   @IsString()
   name: string;
+
+  @IsOptional()
+  @IsEnum(EstimateSectionCategory)
+  category?: EstimateSectionCategory;
 
   @IsInt()
   order: number;

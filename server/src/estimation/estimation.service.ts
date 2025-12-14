@@ -15,6 +15,11 @@ export class EstimationService {
         projectId: dto.projectId,
         title: dto.title,
         description: dto.description,
+        type: dto.type,
+        status: dto.status,
+        overheadPercentage: dto.overheadPercentage,
+        profitPercentage: dto.profitPercentage,
+        contingencyPercentage: dto.contingencyPercentage,
         createdBy: dto.createdBy,
       },
     });
@@ -77,7 +82,12 @@ export class EstimationService {
 
   async createSection(dto: CreateEstimateSectionDto) {
     return this.prisma.estimateSection.create({
-      data: dto,
+      data: {
+        estimateId: dto.estimateId,
+        name: dto.name,
+        category: dto.category,
+        order: dto.order,
+      },
     });
   }
 
@@ -135,15 +145,54 @@ export class EstimationService {
   }
 
   async computeEstimateTotal(estimateId: string) {
-    const items = await this.prisma.estimateItem.findMany({
-      where: { estimateId },
+    const estimate = await this.prisma.estimate.findUnique({
+      where: { id: estimateId },
+      include: {
+        sections: {
+          include: {
+            items: true
+          }
+        },
+        items: true
+      }
     });
 
-    const sum = items.reduce((acc, item) => acc + Number(item.amount), 0);
+    if (!estimate) return;
+
+    let directCost = 0;
+    let indirectCost = 0;
+
+    // Process sections
+    for (const section of estimate.sections) {
+      const sectionTotal = section.items.reduce((sum, item) => sum + Number(item.amount), 0);
+      if (section.category === 'INDIRECT') {
+        indirectCost += sectionTotal;
+      } else {
+        // Default to DIRECT
+        directCost += sectionTotal;
+      }
+    }
+
+    // Process loose items
+    const looseItems = estimate.items.filter(i => !i.sectionId);
+    const looseTotal = looseItems.reduce((sum, item) => sum + Number(item.amount), 0);
+    directCost += looseTotal;
+
+    const baseCost = directCost + indirectCost;
+    
+    const overhead = baseCost * (Number(estimate.overheadPercentage || 0) / 100);
+    const profit = baseCost * (Number(estimate.profitPercentage || 0) / 100);
+    const contingency = baseCost * (Number(estimate.contingencyPercentage || 0) / 100);
+
+    const totalCost = baseCost + overhead + profit + contingency;
 
     return this.prisma.estimate.update({
       where: { id: estimateId },
-      data: { totalCost: sum },
+      data: { 
+        totalDirectCost: directCost,
+        totalIndirectCost: indirectCost,
+        totalCost 
+      },
     });
   }
 
