@@ -182,13 +182,12 @@ export function LoginForm({
         </Button>
 
         {/* OAuth Divider */}
-        <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border/50">
+{/*         <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border/50">
           <span className="relative z-10 bg-card px-3 text-muted-foreground text-xs font-medium">
             Or continue with
           </span>
         </div>
 
-        {/* OAuth Buttons */}
         <div className="grid gap-3">
           <Button
             type="button"
@@ -223,17 +222,19 @@ export function LoginForm({
             Continue with GitHub
           </Button>
         </div>
+      </div> */}
       </div>
-
       <div className="text-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground text-start">
           Don&apos;t have an account?{" "}
-          <a 
+          <br></br>
+          To create an account, please contact your system administrator.{" "}
+          {/* <a 
             href="/signup" 
             className="font-medium text-primary hover:text-primary/80 underline-offset-4 hover:underline transition-colors"
           >
             Create account
-          </a>
+          </a> */}
         </p>
       </div>
     </form>

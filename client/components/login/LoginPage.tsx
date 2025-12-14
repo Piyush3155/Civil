@@ -1,4 +1,3 @@
-import { GalleryVerticalEnd } from "lucide-react"
 import Image from "next/image"
 
 import { LoginForm } from "../../components/login-form"
@@ -10,8 +9,8 @@ export default function LoginPage() {
       <div className="flex flex-col gap-6 p-6 md:p-10 bg-background">
         <div className="flex justify-center gap-2 md:justify-start">
           <a href="#" className="flex items-center gap-3 font-semibold text-lg hover:opacity-80 transition-opacity">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
-              <GalleryVerticalEnd className="size-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-border to-border/80 text-primary-foreground shadow-lg">
+                <Image src="/ios/loader.png" alt="Civil Desk Logo" width={40} height={40} />
             </div>
             <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               CIVIL DESK
