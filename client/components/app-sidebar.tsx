@@ -159,9 +159,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary-foreground shadow-lg overflow-hidden border border-border">
             <Image src="/ios/1024.png" alt="Logo" width={40} height={40} className="object-cover rounded-xl" />
           </div>
-          <span className="bg-gradient-to-r from-yellow-400 to-primary/70 bg-clip-text text-transparent font-semibold text-lg">
+          <span className="bg-primary bg-clip-text text-transparent font-bold text-lg">
             CIVIL DESK
+            <p className="text-xs font-thin text-foreground ">Construction Management</p>
           </span>
+         
         </div>
       </SidebarHeader>
       <SidebarContent>

@@ -167,7 +167,7 @@ export async function createEstimateItem(data: {
 }
 
 export async function createEstimateComponent(data: {
-  type: "MATERIAL" | "LABOUR" | "EQUIPMENT" | "OVERHEAD";
+  type: "MATERIAL" | "LABOUR" | "EQUIPMENT" | "OVERHEAD" | "SUBCONTRACTOR";
   name: string;
   unit: string;
   quantity: number;

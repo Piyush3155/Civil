@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next"
+import { QueryProvider } from "@/providers/query-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,9 +38,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Toaster position="top-right" richColors />
-            <Analytics />
+            <QueryProvider>
+              {children}
+              <Toaster position="top-right" richColors />
+              <Analytics />
+            </QueryProvider>
           </ThemeProvider>
       </body>
     </html>

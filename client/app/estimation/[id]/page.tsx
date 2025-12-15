@@ -1,6 +1,6 @@
 import React from 'react'
 import EstimateDetailPage from '@/components/estimation/estimationoverview';
-export const Esitmation = () => {
+export default function Esitmation() {
   return (
     <div>
       <EstimateDetailPage />

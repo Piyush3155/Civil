@@ -80,43 +80,48 @@ const StatCardSkeleton = () => (
 )
 
 const MetricCard = ({ title, value, icon: Icon, description, trend, colorClass, href }: MetricCardProps) => {
-  const CardWrapper = href ? Link : "div"
-  const cardProps = href ? { href } : {}
+  const content = (
+    <Card
+      className={`group relative overflow-hidden border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${href ? "cursor-pointer" : ""}`}
+    >
+      <div
+        className={`absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 ${colorClass}`}
+      ></div>
 
-  return (
-    <CardWrapper {...cardProps} className={href ? "block" : ""}>
-      <Card
-        className={`group relative overflow-hidden border transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${href ? "cursor-pointer" : ""}`}
-      >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</CardTitle>
         <div
-          className={`absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300 ${colorClass}`}
-        ></div>
-
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">{title}</CardTitle>
-          <div
-            className={`p-2.5 rounded-lg ${colorClass} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}
-          >
-            <Icon className={`h-5 w-5 ${colorClass.replace("bg-", "text-")}`} />
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="text-3xl font-bold tracking-tight">{value}</div>
-          {(description || trend) && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              {trend && (
-                <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
-                  <TrendingUp className="h-3 w-3" />
-                  {trend}
-                </span>
-              )}
-              {description}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    </CardWrapper>
+          className={`p-2.5 rounded-lg ${colorClass} bg-opacity-10 group-hover:scale-110 transition-transform duration-300`}
+        >
+          <Icon className={`h-5 w-5 ${colorClass.replace("bg-", "text-")}`} />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-1">
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+        {(description || trend) && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            {trend && (
+              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5">
+                <TrendingUp className="h-3 w-3" />
+                {trend}
+              </span>
+            )}
+            {description}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className="">{content}</div>
 }
 
 const Greeting = () => {
@@ -132,15 +137,19 @@ const Greeting = () => {
   let emoji = "🌙"
 
   if (hour >= 3 && hour < 12) {
-  greeting = "Good Morning";
-  emoji = "☀️";
-} else if (hour >= 12 && hour < 18) {
-  greeting = "Good Afternoon";
-  emoji = "🌤️";
-} else {
-  greeting = "Good Night";
-  emoji = "🌙";
-}
+    greeting = "Good Morning";
+    emoji = "☀️";
+  } else if (hour >= 12 && hour < 17) {
+    greeting = "Good Afternoon";
+    emoji = "🌤️";
+  } else if (hour >= 17 && hour < 21) {
+    greeting = "Good Evening";
+    emoji = "🌙";
+  } else {
+    greeting = "Good Night";
+    emoji = "🌙";
+  }
+
 
 
   const formattedDate = currentTime.toLocaleDateString("en-US", {
