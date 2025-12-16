@@ -28,42 +28,7 @@ import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 
-// --- Types ---
-interface Project {
-  id?: string
-  name?: string
-  location?: string
-  status?: "ACTIVE" | "PAUSED" | "COMPLETED" | "PLANNING"
-  startDate?: string
-  endDate?: string
-  progress?: number
-}
-
-interface ProjectStats {
-  total: number
-  active: number
-  paused: number
-  completed: number
-}
-
-interface DashboardStats {
-  projects: ProjectStats
-  contractors: number
-  labours: number
-  drawings: number
-  loading: boolean
-  recentProjects?: Project[]
-}
-
-interface MetricCardProps {
-  title: string
-  value: number | string
-  icon: React.ElementType
-  description?: string
-  trend?: string
-  colorClass: string
-  href?: string
-}
+import {MetricCardProps , Project , ProjectStats , DashboardStats} from "@/types/dashboard"
 
 // --- Helper Components ---
 const StatCardSkeleton = () => (
