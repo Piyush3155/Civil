@@ -174,10 +174,12 @@ export default function ProjectDetailPage() {
   async function loadUsersAndRoles() {
     try {
       const [usersData, rolesData] = await Promise.all([fetchUsers(), fetchRoles()])
-      setUsers(usersData)
-      setRoles(rolesData)
+      setUsers(Array.isArray(usersData) ? usersData : [])
+      setRoles(Array.isArray(rolesData) ? rolesData : [])
     } catch (error) {
       console.error("Error loading users and roles:", error)
+      setUsers([])
+      setRoles([])
     }
   }
 
