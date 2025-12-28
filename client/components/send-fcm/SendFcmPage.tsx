@@ -80,7 +80,7 @@ export default function SendFcmPage() {
   })
 
   useEffect(() => {
-    fetchUsers().then(setUsers).catch(console.error)
+    fetchUsers().then(data => setUsers(Array.isArray(data.users) ? data.users : [])).catch(console.error)
   }, [])
 
   useEffect(() => {

@@ -51,58 +51,7 @@ import { TaskManagement } from "@/components/tasks/task-management"
 import { QCManagement } from "@/components/quality-control/qc-management";
 import { ProcurementDashboard } from "@/components/procurement/procurement-dashboard";
 import { FinanceManagement } from "@/components/finance/finance-management";
-
-interface Project {
-  id: string
-  name: string
-  code: string
-  location?: string
-  progress?: number
-  nextMilestone?: string
-  progressLastUpdated?: string
-  status: string
-  startDate?: string
-  endDate?: string
-  createdAt: string
-  members?: Array<{
-    id: string
-    user: {
-      id: string
-      name: string
-      email: string
-    }
-    role: {
-      id: string
-      name: string
-    }
-  }>
-  owners?: Array<{
-    id: string
-    user: {
-      id: string
-      name: string
-      email: string
-    }
-  }>
-  contractors?: Array<{
-    contractor: {
-      id: string
-      name: string
-      type: string
-    }
-  }>
-  drawings?: Array<{
-    id: string
-    title: string
-    version: string
-    type: string
-  }>
-  labours?: Array<{
-    id: string
-    name: string
-    contractorId: string
-  }>
-}
+import { Project } from "@/types/project"
 
 export default function ProjectDetailPage() {
   const router = useRouter()
