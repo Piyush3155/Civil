@@ -29,7 +29,7 @@ export default function LoginPage() {
       <div className="relative hidden lg:block h-full">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent z-10" />
         <Image
-          src="/civil.webp"
+          src="/hero.png"
           alt="Civil engineering workspace"
           fill
           className="object-cover"

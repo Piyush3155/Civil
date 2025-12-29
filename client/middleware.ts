@@ -4,7 +4,7 @@ import { ironSessionOptions } from '@/lib/sessionLib'
 import * as jwt from 'jsonwebtoken'
 
 // Public routes that don't require a session
-const PUBLIC_PATHS = ['/login','/signout','/civil.webp', '/forgot-password', '/favicon.ico', '/images', '/android', '/ios', '/windows11', '/service-worker.js', '/manifest.webmanifest', '/api/firebase-messaging-config', '/firebase-messaging-sw.js','/logo.png']
+const PUBLIC_PATHS = ['/login','/signout','/hero.png','/civil.webp', '/forgot-password', '/favicon.ico', '/images', '/android', '/ios', '/windows11', '/service-worker.js', '/manifest.webmanifest', '/api/firebase-messaging-config', '/firebase-messaging-sw.js','/logo.png']
 
 interface SessionData {
   isLoggedIn: boolean;
