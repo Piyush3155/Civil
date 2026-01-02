@@ -121,3 +121,15 @@ export async function safeApiRequest<T>(endpoint: string, options: RequestInit =
     };
   }
 }
+
+export async function getEquipments(projectId?: string) {
+  let url = '/equipment';
+  if (projectId) {
+    url += `?projectId=${projectId}`;
+  }
+  return apiRequest(url);
+}
+
+export async function getEquipmentCategories() {
+  return apiRequest('/equipment-category');
+}

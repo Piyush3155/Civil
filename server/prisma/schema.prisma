@@ -77,6 +77,8 @@ model user {
   contractorAdvancesPaid    ContractorAdvance[]
   supplierPaymentsPaid      SupplierPayment[]
   estimates                 Estimate[]
+  equipmentLogs             EquipmentLog[]
+  equipmentsCreated         Equipment[]             @relation("EquipmentCreator")
 }
 
 enum ForgotPasswordStatus {
@@ -276,6 +278,7 @@ model Project {
   contractorAdvances ContractorAdvance[]
   supplierPayments   SupplierPayment[]
   estimates          Estimate[]
+  equipments         Equipment[]
 }
 
 enum ProjectStatus {
@@ -1354,4 +1357,69 @@ model EstimateRateComponent {
   cost        Decimal? @db.Decimal(12,2)
 
   item EstimateItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------
+// EQUIPMENT MANAGEMENT
+// -------------------------
+
+enum EquipmentStatus {
+  AVAILABLE
+  IN_USE
+  MAINTENANCE
+  RETIRED
+}
+
+model EquipmentCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  equipments Equipment[]
+}
+
+model Equipment {
+  id              String   @id @default(cuid())
+  name            String
+  model           String?
+  capacity        String?
+  purchaseDate    DateTime?
+  purchasePrice   Decimal? @db.Decimal(12, 2)
+  rental          Boolean  @default(false)
+  rentalVendor    String?
+  rentalRate      Decimal? @db.Decimal(10, 2)
+  status          EquipmentStatus @default(AVAILABLE)
+  
+  categoryId      String
+  category        EquipmentCategory @relation(fields: [categoryId], references: [id])
+
+  projectId       String?
+  project         Project? @relation(fields: [projectId], references: [id])
+
+  createdById     String
+  createdBy       user     @relation("EquipmentCreator", fields: [createdById], references: [id])
+
+  logs            EquipmentLog[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([categoryId])
+}
+
+model EquipmentLog {
+  id          String   @id @default(cuid())
+  equipmentId String
+  notes       String?
+  userId      String
+  createdAt   DateTime @default(now())
+
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  user        user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([userId])
 }

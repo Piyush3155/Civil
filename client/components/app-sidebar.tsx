@@ -11,7 +11,8 @@ import {
   Settings,
   Send,
   BarChart3,
-  UserCheck
+  UserCheck,
+  Wrench
 } from "lucide-react"
 
 import {
@@ -75,6 +76,16 @@ const data = {
           title: "Labours",
           url: "/labours",
           icon: HardHat,
+        },
+        {
+          title: "Equipment",
+          url: "/equipment",
+          icon: Wrench,
+        },
+        {
+          title: "Equipment Categories",
+          url: "/equipment/category",
+          icon: Wrench,
         },
         {
           title: "Users",

@@ -12,13 +12,13 @@ import { useRouter } from "next/navigation";
 import { setAuthenticated } from "@/lib/session";
 import useFcmToken from "@/hooks/useFcmToken";
 import { getDeviceId } from "@/lib/firebase";
+import { toast } from "sonner";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"form">) {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { token, requestPermission } = useFcmToken();
 
@@ -38,7 +38,6 @@ export function LoginForm({
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     try {
       const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -90,7 +89,11 @@ export function LoginForm({
 
       router.push('/dashboard');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Login failed');
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
+      const displayMessage = errorMessage.toLowerCase().includes('unauthorized') || errorMessage.toLowerCase().includes('invalid') 
+        ? 'Invalid email or password' 
+        : errorMessage;
+      toast.error(displayMessage);
     } finally {
       setIsLoading(false);
     }
@@ -159,12 +162,6 @@ export function LoginForm({
             />
           </div>
         </div>
-
-        {error && (
-          <div className="text-sm text-red-500 text-center">
-            {error}
-          </div>
-        )}
 
         <Button 
           type="submit" 

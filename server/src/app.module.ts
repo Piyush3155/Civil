@@ -22,6 +22,8 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { FinanceModule } from './finance/finance.module';
 import { EstimationModule } from './estimation/estimation.module';
 import { PdfModule } from './pdf/pdf.module';
+import { EquipmentModule } from './equipment/equipment.module';
+import { EquipmentCategoryModule } from './equipment-category/equipment-category.module';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { PdfModule } from './pdf/pdf.module';
     FinanceModule,
     EstimationModule,
     PdfModule,
+    EquipmentModule,
+    EquipmentCategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
