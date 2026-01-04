@@ -18,7 +18,12 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Body() body: { token: string }) {
-    return this.authService.refresh(body.token);
+  async refresh(@Request() req) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('No token provided');
+    }
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    return this.authService.refresh(token);
   }
 }

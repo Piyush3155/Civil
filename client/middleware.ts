@@ -112,8 +112,8 @@ export async function middleware(request: NextRequest) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.accessToken}`,
           },
-          body: JSON.stringify({ token: session.accessToken }),
         });
 
         if (refreshResponse.ok) {

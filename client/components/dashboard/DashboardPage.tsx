@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 title="Total Projects"
                 value={stats.projects.total}
                 icon={Building2}
-                trend="+2 this month"
+                trend="Projects"
                 trendUp={true}
                 loading={stats.loading}
                 iconColor="bg-blue-500/10 text-blue-600"
