@@ -15,7 +15,6 @@ import {
 import { PlusCircle } from 'lucide-react';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getEquipments } from '@/lib/api';
 import { EquipmentTable } from './equipment-table';
 import { columns } from './columns';
 import { useProject } from '@/hooks/use-project';
@@ -28,7 +27,10 @@ export default function EquipmentPage() {
     queryKey: ['equipments', projectId],
     queryFn: () => fetchEquipments(projectId),
   });
-
+  const category = () => {
+    //redirect to category page
+    window.location.href = '/equipment/category';
+  }
   return (
     <SidebarProvider>
       <AppSidebar />
@@ -53,12 +55,17 @@ export default function EquipmentPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-end mb-4">
+             
+              <div className="flex justify-end mb-4 gap-2">
                 <AddEquipmentDialog>
                   <Button>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Equipment
                   </Button>
                 </AddEquipmentDialog>
+               
+                  <Button onClick={category} className="bg-foreground hover:bg-foreground/80">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Category 
+                  </Button>
               </div>
               {isLoading ? (
                 <p>Loading...</p>

@@ -82,11 +82,11 @@ const data = {
           url: "/equipment",
           icon: Wrench,
         },
-        {
+/*         {
           title: "Equipment Categories",
           url: "/equipment/category",
           icon: Wrench,
-        },
+        }, */
         {
           title: "Users",
           url: "/users",
