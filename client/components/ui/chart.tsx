@@ -355,3 +355,9 @@ export {
   ChartLegendContent,
   ChartStyle,
 }
+
+// Re-export recharts components for convenience
+export const PieChart = RechartsPrimitive.PieChart
+export const Pie = RechartsPrimitive.Pie
+export const Label = RechartsPrimitive.Label
+export const Cell = RechartsPrimitive.Cell
