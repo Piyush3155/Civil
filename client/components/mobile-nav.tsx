@@ -2,15 +2,14 @@
 
 import React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { 
   LayoutDashboard, 
   Building2, 
   Plus, 
   Bell, 
-  Settings,
   Search,
-  MoreVertical,
   Menu
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -32,7 +31,7 @@ export function MobileBottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-xl border-t md:hidden pb-safe">
       <div className="flex h-full items-center justify-around px-2">
-        {navItems.map((item, index) => {
+        {navItems.map((item) => {
           const isActive = pathname === item.href
           
           if (item.isAction) {
@@ -112,7 +111,6 @@ const titles: Record<string, string> = {
 
 export function MobileTopNav() {
   const pathname = usePathname()
-  const { setOpenMobile } = useSidebar()
   
   // Find the matching title or use default
   const title = titles[pathname] || "CIVIL DESK"
@@ -120,15 +118,14 @@ export function MobileTopNav() {
   return (
     <header className="fixed top-0 left-0 right-0 z-[40] h-14 bg-background/80 backdrop-blur-xl border-b md:hidden flex items-center justify-between px-4">
        <div className="flex items-center gap-2">
-         <div 
-            onClick={() => setOpenMobile(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm cursor-pointer active:scale-95 transition-transform"
-         >
-           <Building2 className="h-5 w-5" />
-         </div>
-         <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent uppercase">
-           {title}
-         </span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-primary-foreground shadow-lg overflow-hidden border border-border">
+          <Image src="/ios/1024.png" alt="Logo" width={40} height={40} className="object-cover rounded-xl" />
+        </div>
+                  <span className="bg-primary bg-clip-text text-transparent font-bold text-lg">
+                    CIVIL DESK
+                    <p className="text-xs font-thin text-foreground ">{title}</p>
+                  </span>
+                 
        </div>
        <div className="flex items-center gap-1">
          <Link href="/notifications">
