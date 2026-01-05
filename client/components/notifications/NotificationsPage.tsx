@@ -69,17 +69,19 @@ export default function NotificationsPage() {
   }
 
   return (
-        <><header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-      <SidebarTrigger className="-ml-1" />
-      <Separator orientation="vertical" className="mr-2 h-4" />
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbPage>Notifications</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    </header><div className="flex flex-1 flex-col gap-4 p-6">
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="hidden md:flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Notifications</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <div className="flex flex-1 flex-col gap-4 p-6">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-muted-foreground">Loading notifications...</p>
@@ -129,6 +131,7 @@ export default function NotificationsPage() {
             })}
           </div>
         )}
-      </div></>
+      </div>
+    </div>
   )
 }

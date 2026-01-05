@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import Link from "next/link"
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
@@ -8,18 +9,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, Plus, MapPin, Calendar, UsersIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { fetchProjects, createProject } from "@/app/actions/projects/main"
@@ -45,14 +34,6 @@ export default function ProjectsPage() {
   const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [creating, setCreating] = useState(false)
-  const [formData, setFormData] = useState({
-    name: "",
-    code: "",
-    location: "",
-    status: "ACTIVE",
-  })
 
   useEffect(() => {
     loadProjects()
@@ -69,22 +50,6 @@ export default function ProjectsPage() {
     }
   }
 
-  async function handleCreateProject(e: React.FormEvent) {
-    e.preventDefault()
-    setCreating(true)
-
-    try {
-      await createProject(formData)
-      setDialogOpen(false)
-      setFormData({ name: "", code: "", location: "", status: "ACTIVE" })
-      await loadProjects()
-    } catch (error) {
-      console.error("Error creating project:", error)
-      alert("Failed to create project")
-    } finally {
-      setCreating(false)
-    }
-  }
 
   function getStatusBadge(status: string): "default" | "secondary" | "destructive" | "outline" {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
@@ -99,7 +64,7 @@ export default function ProjectsPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
+      <header className="hidden md:flex sticky top-0 z-40 h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb className="hidden md:flex">
@@ -110,78 +75,13 @@ export default function ProjectsPage() {
             </BreadcrumbList>
           </Breadcrumb>
           <div className="ml-auto">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">New Project</span>
-                  <span className="sm:hidden">New</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <form onSubmit={handleCreateProject}>
-                  <DialogHeader>
-                    <DialogTitle>Create New Project</DialogTitle>
-                    <DialogDescription>Start a new construction project. Fill in the details below.</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">Project Name *</Label>
-                      <Input
-                        id="name"
-                        placeholder="Metro Station Construction"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="code">Project Code *</Label>
-                      <Input
-                        id="code"
-                        placeholder="PROJ-2025-001"
-                        value={formData.code}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="location">Location</Label>
-                      <Input
-                        id="location"
-                        placeholder="New Delhi, India"
-                        value={formData.location}
-                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) => setFormData({ ...formData, status: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="ACTIVE">Active</SelectItem>
-                          <SelectItem value="PAUSED">Paused</SelectItem>
-                          <SelectItem value="COMPLETED">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={creating}>
-                      {creating ? "Creating..." : "Create Project"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button className="gap-2" asChild>
+              <Link href="/projects/new">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Project</span>
+                <span className="sm:hidden">New</span>
+              </Link>
+            </Button>
           </div>
         </header>
 
@@ -200,9 +100,11 @@ export default function ProjectsPage() {
                 <p className="text-muted-foreground mb-6 text-center max-w-xs text-sm">
                   Get started by creating your first project to track all your construction work
                 </p>
-                <Button onClick={() => setDialogOpen(true)} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create Project
+                <Button asChild className="gap-2">
+                  <Link href="/projects/new">
+                    <Plus className="h-4 w-4" />
+                    Create Project
+                  </Link>
                 </Button>
               </CardContent>
             </Card>

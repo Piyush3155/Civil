@@ -115,7 +115,7 @@ export default function EstimationPage() {
 
   return (
     <div className="bg-muted">
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <header className="hidden md:flex h-16 shrink-0 items-center gap-2 border-b px-4">
         <Separator orientation="vertical" className="mr-2 h-4" />
         <Breadcrumb>
           <BreadcrumbList>

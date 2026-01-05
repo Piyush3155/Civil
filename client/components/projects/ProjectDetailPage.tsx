@@ -241,7 +241,7 @@ if (loading) {
   if (isUserOwner) {
     return (
      
-          <><header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
+          <><header className="hidden md:flex sticky top-0 z-40 h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
 
         <Separator orientation="vertical" className="mr-2 h-4" />
         <Breadcrumb className="hidden md:flex">
@@ -264,7 +264,7 @@ if (loading) {
 
   return (
     
-        <><><header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
+        <><><header className="hidden md:flex sticky top-0 z-40 h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
 
       <Separator orientation="vertical" className="mr-2 h-4" />
       <Breadcrumb className="hidden md:flex">
@@ -280,8 +280,8 @@ if (loading) {
       </Breadcrumb>
     </header><div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">
         <Tabs defaultValue="overview" className="w-full">
-          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 border-b">
-            <TabsList className="inline-flex h-auto w-full items-center justify-start gap-1 rounded-lg bg-muted/50 p-1.5 overflow-x-auto overflow-y-hidden scrollbar-hide">
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 border-b -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex h-auto w-full items-center justify-start gap-1 rounded-lg bg-muted/50 p-1.5 overflow-x-auto scrollbar-hide">
               <TabsTrigger
                 value="overview"
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"

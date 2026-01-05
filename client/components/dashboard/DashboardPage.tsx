@@ -204,7 +204,7 @@ export default function DashboardPage() {
     <div className="bg-muted/30">
       
       {/* Header */}
-      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-6 sticky top-0 z-20">
+      <header className="hidden md:flex h-16 shrink-0 items-center justify-between border-b bg-background px-6 sticky top-0 z-20">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="-ml-2" />
           <Separator orientation="vertical" className="h-4" />
@@ -313,55 +313,57 @@ export default function DashboardPage() {
                                   </Button>
                               </div>
                           ) : (
-                              <Table>
-                                  <TableHeader>
-                                      <TableRow className="hover:bg-transparent">
-                                          <TableHead className="w-[250px] pl-6">Project Name</TableHead>
-                                          <TableHead>Location</TableHead>
-                                          <TableHead>Status</TableHead>
-                                          <TableHead className="text-right pr-6">Actions</TableHead>
-                                      </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                      {(stats.recentProjects ?? []).map((project) => (
-                                          <TableRow key={project.id} className="group cursor-pointer hover:bg-muted/40">
-                                              <TableCell className="pl-6 font-medium">
-                                                  <div className="flex items-center gap-3">
-                                                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                                                          <Building2 className="h-4 w-4" />
-                                                      </div>
-                                                      <Link href={`/projects/${project.id}`} className="hover:underline underline-offset-4 decoration-muted-foreground/50">
-                                                          {project.name || "Untitled Project"}
-                                                      </Link>
-                                                  </div>
-                                              </TableCell>
-                                              <TableCell className="text-muted-foreground text-sm">
-                                                  {project.location || "No location"}
-                                              </TableCell>
-                                              <TableCell>
-                                                  <StatusBadge status={project.status || "PLANNING"} />
-                                              </TableCell>
-                                              <TableCell className="text-right pr-6">
-                                                  <DropdownMenu>
-                                                      <DropdownMenuTrigger asChild>
-                                                          <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                              <span className="sr-only">Open menu</span>
-                                                              <MoreHorizontal className="h-4 w-4" />
-                                                          </Button>
-                                                      </DropdownMenuTrigger>
-                                                      <DropdownMenuContent align="end">
-                                                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                          <DropdownMenuItem asChild>
-                                                              <Link href={`/projects/${project.id}`}>View Details</Link>
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                                                      </DropdownMenuContent>
-                                                  </DropdownMenu>
-                                              </TableCell>
-                                          </TableRow>
-                                      ))}
-                                  </TableBody>
-                              </Table>
+                              <div className="table-wrapper">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="hover:bg-transparent">
+                                            <TableHead className="w-[200px] md:w-[250px] pl-4 md:pl-6">Project Name</TableHead>
+                                            <TableHead>Location</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right pr-4 md:pr-6">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {(stats.recentProjects ?? []).map((project) => (
+                                            <TableRow key={project.id} className="group cursor-pointer hover:bg-muted/40">
+                                                <TableCell className="pl-4 md:pl-6 font-medium">
+                                                    <div className="flex items-center gap-2 md:gap-3">
+                                                        <div className="h-7 w-7 md:h-8 md:w-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                            <Building2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
+                                                        </div>
+                                                        <Link href={`/projects/${project.id}`} className="hover:underline underline-offset-4 decoration-muted-foreground/50 truncate max-w-[120px] md:max-w-none">
+                                                            {project.name || "Untitled Project"}
+                                                        </Link>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-muted-foreground text-sm truncate max-w-[100px] md:max-w-none">
+                                                    {project.location || "No location"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge status={project.status || "PLANNING"} />
+                                                </TableCell>
+                                                <TableCell className="text-right pr-4 md:pr-6">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <span className="sr-only">Open menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                            <DropdownMenuItem asChild>
+                                                                <Link href={`/projects/${project.id}`}>View Details</Link>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem>Edit Project</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                              </div>
                           )}
                       </CardContent>
                   </Card>
