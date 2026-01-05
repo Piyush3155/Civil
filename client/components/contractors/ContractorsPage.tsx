@@ -1,6 +1,5 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,8 +8,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
-  SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -256,10 +253,8 @@ export default function ContractorsPage() {
   )
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+    <div className="bg-muted/30">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb>
@@ -292,7 +287,7 @@ export default function ContractorsPage() {
             </Dialog>
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-6">
+        <main className="flex flex-1 flex-col gap-4 p-6">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader />
@@ -375,27 +370,26 @@ export default function ContractorsPage() {
               ))}
             </div>
           )}
-
-          {/* Edit Dialog */}
-          <Dialog open={editDialogOpen} onOpenChange={(open) => {
-            setEditDialogOpen(open)
-            if (!open) {
-              setSelectedContractor(null)
-              resetForm()
-            }
-          }}>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Edit Contractor</DialogTitle>
-                <DialogDescription>
-                  Update contractor information
-                </DialogDescription>
-              </DialogHeader>
-              <ContractorForm onSubmit={handleUpdateContractor} submitText="Save Changes" />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </main>
+      <div>
+        <Dialog open={editDialogOpen} onOpenChange={(open) => {
+          setEditDialogOpen(open)
+          if (!open) {
+            setSelectedContractor(null)
+            resetForm()
+          }
+        }}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Contractor</DialogTitle>
+              <DialogDescription>
+                Update contractor information
+              </DialogDescription>
+            </DialogHeader>
+            <ContractorForm onSubmit={handleUpdateContractor} submitText="Save Changes" />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   )
 }

@@ -19,9 +19,8 @@ import {
 } from "lucide-react"
 
 // UI Imports
-import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -202,221 +201,218 @@ export default function DashboardPage() {
   const totalProjects = stats.projects.total
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="bg-muted/30">
+    <div className="bg-muted/30">
+      
+      {/* Header */}
+      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-6 sticky top-0 z-20">
+        <div className="flex items-center gap-4">
+          <SidebarTrigger className="-ml-2" />
+          <Separator orientation="vertical" className="h-4" />
+          <div className="flex items-center text-sm font-medium text-muted-foreground">
+              <Building2 className="mr-2 h-4 w-4" />
+              <span>Civil Desk</span>
+          </div>
+        </div>
         
-        {/* Header */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-6 sticky top-0 z-20">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger className="-ml-2" />
-            <Separator orientation="vertical" className="h-4" />
-            <div className="flex items-center text-sm font-medium text-muted-foreground">
-                <Building2 className="mr-2 h-4 w-4" />
-                <span>Civil Desk</span>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="relative hidden md:block">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search..."
+              className="w-64 pl-9 h-9 bg-muted/40 border-none shadow-none focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
+            />
           </div>
+          <Button size="sm" className="h-9 gap-1 shadow-sm">
+              <Link href="/projects/new" className="flex items-center gap-2">
+                  <Plus className="h-3.5 w-3.5" />
+                  <span className="sr-only sm:not-sr-only">Create Project</span>
+              </Link>
+          </Button>
+        </div>
+      </header>
+
+      <main className="flex-1 p-6 space-y-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
           
-          <div className="flex items-center gap-3">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="w-64 pl-9 h-9 bg-muted/40 border-none shadow-none focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
-              />
-            </div>
-            <Button size="sm" className="h-9 gap-1 shadow-sm">
-                <Link href="/projects/new" className="flex items-center gap-2">
-                    <Plus className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">Create Project</span>
-                </Link>
-            </Button>
+          {/* 1. Greeting Section */}
+          <div className="flex items-end justify-between">
+              <Greeting />
+              <div className="hidden sm:flex text-sm text-muted-foreground items-center gap-2 bg-background/50 px-3 py-1 rounded-full border">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </div>
           </div>
-        </header>
 
-        <main className="flex-1 p-6 space-y-8 max-w-[1600px] mx-auto w-full animate-in fade-in duration-500">
-            
-            {/* 1. Greeting Section */}
-            <div className="flex items-end justify-between">
-                <Greeting />
-                <div className="hidden sm:flex text-sm text-muted-foreground items-center gap-2 bg-background/50 px-3 py-1 rounded-full border">
-                    <Calendar className="h-3.5 w-3.5" />
-                    {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </div>
-            </div>
+          {/* 2. Stats Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              title="Total Projects"
+              value={stats.projects.total}
+              icon={Building2}
+              trend="Projects"
+              trendUp={true}
+              loading={stats.loading}
+              iconColor="bg-blue-500/10 text-blue-600"
+            />
+            <StatCard
+              title="Active Contractors"
+              value={stats.contractors}
+              icon={Users}
+              trend="Verified partners"
+              loading={stats.loading}
+              iconColor="bg-violet-500/10 text-violet-600"
+            />
+            <StatCard
+              title="Total Workforce"
+              value={stats.labours}
+              icon={HardHat}
+              trend="On-site staff"
+              loading={stats.loading}
+              iconColor="bg-amber-500/10 text-amber-600"
+            />
+            <StatCard
+              title="Blueprints"
+              value={stats.drawings}
+              icon={FileText}
+              trend="Documents stored"
+              loading={stats.loading}
+              iconColor="bg-emerald-500/10 text-emerald-600"
+            />
+          </div>
 
-            {/* 2. Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                title="Total Projects"
-                value={stats.projects.total}
-                icon={Building2}
-                trend="Projects"
-                trendUp={true}
-                loading={stats.loading}
-                iconColor="bg-blue-500/10 text-blue-600"
-              />
-              <StatCard
-                title="Active Contractors"
-                value={stats.contractors}
-                icon={Users}
-                trend="Verified partners"
-                loading={stats.loading}
-                iconColor="bg-violet-500/10 text-violet-600"
-              />
-              <StatCard
-                title="Total Workforce"
-                value={stats.labours}
-                icon={HardHat}
-                trend="On-site staff"
-                loading={stats.loading}
-                iconColor="bg-amber-500/10 text-amber-600"
-              />
-              <StatCard
-                title="Blueprints"
-                value={stats.drawings}
-                icon={FileText}
-                trend="Documents stored"
-                loading={stats.loading}
-                iconColor="bg-emerald-500/10 text-emerald-600"
-              />
-            </div>
+          {/* 3. Main Layout Grid */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              
+              {/* Left Column: Recent Projects (Span 2) */}
+              <div className="xl:col-span-2 space-y-6">
+                  <Card className="h-full border shadow-sm">
+                      <CardHeader className="flex flex-row items-center justify-between pb-4">
+                          <div>
+                              <CardTitle className="text-lg">Recent Projects</CardTitle>
+                              <CardDescription>Overview of your latest construction sites.</CardDescription>
+                          </div>
+                          <Button variant="outline" size="sm" asChild>
+                              <Link href="/projects" className="text-xs h-8 gap-1">
+                                  View All <ArrowUpRight className="h-3.5 w-3.5" />
+                              </Link>
+                          </Button>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                          {stats.loading ? (
+                              <div className="p-6 space-y-4">
+                                  {[1,2,3,4].map(i => <Skeleton key={i} className="h-12 w-full rounded-md" />)}
+                              </div>
+                          ) : (stats.recentProjects?.length ?? 0) === 0 ? (
+                              <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-muted/10">
+                                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                                      <Building2 className="h-6 w-6 opacity-40" />
+                                  </div>
+                                  <p className="font-medium text-sm">No projects created yet</p>
+                                  <Button variant="link" asChild className="mt-2">
+                                      <Link href="/projects/new">Create your first project</Link>
+                                  </Button>
+                              </div>
+                          ) : (
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow className="hover:bg-transparent">
+                                          <TableHead className="w-[250px] pl-6">Project Name</TableHead>
+                                          <TableHead>Location</TableHead>
+                                          <TableHead>Status</TableHead>
+                                          <TableHead className="text-right pr-6">Actions</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {(stats.recentProjects ?? []).map((project) => (
+                                          <TableRow key={project.id} className="group cursor-pointer hover:bg-muted/40">
+                                              <TableCell className="pl-6 font-medium">
+                                                  <div className="flex items-center gap-3">
+                                                      <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary">
+                                                          <Building2 className="h-4 w-4" />
+                                                      </div>
+                                                      <Link href={`/projects/${project.id}`} className="hover:underline underline-offset-4 decoration-muted-foreground/50">
+                                                          {project.name || "Untitled Project"}
+                                                      </Link>
+                                                  </div>
+                                              </TableCell>
+                                              <TableCell className="text-muted-foreground text-sm">
+                                                  {project.location || "No location"}
+                                              </TableCell>
+                                              <TableCell>
+                                                  <StatusBadge status={project.status || "PLANNING"} />
+                                              </TableCell>
+                                              <TableCell className="text-right pr-6">
+                                                  <DropdownMenu>
+                                                      <DropdownMenuTrigger asChild>
+                                                          <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                              <span className="sr-only">Open menu</span>
+                                                              <MoreHorizontal className="h-4 w-4" />
+                                                          </Button>
+                                                      </DropdownMenuTrigger>
+                                                      <DropdownMenuContent align="end">
+                                                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                          <DropdownMenuItem asChild>
+                                                              <Link href={`/projects/${project.id}`}>View Details</Link>
+                                                          </DropdownMenuItem>
+                                                          <DropdownMenuItem>Edit Project</DropdownMenuItem>
+                                                      </DropdownMenuContent>
+                                                  </DropdownMenu>
+                                              </TableCell>
+                                          </TableRow>
+                                      ))}
+                                  </TableBody>
+                              </Table>
+                          )}
+                      </CardContent>
+                  </Card>
+              </div>
 
-            {/* 3. Main Layout Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                
-                {/* Left Column: Recent Projects (Span 2) */}
-                <div className="xl:col-span-2 space-y-6">
-                    <Card className="h-full border shadow-sm">
-                        <CardHeader className="flex flex-row items-center justify-between pb-4">
-                            <div>
-                                <CardTitle className="text-lg">Recent Projects</CardTitle>
-                                <CardDescription>Overview of your latest construction sites.</CardDescription>
-                            </div>
-                            <Button variant="outline" size="sm" asChild>
-                                <Link href="/projects" className="text-xs h-8 gap-1">
-                                    View All <ArrowUpRight className="h-3.5 w-3.5" />
-                                </Link>
-                            </Button>
-                        </CardHeader>
-                        <CardContent className="p-0">
-                            {stats.loading ? (
-                                <div className="p-6 space-y-4">
-                                    {[1,2,3,4].map(i => <Skeleton key={i} className="h-12 w-full rounded-md" />)}
-                                </div>
-                            ) : (stats.recentProjects?.length ?? 0) === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground bg-muted/10">
-                                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                                        <Building2 className="h-6 w-6 opacity-40" />
-                                    </div>
-                                    <p className="font-medium text-sm">No projects created yet</p>
-                                    <Button variant="link" asChild className="mt-2">
-                                        <Link href="/projects/new">Create your first project</Link>
-                                    </Button>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow className="hover:bg-transparent">
-                                            <TableHead className="w-[250px] pl-6">Project Name</TableHead>
-                                            <TableHead>Location</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead className="text-right pr-6">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {(stats.recentProjects ?? []).map((project) => (
-                                            <TableRow key={project.id} className="group cursor-pointer hover:bg-muted/40">
-                                                <TableCell className="pl-6 font-medium">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary">
-                                                            <Building2 className="h-4 w-4" />
-                                                        </div>
-                                                        <Link href={`/projects/${project.id}`} className="hover:underline underline-offset-4 decoration-muted-foreground/50">
-                                                            {project.name || "Untitled Project"}
-                                                        </Link>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground text-sm">
-                                                    {project.location || "No location"}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <StatusBadge status={project.status || "PLANNING"} />
-                                                </TableCell>
-                                                <TableCell className="text-right pr-6">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <span className="sr-only">Open menu</span>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem asChild>
-                                                                <Link href={`/projects/${project.id}`}>View Details</Link>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+              {/* Right Column: Analytics & Quick Actions (Span 1) */}
+              <div className="flex flex-col gap-6">
+                  
+                  {/* Project Status Donut Chart */}
+                  <ProjectStatusChart
+                    data={chartData}
+                    config={chartConfig}
+                    totalProjects={totalProjects}
+                    activeProjects={stats.projects.active}
+                  />
 
-                {/* Right Column: Analytics & Quick Actions (Span 1) */}
-                <div className="flex flex-col gap-6">
-                    
-                    {/* Project Status Donut Chart */}
-                    <ProjectStatusChart
-                      data={chartData}
-                      config={chartConfig}
-                      totalProjects={totalProjects}
-                      activeProjects={stats.projects.active}
-                    />
-
-                    {/* Quick Actions Widget */}
-                    <Card className="border shadow-sm">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base">Quick Actions</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-2">
-                             <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
-                                <Link href="/contractors/new">
-                                    <Users className="h-4 w-4 text-violet-500" />
-                                    <span>Register Contractor</span>
-                                </Link>
-                             </Button>
-                             <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
-                                <Link href="/labours/new">
-                                    <HardHat className="h-4 w-4 text-amber-500" />
-                                    <span>Add Labour</span>
-                                </Link>
-                             </Button>
-                             <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
-                                <Link href="/materials/new">
-                                    <Hammer className="h-4 w-4 text-blue-500" />
-                                    <span>Request Material</span>
-                                </Link>
-                             </Button>
-                             <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
-                                <Link href="/drawings/upload">
-                                    <FileUp className="h-4 w-4 text-emerald-500" />
-                                    <span>Upload Drawing</span>
-                                </Link>
-                             </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+                  {/* Quick Actions Widget */}
+                  <Card className="border shadow-sm">
+                      <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Quick Actions</CardTitle>
+                      </CardHeader>
+                      <CardContent className="grid gap-2">
+                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                              <Link href="/contractors/new">
+                                  <Users className="h-4 w-4 text-violet-500" />
+                                  <span>Register Contractor</span>
+                              </Link>
+                           </Button>
+                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                              <Link href="/labours/new">
+                                  <HardHat className="h-4 w-4 text-amber-500" />
+                                  <span>Add Labour</span>
+                              </Link>
+                           </Button>
+                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                              <Link href="/materials/new">
+                                  <Hammer className="h-4 w-4 text-blue-500" />
+                                  <span>Request Material</span>
+                              </Link>
+                           </Button>
+                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                              <Link href="/drawings/upload">
+                                  <FileUp className="h-4 w-4 text-emerald-500" />
+                                  <span>Upload Drawing</span>
+                              </Link>
+                           </Button>
+                      </CardContent>
+                  </Card>
+              </div>
+          </div>
+      </main>
+    </div>
   )
 }

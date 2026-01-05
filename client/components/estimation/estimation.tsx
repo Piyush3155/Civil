@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Download, FileText } from 'lucide-react';
-import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -18,11 +17,6 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { fetchProjects } from '@/app/actions/projects/main';
 import { fetchEstimates, createEstimate, downloadEstimatePdf } from '@/app/actions/estimation/main';
 
@@ -120,21 +114,18 @@ export default function EstimationPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Estimation</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-6">
+    <div className="bg-muted">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Estimation</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <main className="flex flex-1 flex-col gap-4 p-6">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Estimation Module</h1>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -285,8 +276,7 @@ export default function EstimationPage() {
               </Button>
             </div>
           )}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+        </main>
+      </div>
+    );
 }

@@ -12,7 +12,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Edit, Trash2, Download, Calculator, Building, Wrench, DollarSign } from 'lucide-react';
-import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,11 +19,6 @@ import {
   BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { fetchEstimateById, createEstimateSection, createEstimateItem, createEstimateComponent, downloadEstimatePdf } from '@/app/actions/estimation/main';
 
 interface Estimate {
@@ -200,24 +194,21 @@ export default function EstimateDetailPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Estimation</BreadcrumbPage>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbPage>{estimate.title}</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-6">
+    <div className="bg-muted">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Estimation</BreadcrumbPage>
+            </BreadcrumbItem>
+            <BreadcrumbItem>
+              <BreadcrumbPage>{estimate.title}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <main className="flex flex-1 flex-col gap-4 p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold">{estimate.title}</h1>
@@ -650,8 +641,7 @@ export default function EstimateDetailPage() {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+        </main>
+      </div>
+    );
 }

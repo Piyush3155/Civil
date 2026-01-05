@@ -2,10 +2,9 @@
 
 import type React from "react"
 
-import { AppSidebar } from "@/components/app-sidebar"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -26,7 +25,6 @@ import { useEffect, useState } from "react"
 import { fetchProjects, createProject } from "@/app/actions/projects/main"
 import { useRouter } from "next/navigation"
 import Loader from "@/components/ui/loader"
-
 interface Project {
   id: string
   name: string
@@ -98,11 +96,10 @@ export default function ProjectsPage() {
     return variants[status] || "default"
   }
 
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
+    <div className="bg-background min-h-screen">
+      <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <Breadcrumb className="hidden md:flex">
@@ -268,7 +265,7 @@ export default function ProjectsPage() {
             </div>
           )}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    
   )
 }

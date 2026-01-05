@@ -1,6 +1,5 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,8 +8,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
-  SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -256,146 +253,140 @@ export default function ContractorsPage() {
   )
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Contractors</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <div className="ml-auto">
-            <Dialog open={createDialogOpen} onOpenChange={(open) => {
-              setCreateDialogOpen(open)
-              if (!open) resetForm()
-            }}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Contractor
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Contractor</DialogTitle>
-                  <DialogDescription>
-                    Register a new contractor company
-                  </DialogDescription>
-                </DialogHeader>
-                <ContractorForm onSubmit={handleCreateContractor} submitText="Create Contractor" />
-              </DialogContent>
-            </Dialog>
+    <><header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Contractors</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      <div className="ml-auto">
+        <Dialog open={createDialogOpen} onOpenChange={(open) => {
+          setCreateDialogOpen(open);
+          if (!open) resetForm();
+        } }>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              New Contractor
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add New Contractor</DialogTitle>
+              <DialogDescription>
+                Register a new contractor company
+              </DialogDescription>
+            </DialogHeader>
+            <ContractorForm onSubmit={handleCreateContractor} submitText="Create Contractor" />
+          </DialogContent>
+        </Dialog>
+      </div>
+    </header><div className="flex flex-1 flex-col gap-4 p-6">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-6">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader />
-            </div>
-          ) : contractors.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center h-64">
-                <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No contractors yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Add your first contractor to get started
-                </p>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Contractor
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {contractors.map((contractor) => (
-                <Card key={contractor.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-start gap-3">
-                        <Building2 className="h-5 w-5 text-muted-foreground mt-1" />
-                        <div>
-                          <h3 className="font-semibold">{contractor.name}</h3>
-                          <Badge variant={getTypeBadge(contractor.type) as "default" | "secondary" | "outline"} className="mt-1">
-                            {contractor.type.replace("_", " ")}
-                          </Badge>
-                        </div>
+        ) : contractors.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center h-64">
+              <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No contractors yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Add your first contractor to get started
+              </p>
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Contractor
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {contractors.map((contractor) => (
+              <Card key={contractor.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start gap-3">
+                      <Building2 className="h-5 w-5 text-muted-foreground mt-1" />
+                      <div>
+                        <h3 className="font-semibold">{contractor.name}</h3>
+                        <Badge variant={getTypeBadge(contractor.type) as "default" | "secondary" | "outline"} className="mt-1">
+                          {contractor.type.replace("_", " ")}
+                        </Badge>
                       </div>
                     </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      {contractor.contactPerson && (
-                        <p className="text-sm text-muted-foreground">
-                          Contact: {contractor.contactPerson}
-                        </p>
-                      )}
-                      {contractor.phone && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Phone className="mr-2 h-4 w-4" />
-                          {contractor.phone}
-                        </div>
-                      )}
-                      {contractor.email && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Mail className="mr-2 h-4 w-4" />
-                          {contractor.email}
-                        </div>
-                      )}
-                      <div className="flex items-center text-sm text-muted-foreground pt-2 border-t">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Added {new Date(contractor.createdAt).toLocaleDateString()}
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    {contractor.contactPerson && (
+                      <p className="text-sm text-muted-foreground">
+                        Contact: {contractor.contactPerson}
+                      </p>
+                    )}
+                    {contractor.phone && (
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Phone className="mr-2 h-4 w-4" />
+                        {contractor.phone}
                       </div>
+                    )}
+                    {contractor.email && (
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Mail className="mr-2 h-4 w-4" />
+                        {contractor.email}
+                      </div>
+                    )}
+                    <div className="flex items-center text-sm text-muted-foreground pt-2 border-t">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      Added {new Date(contractor.createdAt).toLocaleDateString()}
                     </div>
+                  </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => openEditDialog(contractor)}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteContractor(contractor.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => openEditDialog(contractor)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteContractor(contractor.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-          {/* Edit Dialog */}
-          <Dialog open={editDialogOpen} onOpenChange={(open) => {
-            setEditDialogOpen(open)
-            if (!open) {
-              setSelectedContractor(null)
-              resetForm()
-            }
-          }}>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Edit Contractor</DialogTitle>
-                <DialogDescription>
-                  Update contractor information
-                </DialogDescription>
-              </DialogHeader>
-              <ContractorForm onSubmit={handleUpdateContractor} submitText="Save Changes" />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) {
+            setSelectedContractor(null);
+            resetForm();
+          }
+        } }>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Contractor</DialogTitle>
+              <DialogDescription>
+                Update contractor information
+              </DialogDescription>
+            </DialogHeader>
+            <ContractorForm onSubmit={handleUpdateContractor} submitText="Save Changes" />
+          </DialogContent>
+        </Dialog>
+      </div></>
   )
 }

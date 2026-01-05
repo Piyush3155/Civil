@@ -1,7 +1,6 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { usePathname } from "next/navigation";
@@ -28,31 +27,25 @@ export default function AnalyticsLayout({
   };
   
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb className="hidden md:flex">
-            <BreadcrumbList>
+        <><header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
+      <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <Breadcrumb className="hidden md:flex">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Analytics</BreadcrumbPage>
+          </BreadcrumbItem>
+          {pathname !== "/analytics" && (
+            <>
               <BreadcrumbItem>
-                <BreadcrumbPage>Analytics</BreadcrumbPage>
+                <BreadcrumbPage className="font-semibold">{getBreadcrumbTitle()}</BreadcrumbPage>
               </BreadcrumbItem>
-              {pathname !== "/analytics" && (
-                <>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="font-semibold">{getBreadcrumbTitle()}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </>
-              )}
-            </BreadcrumbList>
-          </Breadcrumb>
-        </header>
-        <div className="flex-1">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+            </>
+          )}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </header><div className="flex-1">
+        {children}
+      </div></>
   );
 }

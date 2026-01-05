@@ -32,15 +32,11 @@ import {
 import { sendFCMToRole, sendFCMToUser, sendFCMToMultipleUsers, sendTestFCM } from "@/app/actions/fcm"
 import { fetchUsers } from "@/app/actions/user/main"
 import { FCMResult, User as UserType } from "@/types/fcm"
-import { AppSidebar } from "@/components/app-sidebar"
 import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { SidebarTrigger } from "../ui/sidebar"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from "../ui/breadcrumb"
 
 type TargetType = "role" | "user" | "multiple"
 
@@ -378,19 +374,20 @@ export default function SendFcmPage() {
   )
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="bg-muted/10">
-        <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b bg-background/80 backdrop-blur-md sticky top-0 z-20">
-          <SidebarTrigger />
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex items-center gap-2 font-semibold">
-             <Bell className="h-4 w-4 text-primary" />
-             <span>Notification Manager</span>
-          </div>
-        </header>
+    <div className="bg-background">
+      <header className="flex h-16 shrink-0 items-center gap-2 px-4 border-b bg-background/80 backdrop-blur-md sticky top-0 z-20">
+         <SidebarTrigger className="-ml-1" />
+      <Separator orientation="vertical" className="mr-2 h-4" />
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbPage>Send FCM</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      </header>
 
-        <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
             <StepIndicator />
 
             <div className={cn(
@@ -776,8 +773,7 @@ export default function SendFcmPage() {
                     </div>
                 )}
             </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  )
+        </main>
+      </div>
+    )
 }

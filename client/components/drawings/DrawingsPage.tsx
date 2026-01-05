@@ -1,6 +1,5 @@
 "use client";
 
-import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,8 +8,6 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
-  SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
@@ -287,27 +284,25 @@ export default function DrawingsPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
-          <Breadcrumb className="hidden sm:flex">
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>Drawings</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-          <h1 className="text-lg font-semibold sm:hidden">Drawings</h1> {/* IMPROVEMENT: Mobile title */}
-          <div className="ml-auto">
-            {/* IMPROVEMENT: Made the Upload button more prominent and mobile-friendly */}
-            <Dialog open={createDialogOpen} onOpenChange={(open) => {
-              setCreateDialogOpen(open)
-              if (!open) resetForm()
-            }}>
-              <DialogTrigger asChild>
+    <div className="bg-background min-h-screen">
+      <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4 hidden sm:block" />
+        <Breadcrumb className="hidden sm:flex">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbPage>Drawings</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        <h1 className="text-lg font-semibold sm:hidden">Drawings</h1> {/* IMPROVEMENT: Mobile title */}
+        <div className="ml-auto">
+          {/* IMPROVEMENT: Made the Upload button more prominent and mobile-friendly */}
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open)
+            if (!open) resetForm()
+          }}>
+            <DialogTrigger asChild>
                 <Button 
                     size="sm" 
                     className="sm:size-default"
@@ -698,7 +693,7 @@ export default function DrawingsPage() {
             </DialogContent>
           </Dialog>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </div>
+
   )
 }
