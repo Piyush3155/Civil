@@ -107,6 +107,7 @@ const titles: Record<string, string> = {
   "/users": "User Management",
   "/drawings": "Drawings",
   "/projects/new": "New Project",
+  "/send-fcm": "Send FCM",
 }
 
 export function MobileTopNav() {
