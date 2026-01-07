@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Building2, Plus, MapPin, Calendar, UsersIcon } from "lucide-react"
 import { useEffect, useState } from "react"
-import { fetchProjects, createProject } from "@/app/actions/projects/main"
+import { fetchProjects } from "@/app/actions/projects/main"
 import { useRouter } from "next/navigation"
 import Loader from "@/components/ui/loader"
 interface Project {

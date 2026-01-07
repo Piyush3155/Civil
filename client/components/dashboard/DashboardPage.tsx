@@ -10,7 +10,6 @@ import {
   FileText,
   Plus,
   ArrowUpRight,
-  Search,
   LucideIcon,
   MoreHorizontal,
   Calendar,
@@ -24,7 +23,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
   Table,
   TableBody,
@@ -216,21 +214,22 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="relative hidden md:block">
+         {/*  <div className="relative hidden md:block">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search..."
               className="w-64 pl-9 h-9 bg-muted/40 border-none shadow-none focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
             />
-          </div>
-          <AnimatedThemeToggler className="h-9 w-9" />
+          </div> */}
           <Button size="sm" className="h-9 gap-1 shadow-sm">
               <Link href="/projects/new" className="flex items-center gap-2">
                   <Plus className="h-3.5 w-3.5" />
                   <span className="sr-only sm:not-sr-only">Create Project</span>
               </Link>
           </Button>
+          
+          <AnimatedThemeToggler className="h-9 w-9" />
         </div>
       </header>
 

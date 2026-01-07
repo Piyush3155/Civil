@@ -47,6 +47,11 @@ const nextConfig: NextConfig = {
   // Experimental features for security
   serverExternalPackages: [],
 
+  // Disable Turbopack to fix font loading issues
+  experimental: {
+    turbo: false,
+  },
+
   // Production optimizations
   poweredByHeader: false, // Remove X-Powered-By header
 };

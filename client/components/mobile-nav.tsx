@@ -9,7 +9,7 @@ import {
   Building2, 
   Plus, 
   Bell, 
-  Search,
+  Settings,
   Menu
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -137,9 +137,11 @@ export function MobileTopNav() {
            </Button>
          </Link> */}
          <AnimatedThemeToggler className="h-9 w-9 rounded-full" />
-         <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full h-9 w-9">
-           <Search className="h-5 w-5" />
-         </Button>
+         <Link href="/settings">
+           <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full h-9 w-9 relative">
+           <Settings className="h-14 w-14" />
+           </Button>
+         </Link>
        </div>
     </header>
   )

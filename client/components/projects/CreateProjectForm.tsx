@@ -43,16 +43,16 @@ export function CreateProjectForm() {
       toast.success("Project created successfully");
       router.push("/projects");
       router.refresh();
-    } catch (error: any) {
-      console.error("Error creating project:", error);
-      toast.error(error.message || "Failed to create project");
+    } catch  {
+      console.error("Error creating project:", );
+      toast.error("Failed to create project");
     } finally {
       setCreating(false);
     }
   }
 
   return (
-    <Card className="max-w-xl mx-auto border-none shadow-none md:border md:shadow-sm">
+    <Card className="max-w-xl mx-auto shadow-none md:border md:shadow-sm border border-border">
       <CardHeader>
         <div className="flex items-center gap-3 mb-2">
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
