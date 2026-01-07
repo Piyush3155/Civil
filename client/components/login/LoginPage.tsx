@@ -1,7 +1,7 @@
 import Image from "next/image"
 
 import { LoginForm } from "../../components/login-form"
-import { ModeToggle } from "@/components/theme"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 
 export default function LoginPage() {
   return (
@@ -17,7 +17,7 @@ export default function LoginPage() {
             </span>
           </a>
           <div className="flex flex-1 items-center justify-end">
-            <ModeToggle />
+            <AnimatedThemeToggler />
           </div>
         </div>
         <div className="flex flex-1 items-center justify-center">

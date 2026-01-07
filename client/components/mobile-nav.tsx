@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 
 const navItems = [
   { icon: LayoutDashboard, label: "Home", href: "/dashboard" },
@@ -129,12 +130,13 @@ export function MobileTopNav() {
                  
        </div>
        <div className="flex items-center gap-1">
-         <Link href="/notifications">
+         {/* <Link href="/notifications">
            <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full h-9 w-9 relative">
              <Bell className="h-5 w-5" />
              <span className="absolute top-2.5 right-2.5 h-2 w-2 bg-destructive rounded-full border border-background animate-pulse" />
            </Button>
-         </Link>
+         </Link> */}
+         <AnimatedThemeToggler className="h-9 w-9 rounded-full" />
          <Button variant="ghost" size="icon" className="text-muted-foreground rounded-full h-9 w-9">
            <Search className="h-5 w-5" />
          </Button>

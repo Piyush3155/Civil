@@ -237,3 +237,7 @@
     @apply overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
   }
 }
+::view-transition-old(root), ::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}

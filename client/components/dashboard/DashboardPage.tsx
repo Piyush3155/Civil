@@ -45,6 +45,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 // Custom Components
 import { ProjectStatusChart } from "@/components/project-status-chart"
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 
 // Actions & Types
 import { fetchProjects } from "@/app/actions/projects/main"
@@ -223,6 +224,7 @@ export default function DashboardPage() {
               className="w-64 pl-9 h-9 bg-muted/40 border-none shadow-none focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
+          <AnimatedThemeToggler className="h-9 w-9" />
           <Button size="sm" className="h-9 gap-1 shadow-sm">
               <Link href="/projects/new" className="flex items-center gap-2">
                   <Plus className="h-3.5 w-3.5" />
@@ -244,7 +246,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 2. Stats Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Total Projects"
               value={stats.projects.total}
