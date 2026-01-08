@@ -1132,7 +1132,7 @@ model PurchaseOrder {
   deliveryAddress String?
   paymentTerms    String?
   notes           String?
-  createdBy       String
+  createdBy       String?
   approvedBy      String?
   approvedAt      DateTime?
   sentAt          DateTime?
@@ -1141,7 +1141,7 @@ model PurchaseOrder {
 
   project    Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   supplier   Supplier           @relation(fields: [supplierId], references: [id])
-  creator    user               @relation("POCreator", fields: [createdBy], references: [id])
+  creator    user?              @relation("POCreator", fields: [createdBy], references: [id])
   approver   user?              @relation("POApprover", fields: [approvedBy], references: [id])
   items            POItem[]
   deliveries       MaterialDelivery[]

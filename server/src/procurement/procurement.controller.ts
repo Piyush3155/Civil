@@ -8,16 +8,34 @@ import {
   Param,
   Query,
   Request,
+  UseGuards,
 } from '@nestjs/common';
 import { ProcurementService } from './procurement.service';
 import { CreateSupplierDto, UpdateSupplierDto } from './dto/supplier.dto';
 import { CreatePurchaseRequestDto, ApprovePurchaseRequestDto } from './dto/purchase-request.dto';
 import { CreatePurchaseOrderDto, AddPOItemDto, UpdatePOStatusDto } from './dto/purchase-order.dto';
 import { POStatus, PurchaseRequestStatus } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import * as jwt from 'jsonwebtoken';
 
 @Controller('procurement')
+@UseGuards(JwtAuthGuard)
 export class ProcurementController {
   constructor(private readonly procurementService: ProcurementService) {}
+
+  private getUserIdFromToken(request: any): string | null {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+    const token = authHeader.substring(7);
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret') as any;
+      return payload.sub || payload.id || null;
+    } catch (error) {
+      return null;
+    }
+  }
 
   // =====================
   // SUPPLIER ENDPOINTS
@@ -60,7 +78,7 @@ export class ProcurementController {
 
   @Post('purchase-requests')
   async createPurchaseRequest(@Body() dto: CreatePurchaseRequestDto, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
     return this.procurementService.createPurchaseRequest(dto, userId);
   }
 
@@ -74,7 +92,7 @@ export class ProcurementController {
 
   @Post('purchase-requests/:id/approve')
   async approvePurchaseRequest(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
     return this.procurementService.approvePurchaseRequest(id, userId);
   }
 
@@ -84,7 +102,7 @@ export class ProcurementController {
     @Body() dto: ApprovePurchaseRequestDto,
     @Request() req: any,
   ) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
     return this.procurementService.rejectPurchaseRequest(id, userId, dto.rejectionReason);
   }
 
@@ -94,7 +112,7 @@ export class ProcurementController {
 
   @Post('purchase-orders')
   async createPurchaseOrder(@Body() dto: CreatePurchaseOrderDto, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
     return this.procurementService.createPurchaseOrder(dto, userId);
   }
 
@@ -118,7 +136,7 @@ export class ProcurementController {
 
   @Post('purchase-orders/:id/approve')
   async approvePurchaseOrder(@Param('id') id: string, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
     return this.procurementService.approvePurchaseOrder(id, userId);
   }
 

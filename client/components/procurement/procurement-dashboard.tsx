@@ -228,9 +228,17 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
 
         <TabsContent value="suppliers" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Suppliers</CardTitle>
-              <CardDescription>Manage supplier information and contacts</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Suppliers</CardTitle>
+                <CardDescription>Manage supplier information and contacts</CardDescription>
+              </div>
+              <Link href="/suppliers/new">
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Supplier
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

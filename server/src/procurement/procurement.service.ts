@@ -82,7 +82,10 @@ export class ProcurementService {
   // PURCHASE REQUESTS
   // =====================
 
-  async createPurchaseRequest(dto: CreatePurchaseRequestDto, userId: string) {
+  async createPurchaseRequest(dto: CreatePurchaseRequestDto, userId: string | null) {
+    if (!userId) {
+      throw new Error('User authentication required to create purchase request');
+    }
     return this.prisma.purchaseRequest.create({
       data: {
         ...dto,
@@ -130,12 +133,12 @@ export class ProcurementService {
     });
   }
 
-  async approvePurchaseRequest(id: string, userId: string) {
+  async approvePurchaseRequest(id: string, userId: string | null) {
     return this.prisma.purchaseRequest.update({
       where: { id },
       data: {
         status: PurchaseRequestStatus.APPROVED,
-        approvedBy: userId,
+        approvedBy: userId ?? null,
         approvedAt: new Date(),
       },
       include: {
@@ -151,12 +154,12 @@ export class ProcurementService {
     });
   }
 
-  async rejectPurchaseRequest(id: string, userId: string, reason?: string) {
+  async rejectPurchaseRequest(id: string, userId: string | null, reason?: string) {
     return this.prisma.purchaseRequest.update({
       where: { id },
       data: {
         status: PurchaseRequestStatus.REJECTED,
-        approvedBy: userId,
+        approvedBy: userId ?? null,
         approvedAt: new Date(),
         rejectionReason: reason,
       },
@@ -181,7 +184,7 @@ export class ProcurementService {
     return `PO-${project?.code}-${year}-${String(count + 1).padStart(4, '0')}`;
   }
 
-  async createPurchaseOrder(dto: CreatePurchaseOrderDto, userId: string) {
+  async createPurchaseOrder(dto: CreatePurchaseOrderDto, userId: string | null) {
     const poNumber = await this.generatePONumber(dto.projectId);
 
     // Calculate totals
@@ -221,7 +224,7 @@ export class ProcurementService {
         deliveryAddress: dto.deliveryAddress,
         paymentTerms: dto.paymentTerms,
         notes: dto.notes,
-        createdBy: userId,
+        createdBy: userId ?? null,
         items: {
           create: items,
         },
@@ -359,7 +362,7 @@ export class ProcurementService {
     return item;
   }
 
-  async approvePurchaseOrder(id: string, userId: string) {
+  async approvePurchaseOrder(id: string, userId: string | null) {
     const po = await this.prisma.purchaseOrder.findUnique({
       where: { id },
     });
@@ -376,7 +379,7 @@ export class ProcurementService {
       where: { id },
       data: {
         status: POStatus.APPROVED,
-        approvedBy: userId,
+        approvedBy: userId ?? null,
         approvedAt: new Date(),
       },
       include: {

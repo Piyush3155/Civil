@@ -1,22 +1,23 @@
-import { useState } from 'react';
+import { toast as sonnerToast } from 'sonner';
 
 interface ToastOptions {
   title: string;
   description: string;
-  variant?: 'default' | 'destructive';
+  variant?: 'default' | 'destructive' | 'success';
 }
 
 export function useToast() {
-  const [toasts, setToasts] = useState<ToastOptions[]>([]);
-
-  const toast = (options: ToastOptions) => {
-    console.log(`[${options.variant || 'default'}] ${options.title}: ${options.description}`);
-    setToasts((prev) => [...prev, options]);
-    
-    setTimeout(() => {
-      setToasts((prev) => prev.slice(1));
-    }, 3000);
+  const toast = ({ title, description, variant = 'default' }: ToastOptions) => {
+    const message = `${title}: ${description}`;
+    if (variant === 'destructive') {
+      sonnerToast.error(message);
+    } else if (variant === 'success') {
+      sonnerToast.success(message);
+    } else {
+      sonnerToast(message);
+    }
   };
 
-  return { toast, toasts };
+  return { toast };
 }
+

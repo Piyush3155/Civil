@@ -12,10 +12,27 @@ import { InventoryService } from './inventory.service';
 import { CreateStockDto } from './dto/create-stock.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { CreateTransferDto } from './dto/create-transfer.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import * as jwt from 'jsonwebtoken';
 
 @Controller('inventory')
+@UseGuards(JwtAuthGuard)
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
+
+  private getUserIdFromToken(request: any): string | null {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null;
+    }
+    try {
+      const token = authHeader.substring(7);
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret') as any;
+      return payload.sub || payload.id || null;
+    } catch (error) {
+      return null;
+    }
+  }
 
   /**
    * Initialize stock with opening balance
@@ -23,7 +40,10 @@ export class InventoryController {
    */
   @Post('stock')
   async createStock(@Body() dto: CreateStockDto, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     return this.inventoryService.createStock(dto, userId);
   }
 
@@ -106,7 +126,10 @@ export class InventoryController {
    */
   @Post('adjustments')
   async createAdjustment(@Body() dto: CreateAdjustmentDto, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     return this.inventoryService.createAdjustment(dto, userId);
   }
 
@@ -125,7 +148,10 @@ export class InventoryController {
    */
   @Post('transfers')
   async createTransfer(@Body() dto: CreateTransferDto, @Request() req: any) {
-    const userId = req.user?.id || 'system';
+    const userId = this.getUserIdFromToken(req);
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
     return this.inventoryService.createTransfer(dto, userId);
   }
 

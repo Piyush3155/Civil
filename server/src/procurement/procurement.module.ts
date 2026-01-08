@@ -5,7 +5,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
-  imports: [PrismaModule, InventoryModule],
+  imports: [
+    PrismaModule, 
+    InventoryModule,
+  ],
   controllers: [ProcurementController],
   providers: [ProcurementService],
   exports: [ProcurementService],
