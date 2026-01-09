@@ -86,4 +86,16 @@ export class MaterialsController {
   async getMaterialLedger(@Param('projectId') projectId: string) {
     return this.materialsService.getMaterialLedger(projectId);
   }
+
+  @Get('projects/:projectId/usages')
+  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR')
+  async getMaterialUsages(@Param('projectId') projectId: string) {
+    return this.materialsService.getMaterialUsages(projectId);
+  }
+
+  @Get('projects/:projectId/deliveries')
+  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR')
+  async getMaterialDeliveries(@Param('projectId') projectId: string) {
+    return this.materialsService.getMaterialDeliveries(projectId);
+  }
 }

@@ -9,7 +9,7 @@ export class QualityControlService {
   // Valid status transitions
   private readonly statusTransitions: Record<NCRStatus, NCRStatus[]> = {
     OPEN: ['ASSIGNED', 'REJECTED'],
-    ASSIGNED: ['IN_PROGRESS', 'OPEN', 'REJECTED'],
+    ASSIGNED: ['IN_PROGRESS', 'FIXED', 'OPEN', 'REJECTED'],
     IN_PROGRESS: ['FIXED', 'ASSIGNED', 'REJECTED'],
     FIXED: ['VERIFIED', 'IN_PROGRESS', 'REJECTED'],
     VERIFIED: ['CLOSED', 'IN_PROGRESS'],

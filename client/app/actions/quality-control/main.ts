@@ -474,8 +474,7 @@ export async function rejectQCIssue(
   }
 }
 
-// Delete a QC issue
-export async function deleteQCIssue(id: string): Promise<void> {
+export async function deleteQCIssue(id: string): Promise<QCIssue> {
   const session = await getSession();
 
   if (!session.isLoggedIn) {
@@ -494,6 +493,8 @@ export async function deleteQCIssue(id: string): Promise<void> {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || "Failed to delete QC issue");
     }
+
+    return await response.json();
   } catch (error) {
     console.error("Error deleting QC issue:", error);
     throw error;

@@ -192,4 +192,31 @@ export class MaterialsService {
       projectTotals,
     };
   }
+
+  async getMaterialUsages(projectId: string) {
+    return this.prisma.materialUsage.findMany({
+      where: { projectId },
+      include: {
+        material: true,
+        contractor: true,
+        labour: true,
+        project: true,
+      },
+      orderBy: { usageDate: 'desc' },
+    });
+  }
+
+  async getMaterialDeliveries(projectId: string) {
+    return this.prisma.materialDelivery.findMany({
+      where: { projectId },
+      include: {
+        material: true,
+        contractor: true,
+        supplier: true,
+        purchaseOrder: true,
+        project: true,
+      },
+      orderBy: { deliveryDate: 'desc' },
+    });
+  }
 }

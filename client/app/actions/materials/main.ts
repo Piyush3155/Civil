@@ -138,3 +138,39 @@ export async function fetchMaterialLedger(projectId: string) {
 
   return response.json();
 }
+
+export async function fetchMaterialUsages(projectId: string) {
+  const token = await getAuthToken();
+  if (!token) throw new Error("No authentication token");
+
+  const response = await fetch(`${BACKEND_URL}/materials/projects/${projectId}/usages`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to fetch usages");
+  }
+
+  return response.json();
+}
+
+export async function fetchMaterialDeliveries(projectId: string) {
+  const token = await getAuthToken();
+  if (!token) throw new Error("No authentication token");
+
+  const response = await fetch(`${BACKEND_URL}/materials/projects/${projectId}/deliveries`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to fetch deliveries");
+  }
+
+  return response.json();
+}

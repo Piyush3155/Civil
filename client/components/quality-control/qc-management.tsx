@@ -321,14 +321,39 @@ export function QCManagement({ projectId }: QCManagementProps) {
         })
         break
       case "ASSIGNED":
-      case "IN_PROGRESS":
         actions.push({
-          label: issue.status === "ASSIGNED" ? "Start Work" : "Mark as Fixed",
+          label: "Start Work",
           action: () => {
             setSelectedIssue(issue)
             setActionFormData({
               ...actionFormData,
-              status: issue.status === "ASSIGNED" ? "IN_PROGRESS" : "FIXED",
+              status: "IN_PROGRESS",
+            })
+            setActionType("contractor-update")
+            setActionDialogOpen(true)
+          },
+        })
+        actions.push({
+          label: "Mark as Fixed",
+          action: () => {
+            setSelectedIssue(issue)
+            setActionFormData({
+              ...actionFormData,
+              status: "FIXED",
+            })
+            setActionType("contractor-update")
+            setActionDialogOpen(true)
+          },
+        })
+        break
+      case "IN_PROGRESS":
+        actions.push({
+          label: "Mark as Fixed",
+          action: () => {
+            setSelectedIssue(issue)
+            setActionFormData({
+              ...actionFormData,
+              status: "FIXED",
             })
             setActionType("contractor-update")
             setActionDialogOpen(true)

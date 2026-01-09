@@ -44,8 +44,11 @@ import {
   createMaterialDelivery,
   createMaterialUsage,
   fetchMaterialLedger,
+  fetchMaterialUsages,
+  fetchMaterialDeliveries,
 } from "@/app/actions/materials/main";
 import { StockManagement } from "@/components/inventory/stock-management";
+import { Project } from "@/types/analytics";
 
 interface Material {
   id: string;
@@ -86,6 +89,40 @@ interface MaterialLedgerData {
   projectTotals: ProjectTotals;
 }
 
+interface MaterialUsage {
+  id: string;
+  materialId: string;
+  contractorId?: string;
+  labourId?: string;
+  quantityUsed: number;
+  usageDate: string;
+  usedFor?: string;
+  notes?: string;
+  material: Material;
+  contractor?: Contractor;
+  labour?: Labour;
+  project: Project;
+}
+
+interface MaterialDelivery {
+  id: string;
+  materialId: string;
+  contractorId?: string;
+  supplierName: string;
+  quantity: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  deliveryDate: string;
+  challanNumber?: string;
+  notes?: string;
+  qcStatus: string;
+  material: Material;
+  contractor?: Contractor;
+  supplier?: string;
+  purchaseOrder?: string;
+  project: Project;
+}
+
 interface MaterialManagementProps {
   projectId: string;
   contractors?: Contractor[];
@@ -95,8 +132,12 @@ interface MaterialManagementProps {
 export function MaterialManagement({ projectId, contractors = [], labours = [] }: MaterialManagementProps) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [ledger, setLedger] = useState<MaterialLedgerData | null>(null);
+  const [usages, setUsages] = useState<MaterialUsage[]>([]);
+  const [deliveries, setDeliveries] = useState<MaterialDelivery[]>([]);
   const [loading, setLoading] = useState(false);
   const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [usagesLoading, setUsagesLoading] = useState(false);
+  const [deliveriesLoading, setDeliveriesLoading] = useState(false);
 
   // Dialog states
   const [createMaterialDialog, setCreateMaterialDialog] = useState(false);
@@ -145,10 +186,36 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
     }
   }, [projectId]);
 
+  const loadUsages = useCallback(async () => {
+    try {
+      setUsagesLoading(true);
+      const data = await fetchMaterialUsages(projectId);
+      setUsages(data);
+    } catch (error) {
+      console.error("Error loading usages:", error);
+    } finally {
+      setUsagesLoading(false);
+    }
+  }, [projectId]);
+
+  const loadDeliveries = useCallback(async () => {
+    try {
+      setDeliveriesLoading(true);
+      const data = await fetchMaterialDeliveries(projectId);
+      setDeliveries(data);
+    } catch (error) {
+      console.error("Error loading deliveries:", error);
+    } finally {
+      setDeliveriesLoading(false);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     loadMaterials();
     loadLedger();
-  }, [projectId, loadLedger]);
+    loadUsages();
+    loadDeliveries();
+  }, [projectId, loadLedger, loadUsages, loadDeliveries]);
 
   async function loadMaterials() {
     try {
@@ -201,6 +268,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
         qcStatus: "PENDING",
       });
       await loadLedger();
+      await loadDeliveries();
     } catch (error) {
       console.error("Error creating delivery:", error);
       alert("Failed to create delivery");
@@ -229,6 +297,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
         notes: "",
       });
       await loadLedger();
+      await loadUsages();
     } catch (error) {
       console.error("Error creating usage:", error);
       alert("Failed to create usage");
@@ -331,8 +400,8 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
         <Tabs defaultValue="ledger" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="ledger">Material Ledger</TabsTrigger>
-            <TabsTrigger value="deliveries">Record Delivery</TabsTrigger>
-            <TabsTrigger value="usage">Record Usage</TabsTrigger>
+            <TabsTrigger value="deliveries">Delivery Records</TabsTrigger>
+            <TabsTrigger value="usage">Usage Records</TabsTrigger>
             <TabsTrigger value="inventory">Stock Management</TabsTrigger>
           </TabsList>
 
@@ -363,7 +432,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Total Used Cost</p>
-                        <p className="text-2xl font-bold">₹{ledger.projectTotals.totalUsedCost.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">₹{Math.round(ledger.projectTotals.totalUsedCost).toLocaleString()}</p>
                       </div>
                       <Wrench className="h-8 w-8 text-blue-600" />
                     </div>
@@ -374,7 +443,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">Remaining Value</p>
-                        <p className="text-2xl font-bold">₹{ledger.projectTotals.remainingValue.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">₹{Math.round(ledger.projectTotals.remainingValue).toLocaleString()}</p>
                       </div>
                       <Package className="h-8 w-8 text-orange-600" />
                     </div>
@@ -410,9 +479,9 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                       <TableCell className="text-right font-semibold">
                         {item.closing}
                       </TableCell>
-                      <TableCell className="text-right">₹{item.totalDeliveredCost.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{item.totalUsedCost.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{item.remainingValue.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">₹{Math.round(item.totalDeliveredCost).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">₹{Math.round(item.totalUsedCost).toLocaleString()}</TableCell>
+                      <TableCell className="text-right">₹{Math.round(item.remainingValue).toLocaleString()}</TableCell>
                       <TableCell>
                         <Badge
                           variant={item.closing > 0 ? "default" : item.closing === 0 ? "secondary" : "destructive"}
@@ -435,8 +504,60 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
 
           <TabsContent value="deliveries" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Record Material Delivery</h3>
+              <h3 className="text-lg font-semibold">Material Deliveries</h3>
+              <Button variant="outline" size="sm" onClick={loadDeliveries} disabled={deliveriesLoading}>
+                {deliveriesLoading ? "Loading..." : "Refresh"}
+              </Button>
             </div>
+
+            {deliveries.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Quantity</TableHead>
+                    <TableHead>Unit Price</TableHead>
+                    <TableHead>Total Price</TableHead>
+                    <TableHead>Contractor</TableHead>
+                    <TableHead>QC Status</TableHead>
+                    <TableHead>Challan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deliveries.map((delivery) => (
+                    <TableRow key={delivery.id}>
+                      <TableCell>{new Date(delivery.deliveryDate).toLocaleDateString()}</TableCell>
+                      <TableCell className="font-medium">{delivery.material.name}</TableCell>
+                      <TableCell>{delivery.supplierName}</TableCell>
+                      <TableCell>{delivery.quantity} {delivery.material.unit}</TableCell>
+                      <TableCell>{delivery.unitPrice ? `₹${delivery.unitPrice}` : '-'}</TableCell>
+                      <TableCell>{delivery.totalPrice ? `₹${delivery.totalPrice.toLocaleString()}` : '-'}</TableCell>
+                      <TableCell>{delivery.contractor?.name || '-'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            delivery.qcStatus === 'APPROVED' ? 'default' :
+                            delivery.qcStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                          }
+                        >
+                          {delivery.qcStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{delivery.challanNumber || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No delivery records yet</p>
+                <p className="text-sm">Start by recording material deliveries</p>
+              </div>
+            )}
+
             <Dialog open={deliveryDialog} onOpenChange={setDeliveryDialog}>
               <DialogTrigger asChild>
                 <Button>
@@ -619,8 +740,12 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
 
           <TabsContent value="usage" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Record Material Usage</h3>
+              <h3 className="text-lg font-semibold">Material Usage Records</h3>
+              <Button variant="outline" size="sm" onClick={loadUsages} disabled={usagesLoading}>
+                {usagesLoading ? "Loading..." : "Refresh"}
+              </Button>
             </div>
+
             <Dialog open={usageDialog} onOpenChange={setUsageDialog}>
               <DialogTrigger asChild>
                 <Button>
@@ -765,6 +890,43 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                 </form>
               </DialogContent>
             </Dialog>
+
+            {usages.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Quantity Used</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead>Contractor</TableHead>
+                    <TableHead>Labour</TableHead>
+                    <TableHead>Used For</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {usages.map((usage) => (
+                    <TableRow key={usage.id}>
+                      <TableCell>{new Date(usage.usageDate).toLocaleDateString()}</TableCell>
+                      <TableCell className="font-medium">{usage.material.name}</TableCell>
+                      <TableCell>{usage.quantityUsed}</TableCell>
+                      <TableCell>{usage.material.unit}</TableCell>
+                      <TableCell>{usage.contractor?.name || '-'}</TableCell>
+                      <TableCell>{usage.labour?.name || '-'}</TableCell>
+                      <TableCell>{usage.usedFor || '-'}</TableCell>
+                      <TableCell>{usage.notes || '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No usage records yet</p>
+                <p className="text-sm">Start by recording material usage</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="inventory" className="space-y-4">
