@@ -147,7 +147,8 @@ export async function updateLabour(
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update labour");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update labour");
     }
 
     return await response.json();
@@ -173,7 +174,8 @@ export async function deleteLabour(id: string) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to delete labour");
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete labour");
     }
 
     return { success: true };
