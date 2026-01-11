@@ -37,12 +37,12 @@ import {
   Truck,
   Printer,
   Download,
-  Share,
 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage, BreadcrumbLink } from "../ui/breadcrumb";
+import { PurchaseOrder } from "@/types/analytics";
+import { Separator } from "@radix-ui/react-separator";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "../ui/breadcrumb";
 import { SidebarTrigger } from "../ui/sidebar";
-import { PurchaseOrder } from "@/types/procurement";
+import { generatePurchaseOrderPDF, PurchaseOrderPDFData } from "@/lib/purchase-order-pdf-generator";
 
 interface PurchaseOrderDetailProps {
   projectId: string;
@@ -50,6 +50,28 @@ interface PurchaseOrderDetailProps {
 }
 
 interface ExtendedPurchaseOrder extends Omit<PurchaseOrder, 'creator' | 'approver'> {
+  items: {
+    id: string;
+    material: {
+      name: string;
+      unit: string;
+    };
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    taxPercent?: number;
+    taxAmount?: number;
+    totalAmount: number;
+    deliveredQty: number;
+    pendingQty: number;
+    notes?: string;
+  }[];
+  paymentTerms: string | undefined;
+  deliveryAddress: string | undefined;
+  notes: string | undefined;
+  grandTotal: number;
+  taxAmount: number | undefined;
+  totalAmount: number;
   project: {
     id: string;
     name: string;
@@ -64,9 +86,10 @@ interface ExtendedPurchaseOrder extends Omit<PurchaseOrder, 'creator' | 'approve
     name: string;
     email: string;
   };
+  approvedAt?: Date;
 }
 
-export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: PurchaseOrderDetailProps) {
+export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDetailProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -113,195 +136,38 @@ export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: Purc
 
     try {
       setPdfLoading(true);
-      // Dynamic import to avoid SSR issues
-      const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF();
 
-      // Set up fonts and colors
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
+      const pdfData: PurchaseOrderPDFData = {
+        poNumber: purchaseOrder.poNumber,
+        createdAt: purchaseOrder.createdAt,
+        status: purchaseOrder.status,
+        project: {
+          name: purchaseOrder.project.name,
+        },
+        supplier: {
+          name: purchaseOrder.supplier.name,
+          email: purchaseOrder.supplier.email,
+          phone: purchaseOrder.supplier.phone,
+        },
+        deliveryAddress: purchaseOrder.deliveryAddress,
+        paymentTerms: purchaseOrder.paymentTerms,
+        items: purchaseOrder.items.map(item => ({
+          material: {
+            name: item.material.name,
+            unit: item.material.unit,
+          },
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          amount: item.amount,
+          notes: item.notes,
+        })),
+        totalAmount: purchaseOrder.totalAmount,
+        taxAmount: purchaseOrder.taxAmount,
+        grandTotal: purchaseOrder.grandTotal,
+        notes: purchaseOrder.notes,
+      };
 
-      // Company Header
-      doc.setTextColor(33, 37, 41); // Dark gray
-      doc.text('CIVIL CONSTRUCTION MANAGEMENT', 20, 30);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Professional Construction Solutions', 20, 40);
-      doc.text('Email: info@civilconstruct.com | Phone: +91-XXXXXXXXXX', 20, 50);
-
-      // Line separator
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, 60, 190, 60);
-
-      // Purchase Order Title
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PURCHASE ORDER', 20, 75);
-
-      // PO Details
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`PO Number: ${purchaseOrder.poNumber}`, 20, 90);
-      doc.text(`Date: ${new Date(purchaseOrder.createdAt).toLocaleDateString('en-IN')}`, 20, 100);
-      doc.text(`Status: ${purchaseOrder.status.replace('_', ' ')}`, 20, 110);
-
-      // Supplier Information
-      doc.setFont('helvetica', 'bold');
-      doc.text('SUPPLIER INFORMATION', 20, 130);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Name: ${purchaseOrder.supplier.name}`, 20, 145);
-      if (purchaseOrder.supplier.email) {
-        doc.text(`Email: ${purchaseOrder.supplier.email}`, 20, 155);
-      }
-      if (purchaseOrder.supplier.phone) {
-        doc.text(`Phone: ${purchaseOrder.supplier.phone}`, 20, 165);
-      }
-
-      // Project Information
-      doc.setFont('helvetica', 'bold');
-      doc.text('PROJECT INFORMATION', 110, 130);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Project: ${purchaseOrder.project.name}`, 110, 145);
-
-      // Delivery & Payment Terms
-      let yPos = 185;
-      if (purchaseOrder.deliveryAddress || purchaseOrder.paymentTerms) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('DELIVERY & PAYMENT TERMS', 20, yPos);
-        yPos += 15;
-
-        doc.setFont('helvetica', 'normal');
-        if (purchaseOrder.deliveryAddress) {
-          doc.text('Delivery Address:', 20, yPos);
-          const deliveryLines = doc.splitTextToSize(purchaseOrder.deliveryAddress, 80);
-          doc.text(deliveryLines, 20, yPos + 5);
-          yPos += deliveryLines.length * 5 + 10;
-        }
-
-        if (purchaseOrder.paymentTerms) {
-          doc.text('Payment Terms:', 20, yPos);
-          const paymentLines = doc.splitTextToSize(purchaseOrder.paymentTerms, 80);
-          doc.text(paymentLines, 20, yPos + 5);
-          yPos += paymentLines.length * 5 + 10;
-        }
-      }
-
-      // Items Table
-      yPos += 10;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.text('ORDER ITEMS', 20, yPos);
-      yPos += 10;
-
-      // Table headers
-      doc.setFontSize(10);
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, yPos - 5, 170, 8, 'F');
-      doc.text('Description', 22, yPos);
-      doc.text('Qty', 120, yPos);
-      doc.text('Unit Price', 140, yPos);
-      doc.text('Amount', 165, yPos);
-      yPos += 10;
-
-      // Table rows
-      doc.setFont('helvetica', 'normal');
-      purchaseOrder.items.forEach((item, index) => {
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 30;
-        }
-
-        const fillColor = index % 2 === 0 ? [255, 255, 255] : [248, 248, 248];
-        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
-        doc.rect(20, yPos - 5, 170, 8, 'F');
-
-        // Item description
-        const descText = item.material.name + (item.notes ? ` (${item.notes})` : '');
-        const descLines = doc.splitTextToSize(descText, 90);
-        doc.text(descLines, 22, yPos);
-
-        // Quantity and pricing
-        doc.text(`${item.quantity} ${item.material.unit}`, 120, yPos);
-        doc.text(`₹${item.unitPrice.toLocaleString('en-IN')}`, 140, yPos);
-        doc.text(`₹${item.amount.toLocaleString('en-IN')}`, 165, yPos);
-
-        yPos += Math.max(descLines.length * 4, 8);
-      });
-
-      // Totals
-      yPos += 10;
-      if (yPos > 250) {
-        doc.addPage();
-        yPos = 30;
-      }
-
-      doc.setDrawColor(200, 200, 200);
-      doc.line(140, yPos, 190, yPos);
-      yPos += 10;
-
-      doc.setFont('helvetica', 'bold');
-      doc.text('Subtotal:', 140, yPos);
-      doc.text(`₹${purchaseOrder.totalAmount.toLocaleString('en-IN')}`, 165, yPos);
-      yPos += 8;
-
-      if (purchaseOrder.taxAmount && purchaseOrder.taxAmount > 0) {
-        doc.text('Tax Amount:', 140, yPos);
-        doc.text(`₹${purchaseOrder.taxAmount.toLocaleString('en-IN')}`, 165, yPos);
-        yPos += 8;
-      }
-
-      doc.setDrawColor(0, 0, 0);
-      doc.line(140, yPos, 190, yPos);
-      yPos += 8;
-
-      doc.setFontSize(12);
-      doc.text('GRAND TOTAL:', 140, yPos);
-      doc.text(`₹${purchaseOrder.grandTotal.toLocaleString('en-IN')}`, 165, yPos);
-
-      // Notes
-      if (purchaseOrder.notes) {
-        yPos += 20;
-        if (yPos > 250) {
-          doc.addPage();
-          yPos = 30;
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
-        doc.text('NOTES:', 20, yPos);
-        yPos += 10;
-
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
-        const noteLines = doc.splitTextToSize(purchaseOrder.notes, 170);
-        doc.text(noteLines, 20, yPos);
-        yPos += noteLines.length * 5;
-      }
-
-      // Footer
-      yPos = 270;
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text('This is a computer generated document and does not require signature.', 20, yPos);
-      doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')} at ${new Date().toLocaleTimeString('en-IN')}`, 20, yPos + 5);
-
-      // Approval section
-      yPos += 20;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('APPROVAL & AUTHORIZATION', 20, yPos);
-
-      yPos += 15;
-      doc.setFont('helvetica', 'normal');
-      doc.text('Prepared by: ___________________________', 20, yPos);
-      doc.text('Approved by: ___________________________', 110, yPos);
-
-      yPos += 10;
-      doc.text('Date: ___________', 20, yPos);
-      doc.text('Date: ___________', 110, yPos);
-
-      // Save the PDF
-      doc.save(`PO-${purchaseOrder.poNumber}.pdf`);
+      await generatePurchaseOrderPDF(pdfData);
 
       toast({
         title: "Success",
@@ -391,40 +257,27 @@ export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: Purc
       }} />
 
       <div className="min-h-screen bg-gray-50/50">
+            <header className="hidden md:flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/projects">Project</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Purchase Order</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
+        
         <div className="mb-8 no-print">
-          <div className="flex items-center gap-4 mb-6">
-            <SidebarTrigger />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/projects" className="text-muted-foreground hover:text-foreground">
-                    Projects
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href={`/projects/${projectId}`} className="text-muted-foreground hover:text-foreground">
-                    {purchaseOrder.project.name}
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href={`/projects/${projectId}/procurement`} className="text-muted-foreground hover:text-foreground">
-                    Procurement
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href={`/projects/${projectId}/procurement/purchase-orders`} className="text-muted-foreground hover:text-foreground">
-                    Purchase Orders
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="font-medium">{purchaseOrder.poNumber}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-
+          
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
             <div className="flex items-center gap-3">
@@ -461,14 +314,6 @@ export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: Purc
                   <Download className="h-4 w-4" />
                 )}
                 {pdfLoading ? 'Generating...' : 'Download PDF'}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Share className="h-4 w-4" />
-                Share
               </Button>
             </div>
           </div>
@@ -571,7 +416,7 @@ export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: Purc
             </Card>
 
             {/* Delivery & Payment Info */}
-            {(purchaseOrder.deliveryAddress || purchaseOrder.paymentTerms) && (
+            {/* {(purchaseOrder.deliveryAddress || purchaseOrder.paymentTerms) && (
               <Card className="shadow-sm border-0 bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-xl font-semibold flex items-center gap-2">
@@ -606,7 +451,7 @@ export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: Purc
                   </div>
                 </CardContent>
               </Card>
-            )}
+            )} */}
 
             {/* Notes */}
             {purchaseOrder.notes && (
@@ -734,45 +579,43 @@ export default function PurchaseOrderDetail({ projectId, purchaseOrderId }: Purc
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Delivery  */}
+            {(purchaseOrder.deliveryAddress || purchaseOrder.paymentTerms) && (
             <Card className="shadow-sm border-0 bg-white no-print">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+              <CardHeader className="pb-1">
+                <CardTitle className="flex gap-2 items-center text-lg font-semibold">
+                  <Truck className="h-5 w-5 text-primary" />
+                    Delivery & Payment Terms
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Button
-                  onClick={handlePrint}
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  size="sm"
-                >
-                  <Printer className="h-4 w-4" />
-                  Print Order
-                </Button>
-                <Button
-                  onClick={handleDownloadPDF}
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  size="sm"
-                  disabled={pdfLoading}
-                >
-                  {pdfLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  {pdfLoading ? 'Generating...' : 'Download PDF'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start gap-2"
-                  size="sm"
-                >
-                  <Share className="h-4 w-4" />
-                  Share Order
-                </Button>
+              <CardContent className="space-y-2">
+                <div className="flex flex-col gap-6">
+                    {purchaseOrder.deliveryAddress && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                          Delivery Address
+                        </h4>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {purchaseOrder.deliveryAddress}
+                        </p>
+                      </div>
+                    )}
+                    {purchaseOrder.paymentTerms && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-muted-foreground" />
+                          Payment Terms
+                        </h4>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {purchaseOrder.paymentTerms}
+                        </p>
+                      </div>
+                    )}
+                  </div>
               </CardContent>
             </Card>
+            )}
           </div>
         </div>
       </div>
