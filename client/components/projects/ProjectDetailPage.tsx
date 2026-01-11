@@ -38,7 +38,7 @@ import {
   updateProjectProgress,
 } from "@/app/actions/projects/main"
 import { fetchLabours } from "@/app/actions/labours/main"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter, useParams, useSearchParams } from "next/navigation"
 import { getCurrentUser, isOwner } from "@/lib/auth"
 import { ClientDashboard } from "@/components/client-dashboard"
 import { Building2 } from "lucide-react" // Import Building2 component
@@ -49,11 +49,16 @@ import { QCManagement } from "@/components/quality-control/qc-management";
 import { ProcurementDashboard } from "@/components/procurement/procurement-dashboard";
 import { FinanceManagement } from "@/components/finance/finance-management";
 import { Project } from "@/types/project"
+import { SidebarTrigger } from "../ui/sidebar"
 
 export default function ProjectDetailPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const projectId = params.id as string
+
+  // Get active tab from URL query parameter, default to "overview"
+  const activeTab = searchParams.get('tab') || 'overview'
 
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
@@ -155,6 +160,13 @@ export default function ProjectDetailPage() {
     }
   }
 
+  const handleTabChange = (value: string) => {
+    // Update URL with the new tab parameter
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.set('tab', value)
+    router.push(newUrl.pathname + newUrl.search, { scroll: false })
+  }
+
   async function handleUpdateProject(e: React.FormEvent) {
     e.preventDefault()
     setUpdating(true)
@@ -242,7 +254,7 @@ if (loading) {
     return (
      
           <><header className="hidden md:flex sticky top-0 z-40 h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur-sm px-4 md:px-6">
-
+      <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />
         <Breadcrumb className="hidden md:flex">
           <BreadcrumbList>
@@ -279,7 +291,7 @@ if (loading) {
         </BreadcrumbList>
       </Breadcrumb>
     </header><div className="flex flex-1 flex-col gap-6 p-4 md:p-6 lg:p-8">
-        <Tabs defaultValue="overview" className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pb-4 border-b -mx-4 px-4 md:mx-0 md:px-0">
             <TabsList className="inline-flex h-auto w-full items-center justify-start gap-1 rounded-lg bg-muted/50 p-1.5 overflow-x-auto scrollbar-hide">
               <TabsTrigger

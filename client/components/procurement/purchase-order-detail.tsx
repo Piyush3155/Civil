@@ -37,6 +37,8 @@ import {
   Truck,
   Printer,
   Download,
+  CheckCircle2,
+  LucideIcon,
 } from "lucide-react";
 import { PurchaseOrder } from "@/types/analytics";
 import { Separator } from "@radix-ui/react-separator";
@@ -94,6 +96,8 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [purchaseOrder, setPurchaseOrder] = useState<ExtendedPurchaseOrder | null>(null);
 
   // Fetch purchase order data
@@ -185,6 +189,70 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
     }
   };
 
+
+  const handleStatusChange = async (action: string) => {
+    if (!purchaseOrder) return;
+
+    try {
+      setUpdatingStatus(true);
+      await apiRequest(`/procurement/purchase-orders/${purchaseOrderId}/${action}`, {
+        method: 'POST',
+      });
+
+      // Refresh the purchase order data
+      const updatedData = await apiRequest(`/procurement/purchase-orders/${purchaseOrderId}`);
+      setPurchaseOrder(updatedData);
+
+      toast({
+        title: "Success",
+        description: "Purchase order status updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating purchase order status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update purchase order status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const getAvailableActions = (status: string) => {
+    const actions: Array<{ label: string; action: string; icon: LucideIcon }> = [];
+
+    switch (status) {
+      case 'DRAFT':
+        actions.push({ label: 'Approve', action: 'approve', icon: CheckCircle2 });
+        break;
+      case 'APPROVED':
+        actions.push(
+          { label: 'Send to Supplier', action: 'send', icon: Truck },
+          { label: 'Mark as Sent', action: 'mark-sent', icon: Truck }
+        );
+        break;
+      case 'SENT_TO_SUPPLIER':
+        actions.push({ label: 'Mark as Sent', action: 'mark-sent', icon: Truck });
+        break;
+      case 'SENT':
+        actions.push(
+          { label: 'Partially Delivered', action: 'mark-partially-delivered', icon: Truck },
+          { label: 'Delivered', action: 'mark-delivered', icon: CheckCircle2 }
+        );
+        break;
+      case 'PARTIALLY_DELIVERED':
+        actions.push({ label: 'Delivered', action: 'mark-delivered', icon: CheckCircle2 });
+        break;
+      case 'DELIVERED':
+        actions.push({ label: 'Complete', action: 'complete', icon: CheckCircle2 });
+        break;
+    }
+
+    return actions;
+  };
+
+
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       DRAFT: { variant: "secondary" as const, icon: FileText, label: "Draft" },
@@ -256,7 +324,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
         `
       }} />
 
-      <div className="min-h-screen bg-gray-50/50">
+      <div className="min-h-screen bg-background">
             <header className="hidden md:flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />
@@ -315,16 +383,36 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                 )}
                 {pdfLoading ? 'Generating...' : 'Download PDF'}
               </Button>
+              {purchaseOrder && getAvailableActions(purchaseOrder.status).map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Button
+                    key={action.action}
+                    onClick={() => handleStatusChange(action.action)}
+                    variant={action.action === 'complete' ? 'default' : 'outline'}
+                    size="sm"
+                    className="gap-2"
+                    disabled={updatingStatus || completing}
+                  >
+                    {updatingStatus || completing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                    {updatingStatus || completing ? 'Updating...' : action.label}
+                  </Button>
+                );
+              })}
             </div>
           </div>
         </div>
 
         {/* Purchase Order Header */}
-        <Card className="mb-8 shadow-sm border-0 bg-white">
+        <Card className="mb-8 shadow-sm border-0 bg-card">
           <CardHeader className="pb-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="space-y-2">
-                <CardTitle className="text-3xl font-bold text-gray-900">
+                <CardTitle className="text-3xl font-bold text-primary">
                   {purchaseOrder.poNumber}
                 </CardTitle>
                 <CardDescription className="text-lg text-muted-foreground">
@@ -350,10 +438,10 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Supplier & Project Info */}
-            <Card className="shadow-sm border-0 bg-white">
+            <Card className="shadow-sm border-0 bg-card">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
+                  <Building2 className="h-5 w-5 text-foreground" />
                   Supplier & Project Information
                 </CardTitle>
               </CardHeader>
@@ -361,9 +449,9 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Supplier Details</h4>
+                      <h4 className="font-medium text-foreground mb-2">Supplier Details</h4>
                       <div className="space-y-2">
-                        <p className="text-lg font-medium text-gray-900">{purchaseOrder.supplier.name}</p>
+                        <p className="text-lg font-medium text-foreground">{purchaseOrder.supplier.name}</p>
                         {purchaseOrder.supplier.email && (
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <User className="h-4 w-4" />
@@ -382,9 +470,9 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
 
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-medium text-gray-900 mb-2">Project Details</h4>
+                      <h4 className="font-medium text-foreground mb-2">Project Details</h4>
                       <div className="space-y-2">
-                        <p className="text-lg font-medium text-gray-900">{purchaseOrder.project.name}</p>
+                        <p className="text-lg font-medium text-foreground">{purchaseOrder.project.name}</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
                           Created {new Date(purchaseOrder.createdAt).toLocaleDateString('en-IN')}
@@ -402,12 +490,12 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
 
                 {/* Approval Info */}
                 {purchaseOrder.approvedAt && purchaseOrder.approver && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="bg-card/10 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-green-800">
                       <CheckCircle className="h-5 w-5" />
-                      <span className="font-medium">Approved</span>
+                      <span className="font-medium text-foreground">Approved</span>
                     </div>
-                    <p className="text-sm text-green-700 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Approved on {new Date(purchaseOrder.approvedAt).toLocaleDateString('en-IN')} by {purchaseOrder.approver.name}
                     </p>
                   </div>
@@ -471,7 +559,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
             )}
 
             {/* Items Table */}
-            <Card className="shadow-sm border-0 bg-white">
+            <Card className="shadow-sm border-0 bg-card">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl font-semibold flex items-center gap-2">
                   <Package className="h-5 w-5 text-primary" />
@@ -482,23 +570,23 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b bg-gray-50/50">
-                        <TableHead className="font-semibold text-gray-900">Material</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Quantity</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Unit Price</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Amount</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Tax</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Total</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Delivered</TableHead>
-                        <TableHead className="text-right font-semibold text-gray-900">Pending</TableHead>
+                      <TableRow className="border-b bg-background/50">
+                        <TableHead className="font-semibold text-foreground">Material</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Quantity</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Unit Price</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Amount</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Tax</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Total</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Delivered</TableHead>
+                        <TableHead className="text-right font-semibold text-foreground">Pending</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {purchaseOrder.items.map((item, index) => (
-                        <TableRow key={item.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50/30"}>
+                        <TableRow key={item.id} className={index % 2 === 0 ? "bg-background/70" : "bg-background/30"}>
                           <TableCell>
                             <div>
-                              <div className="font-medium text-gray-900">{item.material.name}</div>
+                              <div className="font-medium text-foreground">{item.material.name}</div>
                               {item.notes && (
                                 <div className="text-sm text-muted-foreground mt-1">{item.notes}</div>
                               )}
@@ -546,7 +634,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Order Summary */}
-            <Card className="shadow-sm border-0 bg-white sticky top-6">
+            <Card className="shadow-sm border-0 bg-card sticky top-6">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-semibold">Order Summary</CardTitle>
               </CardHeader>
@@ -563,7 +651,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                     </div>
                   )}
                   <Separator />
-                  <div className="flex justify-between items-center text-lg font-bold text-gray-900">
+                  <div className="flex justify-between items-center text-lg font-bold text-foreground">
                     <span>Grand Total</span>
                     <span>₹{purchaseOrder.grandTotal.toLocaleString('en-IN')}</span>
                   </div>
@@ -572,7 +660,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                 {/* Status Indicator */}
                 <div className="pt-4 border-t">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900">Status</span>
+                    <span className="text-sm font-medium text-foreground">Status</span>
                     {getStatusBadge(purchaseOrder.status)}
                   </div>
                 </div>
@@ -581,7 +669,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
 
             {/* Delivery  */}
             {(purchaseOrder.deliveryAddress || purchaseOrder.paymentTerms) && (
-            <Card className="shadow-sm border-0 bg-white no-print">
+            <Card className="shadow-sm border-0 bg-card no-print">
               <CardHeader className="pb-1">
                 <CardTitle className="flex gap-2 items-center text-lg font-semibold">
                   <Truck className="h-5 w-5 text-primary" />
@@ -592,7 +680,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                 <div className="flex flex-col gap-6">
                     {purchaseOrder.deliveryAddress && (
                       <div className="space-y-2">
-                        <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                        <h4 className="font-medium text-foreground flex items-center gap-2">
                           <MapPin className="h-4 w-4 text-muted-foreground" />
                           Delivery Address
                         </h4>
@@ -603,7 +691,7 @@ export default function PurchaseOrderDetail({ purchaseOrderId }: PurchaseOrderDe
                     )}
                     {purchaseOrder.paymentTerms && (
                       <div className="space-y-2">
-                        <h4 className="font-medium text-gray-900 flex items-center gap-2">
+                        <h4 className="font-medium text-foreground flex items-center gap-2">
                           <CreditCard className="h-4 w-4 text-muted-foreground" />
                           Payment Terms
                         </h4>

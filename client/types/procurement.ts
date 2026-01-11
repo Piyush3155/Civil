@@ -71,7 +71,7 @@ export interface PurchaseOrder {
   totalAmount: number;
   taxAmount?: number;
   grandTotal: number;
-  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT_TO_SUPPLIER' | 'PARTIALLY_DELIVERED' | 'COMPLETED' | 'CANCELLED';
+  status: 'DRAFT' |'DELIVERED'|'SENT' | 'PENDING_APPROVAL' | 'APPROVED' | 'SENT_TO_SUPPLIER' | 'PARTIALLY_DELIVERED' | 'COMPLETED' | 'CANCELLED';
   deliveryAddress?: string;
   paymentTerms?: string;
   notes?: string;

@@ -425,6 +425,128 @@ export class ProcurementService {
     });
   }
 
+  async completePurchaseOrder(id: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!po) {
+      throw new NotFoundException('Purchase Order not found');
+    }
+
+    // Check if PO can be completed (must be in a deliverable state)
+    if (po.status === POStatus.CANCELLED || po.status === POStatus.DRAFT) {
+      throw new BadRequestException('PO cannot be completed from current status');
+    }
+
+    return this.prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: POStatus.COMPLETED,
+        completedAt: new Date(),
+      },
+      include: {
+        items: {
+          include: {
+            material: true,
+          },
+        },
+        supplier: true,
+      },
+    });
+  }
+
+  async markPurchaseOrderAsSent(id: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+    });
+
+    if (!po) {
+      throw new NotFoundException('Purchase Order not found');
+    }
+
+    if (po.status !== POStatus.SENT_TO_SUPPLIER) {
+      throw new BadRequestException('PO must be sent to supplier before marking as sent');
+    }
+
+    return this.prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: POStatus.SENT,
+      },
+      include: {
+        items: {
+          include: {
+            material: true,
+          },
+        },
+        supplier: true,
+      },
+    });
+  }
+
+  async markPurchaseOrderAsPartiallyDelivered(id: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+    });
+
+    if (!po) {
+      throw new NotFoundException('Purchase Order not found');
+    }
+
+    if (po.status !== POStatus.SENT) {
+      throw new BadRequestException('PO must be sent before marking as partially delivered');
+    }
+
+    return this.prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: POStatus.PARTIALLY_DELIVERED,
+      },
+      include: {
+        items: {
+          include: {
+            material: true,
+          },
+        },
+        supplier: true,
+      },
+    });
+  }
+
+  async markPurchaseOrderAsDelivered(id: string) {
+    const po = await this.prisma.purchaseOrder.findUnique({
+      where: { id },
+    });
+
+    if (!po) {
+      throw new NotFoundException('Purchase Order not found');
+    }
+
+    if (po.status !== POStatus.SENT && po.status !== POStatus.PARTIALLY_DELIVERED) {
+      throw new BadRequestException('PO must be sent or partially delivered before marking as delivered');
+    }
+
+    return this.prisma.purchaseOrder.update({
+      where: { id },
+      data: {
+        status: POStatus.DELIVERED,
+        deliveredAt: new Date(),
+      },
+      include: {
+        items: {
+          include: {
+            material: true,
+          },
+        },
+        supplier: true,
+      },
+    });
+  }
+
   async recordDeliveryAgainstPO(
     poId: string,
     materialId: string,

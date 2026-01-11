@@ -1114,7 +1114,9 @@ enum POStatus {
   PENDING_APPROVAL
   APPROVED
   SENT_TO_SUPPLIER
+  SENT
   PARTIALLY_DELIVERED
+  DELIVERED
   COMPLETED
   CANCELLED
 }
@@ -1136,6 +1138,8 @@ model PurchaseOrder {
   approvedBy      String?
   approvedAt      DateTime?
   sentAt          DateTime?
+  deliveredAt     DateTime?
+  completedAt     DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

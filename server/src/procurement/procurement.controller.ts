@@ -150,6 +150,26 @@ export class ProcurementController {
     return this.procurementService.cancelPurchaseOrder(id, dto.notes);
   }
 
+  @Post('purchase-orders/:id/complete')
+  async completePurchaseOrder(@Param('id') id: string) {
+    return this.procurementService.completePurchaseOrder(id);
+  }
+
+  @Post('purchase-orders/:id/mark-sent')
+  async markPurchaseOrderAsSent(@Param('id') id: string) {
+    return this.procurementService.markPurchaseOrderAsSent(id);
+  }
+
+  @Post('purchase-orders/:id/mark-partially-delivered')
+  async markPurchaseOrderAsPartiallyDelivered(@Param('id') id: string) {
+    return this.procurementService.markPurchaseOrderAsPartiallyDelivered(id);
+  }
+
+  @Post('purchase-orders/:id/mark-delivered')
+  async markPurchaseOrderAsDelivered(@Param('id') id: string) {
+    return this.procurementService.markPurchaseOrderAsDelivered(id);
+  }
+
   // =====================
   // REPORTS & ANALYTICS
   // =====================

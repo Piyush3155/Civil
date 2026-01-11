@@ -22,7 +22,8 @@ import {
   Plus,
   FileText,
   Truck,
-  CheckCircle2
+  CheckCircle2,
+  LucideIcon
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import Link from "next/link";
@@ -37,6 +38,8 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [completingPO] = useState<string | null>(null);
+  const [updatingStatusPO, setUpdatingStatusPO] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -76,10 +79,69 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
       PARTIALLY_DELIVERED: { variant: "secondary", label: "Partially Delivered" },
       COMPLETED: { variant: "default", label: "Completed" },
       CANCELLED: { variant: "destructive", label: "Cancelled" },
+      SENT: {
+        variant: "default",
+        label: ""
+      },
+      DELIVERED: {
+        variant: "default",
+        label: ""
+      }
     };
     const config = variants[status];
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
+
+
+  const updatePurchaseOrderStatus = async (poId: string, action: string) => {
+    try {
+      setUpdatingStatusPO(poId);
+      await apiRequest(`/procurement/purchase-orders/${poId}/${action}`, {
+        method: 'POST',
+      });
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error(`Error updating purchase order status:`, error);
+      alert(`Failed to update purchase order status`);
+    } finally {
+      setUpdatingStatusPO(null);
+    }
+  };
+
+  const getAvailableActions = (status: PurchaseOrder['status']) => {
+    const actions: Array<{ label: string; action: string; icon: LucideIcon }> = [];
+
+    switch (status) {
+      case 'DRAFT':
+        actions.push({ label: 'Approve', action: 'approve', icon: CheckCircle2 });
+        break;
+      case 'APPROVED':
+        actions.push(
+          { label: 'Send to Supplier', action: 'send', icon: Truck },
+          { label: 'Mark as Sent', action: 'mark-sent', icon: Truck }
+        );
+        break;
+      case 'SENT_TO_SUPPLIER':
+        actions.push({ label: 'Mark as Sent', action: 'mark-sent', icon: Truck });
+        break;
+      case 'SENT':
+        actions.push(
+          { label: 'Partially Delivered', action: 'mark-partially-delivered', icon: Truck },
+          { label: 'Delivered', action: 'mark-delivered', icon: CheckCircle2 }
+        );
+        break;
+      case 'PARTIALLY_DELIVERED':
+        actions.push({ label: 'Delivered', action: 'mark-delivered', icon: CheckCircle2 });
+        break;
+      case 'DELIVERED':
+        actions.push({ label: 'Complete', action: 'complete', icon: CheckCircle2 });
+        break;
+    }
+
+    return actions;
+  };
+
 
   if (loading) {
     return <div className="p-4">Loading procurement data...</div>;
@@ -211,11 +273,35 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
                           {new Date(po.createdAt).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Link href={`/projects/${projectId}/procurement/purchase-orders/${po.id}`}>
-                            <Button variant="ghost" size="sm">
-                              View
-                            </Button>
-                          </Link>
+                          <div className="flex gap-2 justify-end flex-wrap">
+                            <Link href={`/projects/${projectId}/procurement/purchase-orders/${po.id}`}>
+                              <Button variant="ghost" size="sm">
+                                View
+                              </Button>
+                            </Link>
+                            {getAvailableActions(po.status).map((action) => {
+                              const Icon = action.icon;
+                              const isLoading = updatingStatusPO === po.id || completingPO === po.id;
+                              return (
+                                <Button
+                                  key={action.action}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updatePurchaseOrderStatus(po.id, action.action)}
+                                  disabled={isLoading}
+                                >
+                                  {isLoading ? (
+                                    "Updating..."
+                                  ) : (
+                                    <>
+                                      <Icon className="h-4 w-4 mr-1" />
+                                      {action.label}
+                                    </>
+                                  )}
+                                </Button>
+                              );
+                            })}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
