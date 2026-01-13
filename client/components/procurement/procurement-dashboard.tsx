@@ -20,7 +20,6 @@ import {
   TrendingUp, 
   AlertCircle,
   Plus,
-  FileText,
   Truck,
   CheckCircle2,
   LucideIcon
@@ -150,7 +149,7 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Purchase Orders</CardTitle>
@@ -203,21 +202,23 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="purchase-orders" className="space-y-4">
-        <div className="flex items-center justify-between">
+      <Tabs defaultValue="purchase-orders" className="space-y-4 ">
+        <div className="flex items-center justify-between overflow-scroll mb-2">
           <TabsList>
             <TabsTrigger value="purchase-orders">Purchase Orders</TabsTrigger>
             <TabsTrigger value="suppliers">Suppliers</TabsTrigger>
             <TabsTrigger value="requests">Purchase Requests</TabsTrigger>
           </TabsList>
           
-          <div className="flex gap-2">
-            <Link href={`/projects/${projectId}/procurement/purchase-requests/new`}>
+          
+        </div>
+          <div className="flex justify-between gap-2">
+            {/* <Link href={`/projects/${projectId}/procurement/purchase-requests/new`}>
               <Button variant="outline" size="sm">
                 <FileText className="h-4 w-4 mr-2" />
                 New Request
               </Button>
-            </Link>
+            </Link> */}
             <Link href={`/projects/${projectId}/procurement/purchase-orders/new`}>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -225,8 +226,6 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
               </Button>
             </Link>
           </div>
-        </div>
-
         <TabsContent value="purchase-orders" className="space-y-4">
           <Card>
             <CardHeader>

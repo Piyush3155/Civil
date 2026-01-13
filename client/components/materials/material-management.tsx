@@ -311,7 +311,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-start gap-2">
               <Package className="h-5 w-5" />
               Material Management
             </CardTitle>
@@ -397,13 +397,15 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="ledger" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="ledger">Material Ledger</TabsTrigger>
-            <TabsTrigger value="deliveries">Delivery Records</TabsTrigger>
-            <TabsTrigger value="usage">Usage Records</TabsTrigger>
-            <TabsTrigger value="inventory">Stock Management</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="ledger" className="w-full" >
+          <div className="overflow-x-auto">
+            <TabsList className="inline-flex min-w-full ">
+              <TabsTrigger value="ledger">Material Ledger</TabsTrigger>
+              <TabsTrigger value="deliveries">Delivery Records</TabsTrigger>
+              <TabsTrigger value="usage">Usage Records</TabsTrigger>
+              <TabsTrigger value="inventory">Stock Management</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="ledger" className="space-y-4">
             <div className="flex items-center justify-between">
@@ -415,35 +417,35 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
 
             {/* Cost Summary */}
             {ledger && ledger.projectTotals && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Total Delivered Cost</p>
-                        <p className="text-2xl font-bold">₹{ledger.projectTotals.totalDeliveredCost.toLocaleString()}</p>
+                        <p className="text-xs md:text-sm font-medium text-muted-foreground">Total Delivered Cost</p>
+                        <p className="text-lg md:text-2xl font-bold">₹{ledger.projectTotals.totalDeliveredCost.toLocaleString()}</p>
                       </div>
                       <Truck className="h-8 w-8 text-green-600" />
                     </div>
                   </CardContent>
                 </Card>
                 <Card>
-                  <CardContent className="p-4">
+                  <CardContent className="p-2">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Total Used Cost</p>
-                        <p className="text-2xl font-bold">₹{Math.round(ledger.projectTotals.totalUsedCost).toLocaleString()}</p>
+                        <p className="text-xs md:text-sm font-medium text-muted-foreground">Total Used Cost</p>
+                        <p className="text-lg md:text-2xl font-bold">₹{Math.round(ledger.projectTotals.totalUsedCost).toLocaleString()}</p>
                       </div>
                       <Wrench className="h-8 w-8 text-blue-600" />
                     </div>
                   </CardContent>
                 </Card>
-                <Card>
+                <Card className="col-span-3 md:col-span-1">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Remaining Value</p>
-                        <p className="text-2xl font-bold">₹{Math.round(ledger.projectTotals.remainingValue).toLocaleString()}</p>
+                        <p className="text-xs md:text-sm font-medium text-muted-foreground">Remaining Value</p>
+                        <p className="text-lg md:text-2xl font-bold">₹{Math.round(ledger.projectTotals.remainingValue).toLocaleString()}</p>
                       </div>
                       <Package className="h-8 w-8 text-orange-600" />
                     </div>
@@ -453,46 +455,48 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
             )}
 
             {ledger && ledger.materials.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Received</TableHead>
-                    <TableHead className="text-right">Used</TableHead>
-                    <TableHead className="text-right">Closing Stock</TableHead>
-                    <TableHead className="text-right">Delivered Cost</TableHead>
-                    <TableHead className="text-right">Used Cost</TableHead>
-                    <TableHead className="text-right">Remaining Value</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ledger.materials.map((item) => (
-                    <TableRow key={item.material.id}>
-                      <TableCell className="font-medium">
-                        {item.material.name}
-                      </TableCell>
-                      <TableCell>{item.material.unit}</TableCell>
-                      <TableCell className="text-right">{item.received}</TableCell>
-                      <TableCell className="text-right">{item.used}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {item.closing}
-                      </TableCell>
-                      <TableCell className="text-right">₹{Math.round(item.totalDeliveredCost).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{Math.round(item.totalUsedCost).toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{Math.round(item.remainingValue).toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={item.closing > 0 ? "default" : item.closing === 0 ? "secondary" : "destructive"}
-                        >
-                          {item.closing > 0 ? "In Stock" : item.closing === 0 ? "Depleted" : "Negative"}
-                        </Badge>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">Received</TableHead>
+                      <TableHead className="text-right">Used</TableHead>
+                      <TableHead className="text-right">Closing Stock</TableHead>
+                      <TableHead className="text-right">Delivered Cost</TableHead>
+                      <TableHead className="text-right">Used Cost</TableHead>
+                      <TableHead className="text-right">Remaining Value</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {ledger.materials.map((item) => (
+                      <TableRow key={item.material.id}>
+                        <TableCell className="font-medium">
+                          {item.material.name}
+                        </TableCell>
+                        <TableCell>{item.material.unit}</TableCell>
+                        <TableCell className="text-right">{item.received}</TableCell>
+                        <TableCell className="text-right">{item.used}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {item.closing}
+                        </TableCell>
+                        <TableCell className="text-right">₹{Math.round(item.totalDeliveredCost).toLocaleString()}</TableCell>
+                        <TableCell className="text-right">₹{Math.round(item.totalUsedCost).toLocaleString()}</TableCell>
+                        <TableCell className="text-right">₹{Math.round(item.remainingValue).toLocaleString()}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={item.closing > 0 ? "default" : item.closing === 0 ? "secondary" : "destructive"}
+                          >
+                            {item.closing > 0 ? "In Stock" : item.closing === 0 ? "Depleted" : "Negative"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -511,45 +515,47 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
             </div>
 
             {deliveries.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Unit Price</TableHead>
-                    <TableHead>Total Price</TableHead>
-                    <TableHead>Contractor</TableHead>
-                    <TableHead>QC Status</TableHead>
-                    <TableHead>Challan</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {deliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell>{new Date(delivery.deliveryDate).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-medium">{delivery.material.name}</TableCell>
-                      <TableCell>{delivery.supplierName}</TableCell>
-                      <TableCell>{delivery.quantity} {delivery.material.unit}</TableCell>
-                      <TableCell>{delivery.unitPrice ? `₹${delivery.unitPrice}` : '-'}</TableCell>
-                      <TableCell>{delivery.totalPrice ? `₹${delivery.totalPrice.toLocaleString()}` : '-'}</TableCell>
-                      <TableCell>{delivery.contractor?.name || '-'}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            delivery.qcStatus === 'APPROVED' ? 'default' :
-                            delivery.qcStatus === 'REJECTED' ? 'destructive' : 'secondary'
-                          }
-                        >
-                          {delivery.qcStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{delivery.challanNumber || '-'}</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Material</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead>Quantity</TableHead>
+                      <TableHead>Unit Price</TableHead>
+                      <TableHead>Total Price</TableHead>
+                      <TableHead>Contractor</TableHead>
+                      <TableHead>QC Status</TableHead>
+                      <TableHead>Challan</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {deliveries.map((delivery) => (
+                      <TableRow key={delivery.id}>
+                        <TableCell>{new Date(delivery.deliveryDate).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{delivery.material.name}</TableCell>
+                        <TableCell>{delivery.supplierName}</TableCell>
+                        <TableCell>{delivery.quantity} {delivery.material.unit}</TableCell>
+                        <TableCell>{delivery.unitPrice ? `₹${delivery.unitPrice}` : '-'}</TableCell>
+                        <TableCell>{delivery.totalPrice ? `₹${delivery.totalPrice.toLocaleString()}` : '-'}</TableCell>
+                        <TableCell>{delivery.contractor?.name || '-'}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              delivery.qcStatus === 'APPROVED' ? 'default' :
+                              delivery.qcStatus === 'REJECTED' ? 'destructive' : 'secondary'
+                            }
+                          >
+                            {delivery.qcStatus}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{delivery.challanNumber || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Truck className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -574,7 +580,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="delivery-material">Material *</Label>
                         <Select
@@ -616,7 +622,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="supplier-name">Supplier Name *</Label>
                         <Input
@@ -642,7 +648,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="unit-price">Unit Price</Label>
                         <Input
@@ -668,7 +674,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="delivery-date">Delivery Date *</Label>
                         <Input
@@ -762,7 +768,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="usage-material">Material *</Label>
                         <Select
@@ -804,7 +810,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="usage-labour">Labour</Label>
                         <Select
@@ -839,7 +845,7 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="grid gap-2">
                         <Label htmlFor="usage-date">Usage Date *</Label>
                         <Input
@@ -892,34 +898,36 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
             </Dialog>
 
             {usages.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Quantity Used</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead>Contractor</TableHead>
-                    <TableHead>Labour</TableHead>
-                    <TableHead>Used For</TableHead>
-                    <TableHead>Notes</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {usages.map((usage) => (
-                    <TableRow key={usage.id}>
-                      <TableCell>{new Date(usage.usageDate).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-medium">{usage.material.name}</TableCell>
-                      <TableCell>{usage.quantityUsed}</TableCell>
-                      <TableCell>{usage.material.unit}</TableCell>
-                      <TableCell>{usage.contractor?.name || '-'}</TableCell>
-                      <TableCell>{usage.labour?.name || '-'}</TableCell>
-                      <TableCell>{usage.usedFor || '-'}</TableCell>
-                      <TableCell>{usage.notes || '-'}</TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Material</TableHead>
+                      <TableHead>Quantity Used</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Contractor</TableHead>
+                      <TableHead>Labour</TableHead>
+                      <TableHead>Used For</TableHead>
+                      <TableHead>Notes</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {usages.map((usage) => (
+                      <TableRow key={usage.id}>
+                        <TableCell>{new Date(usage.usageDate).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{usage.material.name}</TableCell>
+                        <TableCell>{usage.quantityUsed}</TableCell>
+                        <TableCell>{usage.material.unit}</TableCell>
+                        <TableCell>{usage.contractor?.name || '-'}</TableCell>
+                        <TableCell>{usage.labour?.name || '-'}</TableCell>
+                        <TableCell>{usage.usedFor || '-'}</TableCell>
+                        <TableCell>{usage.notes || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <Wrench className="h-12 w-12 mx-auto mb-4 opacity-50" />

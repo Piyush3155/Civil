@@ -188,11 +188,11 @@ export function FinanceManagement({ projectId }: FinanceManagementProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Finance Management</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-lg md:text-xl font-bold tracking-tight">Finance Management</h2>
+          <p className="text-muted-foreground text-sm md:text-md">
             Track expenses, payments, and cash flow
           </p>
         </div>
@@ -205,7 +205,7 @@ export function FinanceManagement({ projectId }: FinanceManagementProps) {
         averageExpense={averageExpense}
       />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6  md:grid-cols-2">
         <CategoryWiseChart expenses={expenses} />
         <CashFlowDashboard
           expenses={totalExpenses}

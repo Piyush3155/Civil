@@ -382,7 +382,7 @@ if (loading) {
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-bold">{project.name}</h1>
+                  <h1 className="text-lg md:text-xl font-bold">{project.name}</h1>
                   <Badge
                     variant={getStatusBadge(project.status) as "default" | "secondary" | "destructive" | "outline"}
                     className="text-xs md:text-sm"
@@ -390,7 +390,7 @@ if (loading) {
                     {project.status}
                   </Badge>
                 </div>
-                <p className="text-muted-foreground text-sm">{project.code}</p>
+                <p className="text-muted-foreground text-xs">{project.code}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <Button
@@ -425,12 +425,12 @@ if (loading) {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4  md:grid-cols-2">
               <Card>
-                <CardHeader className="pb-3">
+                <CardHeader className="">
                   <CardTitle className="text-lg">Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-0">
                   {project.location && (
                     <div className="flex items-start gap-3">
                       <MapPin className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
