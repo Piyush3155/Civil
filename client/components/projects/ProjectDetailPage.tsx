@@ -48,6 +48,7 @@ import { TaskManagement } from "@/components/tasks/task-management"
 import { QCManagement } from "@/components/quality-control/qc-management";
 import { ProcurementDashboard } from "@/components/procurement/procurement-dashboard";
 import { FinanceManagement } from "@/components/finance/finance-management";
+import Loader from "@/components/ui/loader"
 import { Project } from "@/types/project"
 import { SidebarTrigger } from "../ui/sidebar"
 
@@ -228,9 +229,7 @@ export default function ProjectDetailPage() {
 if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
-        <Building2 className="h-12 w-12 text-muted-foreground" />
-        <h3 className="text-lg font-semibold">Loading project...</h3>
-
+        <Loader/>
       </div>
     )}
   

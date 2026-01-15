@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import Link from "next/link";
+import Loader from "../ui/loader";
 
 interface ProcurementDashboardProps {
   projectId: string;
@@ -143,7 +144,7 @@ export function ProcurementDashboard({ projectId }: ProcurementDashboardProps) {
 
 
   if (loading) {
-    return <div className="p-4">Loading procurement data...</div>;
+    return <div className=" flex items-start h-screen justify-center"><Loader/></div>;
   }
 
   return (

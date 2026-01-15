@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { fetchProjectTasks, updateTaskProgress } from "@/app/actions/tasks/main"
-import { CheckCircle, Clock, AlertTriangle, PlayCircle, Loader, X } from "lucide-react"
+import { CheckCircle, Clock, AlertTriangle, PlayCircle, X } from "lucide-react"
+import Loader from "../ui/loader"
 
 interface Task {
   id: string
@@ -197,7 +198,7 @@ export function TaskManagement({ projectId }: TaskManagementProps) {
     return (
       <Card className="border-0 shadow-lg">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
+          <Loader />
         </CardContent>
       </Card>
     )

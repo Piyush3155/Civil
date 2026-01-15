@@ -9,10 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckCircle, Loader2, Calendar, MapPin, CloudRain, AlertCircle } from 'lucide-react';
+import { Plus, CheckCircle, Calendar, MapPin, CloudRain, AlertCircle } from 'lucide-react';
 import { createDiary, fetchDiariesByProject, addLabourLog, addMaterialLog, addEquipmentLog, approveDiary } from "@/app/actions/site-diary/main";
 import { fetchMaterials } from "@/app/actions/materials/main";
 import { fetchContractors } from "@/app/actions/contractors/main";
+import Loader from "./ui/loader";
 
 interface Contractor {
   id: string;
@@ -211,8 +212,7 @@ export default function SiteDiaryManagement({ projectId }: SiteDiaryManagementPr
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-sm text-muted-foreground">Loading site diaries...</p>
+          <Loader />
         </div>
       </div>
     );
@@ -222,10 +222,10 @@ export default function SiteDiaryManagement({ projectId }: SiteDiaryManagementPr
     <div className="w-full space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold">Site Diaries</h2>
+        {/* <div>
+          <h2 className="text-xl font-bold">Site Diaries</h2>
           <p className="text-sm text-muted-foreground mt-1">Track daily activities, labor, materials, and equipment</p>
-        </div>
+        </div> */}
         <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button size="lg" className="w-full md:w-auto">
@@ -356,7 +356,7 @@ export default function SiteDiaryManagement({ projectId }: SiteDiaryManagementPr
                 {/* Issues Section */}
                 {diary.issues && (
                   <div className="pb-6 border-b bg-red-50 dark:bg-red-950/20 p-3 rounded-lg">
-                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2 text-red-700 dark:text-red-400">
+                    <h4 className="font-semibold text-sm md:text-xs mb-2 flex items-center gap-2 text-red-700 dark:text-red-400">
                       <AlertCircle className="w-4 h-4" />
                       Issues & Safety Notes
                     </h4>
@@ -431,7 +431,7 @@ export default function SiteDiaryManagement({ projectId }: SiteDiaryManagementPr
                       </div>
                     </DialogContent>
                   </Dialog>
-
+                
                   <Dialog open={logDialogOpen && selectedDiary?.id === diary.id && logType === 'material'} 
                     onOpenChange={(open) => {
                       setLogDialogOpen(open);

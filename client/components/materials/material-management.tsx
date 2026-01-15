@@ -49,6 +49,7 @@ import {
 } from "@/app/actions/materials/main";
 import { StockManagement } from "@/components/inventory/stock-management";
 import { Project } from "@/types/analytics";
+import Loader from "../ui/loader";
 
 interface Material {
   id: string;
@@ -276,7 +277,9 @@ export function MaterialManagement({ projectId, contractors = [], labours = [] }
       setLoading(false);
     }
   }
-
+  if(loading){
+    return <Loader/>
+  }
   async function handleCreateUsage(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);

@@ -40,7 +40,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Loader,
   Plus,
   X,
   Shield,
@@ -58,6 +57,7 @@ import {
   Eye,
   Trash2,
 } from "lucide-react"
+import Loader from "../ui/loader"
 
 interface QCManagementProps {
   projectId: string
@@ -409,9 +409,7 @@ export function QCManagement({ projectId }: QCManagementProps) {
   if (loading) {
     return (
       <Card className="border-0 shadow-lg">
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
+        <Loader/>
       </Card>
     )
   }

@@ -37,6 +37,7 @@ import {
   CreateSupplierPaymentDto,
 } from '@/types/finance';
 import { toast } from 'sonner';
+import Loader from '../ui/loader';
 
 interface Contractor {
   id: string;
@@ -182,7 +183,7 @@ export function FinanceManagement({ projectId }: FinanceManagementProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-muted-foreground">Loading finance data...</div>
+        <Loader />
       </div>
     );
   }
