@@ -24,6 +24,8 @@ import { EstimationModule } from './estimation/estimation.module';
 import { PdfModule } from './pdf/pdf.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { EquipmentCategoryModule } from './equipment-category/equipment-category.module';
+import { AiController } from './ai/ai.controller';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { EquipmentCategoryModule } from './equipment-category/equipment-category
     PdfModule,
     EquipmentModule,
     EquipmentCategoryModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [AppService],
