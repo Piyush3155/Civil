@@ -38,7 +38,7 @@ export class AiService {
           });
           return {
             query: 'SELECT id, name, code, progress, status, location, startDate, endDate FROM Project WHERE status = \'ACTIVE\' LIMIT 10',
-            results: projects,
+            results: this.formatResults(projects),
             directQuery: true
           };
         } catch (dbError) {
@@ -92,9 +92,11 @@ If the query cannot be converted to SQL, return: SELECT 'I cannot process this q
         };
       }
 
+      const formattedResults = this.formatResults(resultSet);
+
       return {
         query: sqlQuery,
-        results: resultSet,
+        results: formattedResults,
       };
     } catch (error) {
       console.error('Error processing AI query:', error);
@@ -103,6 +105,50 @@ If the query cannot be converted to SQL, return: SELECT 'I cannot process this q
         details: error.message
       };
     }
+  }
+
+  private formatResults(results: any): string {
+    if (!Array.isArray(results) || results.length === 0) {
+      return 'No results found for your query.';
+    }
+
+    // Check for a single-value message (e.g., from a failed query)
+    if (results.length === 1 && results[0].message) {
+      return results[0].message;
+    }
+
+    let output = `I found ${results.length} record(s):\n\n`;
+
+    results.forEach((row, index) => {
+      const title = row.name || row.title || `Record ${index + 1}`;
+      output += `**${title}**\n`;
+
+      Object.entries(row).forEach(([key, value]) => {
+        if (key.toLowerCase() === 'name' || key.toLowerCase() === 'title' || value === null || value === undefined) {
+          return; // Skip title fields or empty values
+        }
+
+        // Capitalize the key and format the value
+        const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
+        let formattedValue = value;
+
+        if (value instanceof Date) {
+          formattedValue = value.toLocaleDateString();
+        } else if (typeof value === 'object') {
+          formattedValue = JSON.stringify(value);
+        } else if (key.toLowerCase().includes('progress') && typeof value === 'number') {
+            formattedValue = `${value}%`;
+        } else if (key.toLowerCase().includes('amount') || key.toLowerCase().includes('cost')) {
+            formattedValue = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(value));
+        }
+
+
+        output += `  - ${formattedKey}: ${formattedValue}\n`;
+      });
+      output += '\n';
+    });
+
+    return output;
   }
 
   private async getSchemaInfo(): Promise<string> {

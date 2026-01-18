@@ -58,10 +58,13 @@ const AiChatbot = () => {
         if (data.sqlError) {
           aiResponseText += `\n\nSQL Error: ${data.sqlError}`;
         }
-      } else if (data.results && Array.isArray(data.results)) {
-        if (data.results.length === 0) {
+      } else if (data.results) {
+        if (typeof data.results === 'string') {
+          aiResponseText = `✅ Here are the results:\n\n${data.results}`;
+        } else if (Array.isArray(data.results) && data.results.length === 0) {
           aiResponseText = '📭 No results found for your query.';
         } else {
+          // Fallback for unexpected format
           aiResponseText = `✅ Found ${data.results.length} result(s):\n\n\`\`\`json\n${JSON.stringify(data.results, null, 2)}\n\`\`\``;
         }
       } else {
@@ -141,7 +144,7 @@ const AiChatbot = () => {
                       : 'bg-gray-100 text-gray-900'
                   }`}
                 >
-                  <pre className="whitespace-pre-wrap font-sans text-sm">
+                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
                     {message.text}
                   </pre>
                   <div className={`text-xs mt-1 ${
