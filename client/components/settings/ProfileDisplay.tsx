@@ -4,25 +4,19 @@ import * as React from "react"
 import {
   User,
   Mail,
-  Shield,
   Calendar,
-  Copy,
-  Check,
   Briefcase,
-  Edit,
-  MapPin,
-  Clock,
-  Award,
-  Activity,
+  Phone,
+  ShieldCheck,
 } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
+// --- Types ---
 interface UserProfile {
   id: string
   name: string
@@ -39,17 +33,9 @@ interface ProfileDisplayProps {
   isLoading: boolean
 }
 
+// --- Components ---
+
 export function ProfileDisplay({ user, isLoading }: ProfileDisplayProps) {
-  const [isCopied, setIsCopied] = React.useState(false)
-  const [isHovered, setIsHovered] = React.useState(false)
-
-  const handleCopyId = async () => {
-    if (!user?.id) return
-    await navigator.clipboard.writeText(user.id)
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 2000)
-  }
-
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -66,280 +52,147 @@ export function ProfileDisplay({ user, isLoading }: ProfileDisplayProps) {
       .join(" ")
   }
 
-  const getRoleColor = (role: string) => {
-    const colors = {
-      PROJECT_MANAGER:
-        "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800",
-      SITE_ENGINEER:
-        "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-800",
-      CONTRACTOR:
-        "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800",
-      LABOUR:
-        "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-300 dark:border-purple-800",
-      CLIENT: "bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-950/30 dark:text-pink-300 dark:border-pink-800",
+  const getRoleStyle = (role: string) => {
+    const styles = {
+      PROJECT_MANAGER: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+      SITE_ENGINEER: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      CONTRACTOR: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+      LABOUR: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+      CLIENT: "bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
     }
-    return (
-      colors[role as keyof typeof colors] ||
-      "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/30 dark:text-gray-300 dark:border-gray-800"
-    )
+    return styles[role as keyof typeof styles] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
   }
 
-  const getDaysSinceJoined = (createdAt?: string) => {
-    if (!createdAt) return null
-    const joined = new Date(createdAt)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - joined.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
-
-  if (isLoading) {
-    return <ProfileSkeleton />
-  }
+  if (isLoading) return <ProfileSkeleton />
 
   if (!user) {
     return (
-      <Card className="bg-muted/40 border-dashed">
-        <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 text-center">
-          <div className="relative mb-4 sm:mb-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted border-2 border-dashed">
-              <User className="h-8 w-8 text-muted-foreground" />
-            </div>
+      <Card className="bg-muted/30 border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <User className="h-8 w-8 text-muted-foreground/50" />
           </div>
-          <h3 className="text-lg sm:text-xl font-semibold mb-2">Profile Not Found</h3>
-          <p className="text-sm text-muted-foreground max-w-sm">
-            Unable to load user profile information. Please try refreshing the page.
-          </p>
+          <h3 className="text-xl font-semibold">Profile Not Found</h3>
+          <p className="text-muted-foreground mt-2">The requested user profile could not be loaded.</p>
         </CardContent>
       </Card>
     )
   }
 
-  const daysSinceJoined = getDaysSinceJoined(user.createdAt)
-
   return (
-    <Card className="overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-all duration-300">
-      <div className="relative h-24 sm:h-32 w-full bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 border-b overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-100/20 to-slate-100/20 dark:from-slate-700/20 dark:to-slate-700/20" />
+    <Card className="overflow-hidden border-border/60 shadow-lg transition-all duration-300 bg-card">
+      {/* Modern Banner with Pattern */}
+      <div className="relative h-32 md:h-40 w-full overflow-hidden bg-slate-900">
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900 to-slate-800" />
+        {/* Abstract Grid/Dot Pattern Overlay */}
+        <div className="absolute inset-0 opacity-10" 
+             style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
         </div>
+        
+        {/* Admin floating badge (Top Right) */}
+        {user.isAdmin && (
+          <div className="absolute top-4 right-4 animate-in fade-in zoom-in duration-500">
+            <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none shadow-md gap-1.5 py-1.5 px-3">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Administrator
+            </Badge>
+          </div>
+        )}
       </div>
 
-      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-16 mb-6 sm:mb-8">
-          {/* Enhanced Avatar */}
-          <div
-            className="relative group cursor-pointer flex-shrink-0"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            <div
-              className={cn(
-                "flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-3xl border-4 border-background bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800 dark:from-slate-400 dark:via-slate-500 dark:to-slate-600 text-white shadow-lg transition-all duration-300",
-                isHovered && "scale-105 shadow-xl",
-              )}
-            >
-              <span className="text-3xl sm:text-4xl font-bold tracking-tight">{getInitials(user.name)}</span>
+      <CardContent className="px-6 pb-8">
+        {/* Header Section */}
+        <div className="relative flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16 mb-8">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0">
+            <div className="flex h-32 w-32 items-center justify-center rounded-3xl border-[6px] border-background bg-gradient-to-br from-indigo-500 to-purple-600 shadow-xl text-white">
+              <span className="text-4xl font-bold tracking-tighter">{getInitials(user.name)}</span>
             </div>
-
-            {/* Status indicator */}
-            <div className="absolute -top-1 -right-1">
-              <div className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-green-500 border-2 border-background shadow-sm">
-                <Activity className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-white" />
-              </div>
-            </div>
-
-            {/* Admin badge */}
-            {user.isAdmin && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="absolute -bottom-2 -right-2 sm:-bottom-3 sm:-right-3 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-3 border-background bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg animate-pulse">
-                      <Shield className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <Award className="h-4 w-4" />
-                      Administrator Account
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            {isHovered && (
-              <div className="absolute inset-0 rounded-3xl bg-black/10 backdrop-blur-sm flex items-center justify-center transition-all duration-200">
-                <Edit className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-              </div>
-            )}
+             <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-green-500 border-4 border-background" title="Active" />
           </div>
 
-          <div className="flex-1 space-y-2 sm:space-y-3 text-center sm:text-left">
-            <div className="space-y-1 sm:space-y-2">
-              <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center sm:justify-start">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{user.name}</h1>
-                {user.isAdmin && (
-                  <Badge
-                    variant="outline"
-                    className="border-amber-500/50 text-amber-700 bg-amber-50/80 dark:border-amber-800 dark:text-amber-300 dark:bg-amber-950/30 px-2 py-0.5 text-xs sm:px-3 sm:py-1"
-                  >
-                    <Shield className="mr-1 h-3 w-3" />
-                    Admin
-                  </Badge>
-                )}
-              </div>
-              <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
-                <span className="font-medium">@{user.username}</span>
-                {daysSinceJoined && (
-                  <span className="text-xs bg-muted px-2 py-1 rounded-full">{daysSinceJoined} days</span>
-                )}
-              </div>
+          {/* Name & Quick Info */}
+          <div className="flex-1 text-center md:text-left space-y-2 mt-2 md:mt-0">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">{user.name}</h1>
+              <p className="text-muted-foreground font-medium flex items-center justify-center md:justify-start gap-1">
+                @{user.username}
+              </p>
             </div>
-
-            {/* Quick stats */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-center justify-center sm:justify-start gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
+            
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm text-muted-foreground/80">
+              <span className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4" />
-                <span>
-                  Joined{" "}
-                  {user.createdAt
-                    ? new Date(user.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    : "Unknown"}
-                </span>
-              </div>
-              <div className="hidden sm:flex items-center gap-1.5">
+                Joined {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
+              </span>
+              <span className="hidden md:inline text-muted-foreground/40">•</span>
+              <span className="flex items-center gap-1.5">
                 <Briefcase className="h-4 w-4" />
-                <span>
-                  {user.roles.length} role{user.roles.length !== 1 ? "s" : ""}
-                </span>
-              </div>
+                {user.roles.length} Roles
+              </span>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 mt-2 sm:mt-0">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopyId}
-                    className="gap-2 hover:bg-muted/80 transition-colors text-xs sm:text-sm bg-transparent"
-                  >
-                    {isCopied ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className="hidden sm:inline">{isCopied ? "Copied!" : "Copy ID"}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Copy User ID</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+          
         </div>
 
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {/* Contact Information Card */}
-          <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                  <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                Contact
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</label>
-                <p className="text-xs sm:text-sm font-medium break-all">{user.email}</p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Phone</label>
-                <p className="text-xs sm:text-sm font-medium">
-                  {user.phone || <span className="text-muted-foreground italic">Not provided</span>}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <Separator className="my-6" />
 
-          {/* System Information Card */}
-          <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200">
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                  <Shield className="h-4 w-4 text-green-600 dark:text-green-400" />
+        {/* Bento Grid Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* 1. Contact Information */}
+          <div className="space-y-4">
+             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <User className="w-4 h-4" /> Contact Details
+             </h4>
+             <div className="bg-muted/30 rounded-xl p-4 space-y-4 border border-border/50">
+                <div className="flex items-start gap-3">
+                    <div className="p-2 bg-background rounded-md shadow-sm text-blue-600">
+                        <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-0.5 overflow-hidden">
+                        <p className="text-xs text-muted-foreground font-medium">Email Address</p>
+                        <p className="text-sm font-medium truncate" title={user.email}>{user.email}</p>
+                    </div>
                 </div>
-                System
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">User ID</label>
-                <p className="text-xs font-mono bg-muted px-2 py-1 rounded break-all" title={user.id}>
-                  {user.id.slice(0, 12)}...
-                </p>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Created</label>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-xs sm:text-sm font-medium">
-                    {user.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : "Unknown"}
-                  </p>
+                <div className="flex items-start gap-3">
+                    <div className="p-2 bg-background rounded-md shadow-sm text-green-600">
+                        <Phone className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-0.5">
+                        <p className="text-xs text-muted-foreground font-medium">Phone Number</p>
+                        <p className="text-sm font-medium">{user.phone || "Not provided"}</p>
+                    </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+             </div>
+          </div>
 
-          {/* Roles & Permissions Card */}
-          <Card className="border-border/50 shadow-sm hover:shadow-md transition-all duration-200 sm:col-span-2 lg:col-span-1">
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
-                  <Briefcase className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                Roles
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+          {/* 2. Roles */}
+          <div className="space-y-4">
+             <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Briefcase className="w-4 h-4" /> Roles & Permissions
+             </h4>
+             <div className="bg-muted/30 rounded-xl p-4 min-h-[120px] border border-border/50">
                 {user.roles.length > 0 ? (
-                  user.roles.map((role) => (
-                    <Badge
-                      key={role}
-                      className={cn(
-                        "px-2 py-1 sm:px-3 sm:py-1.5 text-xs sm:text-sm font-medium transition-all duration-200 hover:scale-105",
-                        getRoleColor(role),
-                      )}
-                    >
-                      <Briefcase className="mr-1 h-3 w-3" />
-                      {formatRole(role)}
-                    </Badge>
-                  ))
+                    <div className="flex flex-wrap gap-2">
+                        {user.roles.map((role) => (
+                            <Badge
+                                key={role}
+                                variant="outline"
+                                className={cn("px-2.5 py-1 text-xs border font-medium", getRoleStyle(role))}
+                            >
+                                {formatRole(role)}
+                            </Badge>
+                        ))}
+                    </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground italic">
-                    <MapPin className="h-4 w-4" />
-                    No roles
-                  </div>
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                        <Briefcase className="w-8 h-8 mb-2 opacity-20" />
+                        No roles assigned
+                    </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
+             </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -348,50 +201,28 @@ export function ProfileDisplay({ user, isLoading }: ProfileDisplayProps) {
 
 function ProfileSkeleton() {
   return (
-    <Card className="overflow-hidden">
-      <div className="h-24 sm:h-32 bg-gradient-to-br from-muted/60 to-muted/40 animate-pulse" />
-      <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 -mt-12 sm:-mt-16 mb-6 sm:mb-8">
-          <Skeleton className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl border-4 border-background flex-shrink-0" />
-          <div className="space-y-2 sm:space-y-3 flex-1 w-full text-center sm:text-left">
-            <Skeleton className="h-7 sm:h-9 w-48 mx-auto sm:mx-0" />
-            <Skeleton className="h-4 w-32 mx-auto sm:mx-0" />
-            <div className="flex gap-2 sm:gap-4 justify-center sm:justify-start">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-20" />
+    <Card className="overflow-hidden bg-card">
+      <div className="h-32 md:h-40 bg-muted animate-pulse" />
+      <CardContent className="px-6 pb-8">
+        <div className="relative flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16 mb-8">
+          <Skeleton className="h-32 w-32 rounded-3xl border-[6px] border-background" />
+          <div className="flex-1 space-y-3 mt-2 md:mt-0 w-full flex flex-col items-center md:items-start">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-32" />
+            <div className="flex gap-4">
+               <Skeleton className="h-4 w-24" />
+               <Skeleton className="h-4 w-24" />
             </div>
           </div>
         </div>
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2 sm:pb-3">
-              <Skeleton className="h-5 w-32" />
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-            </CardContent>
-          </Card>
-          <Card className="border-border/50">
-            <CardHeader className="pb-2 sm:pb-3">
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <CardContent className="space-y-3 sm:space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-          <Card className="border-border/50 sm:col-span-2 lg:col-span-1">
-            <CardHeader className="pb-2 sm:pb-3">
-              <Skeleton className="h-5 w-36" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
-                <Skeleton className="h-6 w-20" />
-                <Skeleton className="h-6 w-24" />
-              </div>
-            </CardContent>
-          </Card>
+        <Separator className="my-6" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="space-y-3">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-32 w-full rounded-xl" />
+                </div>
+            ))}
         </div>
       </CardContent>
     </Card>
