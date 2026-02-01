@@ -1,6 +1,6 @@
 import { getSession, forceLogout } from "@/lib/sessionAction";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7001";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://localhost:7008";
 
 export interface ApiError {
   message: string;

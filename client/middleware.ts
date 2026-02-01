@@ -16,6 +16,48 @@ interface SessionData {
   roles?: string[];
 }
 
+// Define role types
+type UserRole = 'ADMIN' | 'USER' | 'PROJECT_MANAGER' | 'SITE_ENGINEER' | 'CONTRACTOR' | 'LABOUR' | 'CLIENT';
+
+// Role-based route protection configuration
+// Routes not listed here are accessible to all authenticated users
+const PROTECTED_ROUTES: { pattern: RegExp; allowedRoles: UserRole[] }[] = [
+  // Admin only routes
+  { pattern: /^\/users(\/.*)?$/, allowedRoles: ['ADMIN'] },
+  { pattern: /^\/send-fcm(\/.*)?$/, allowedRoles: ['ADMIN'] },
+  
+  // Admin and Project Manager routes
+  { pattern: /^\/settings(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER'] },
+  
+  // Client Dashboard - only CLIENT role
+  { pattern: /^\/client(\/.*)?$/, allowedRoles: ['CLIENT'] },
+  
+  // Project Management routes - LABOUR can see their assigned projects
+  { pattern: /^\/projects(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR', 'LABOUR', 'CLIENT'] },
+  { pattern: /^\/drawings(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'LABOUR'] },
+  { pattern: /^\/analytics(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CLIENT'] },
+  
+  // Team & Resources routes
+  { pattern: /^\/contractors(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'] },
+  { pattern: /^\/labours(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR'] },
+  { pattern: /^\/equipment(\/.*)?$/, allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'] },
+];
+
+// Helper function to check if user has access to a route
+function hasRouteAccess(pathname: string, userRoles: string[]): boolean {
+  // Find matching protected route
+  const protectedRoute = PROTECTED_ROUTES.find(route => route.pattern.test(pathname));
+  
+  // If route is not protected, allow access
+  if (!protectedRoute) return true;
+  
+  // ADMIN has access to everything
+  if (userRoles.includes('ADMIN')) return true;
+  
+  // Check if user has any of the allowed roles
+  return userRoles.some(role => protectedRoute.allowedRoles.includes(role as UserRole));
+}
+
 /**
  * Safely decodes a JWT token without throwing errors
  */
@@ -145,6 +187,16 @@ export async function middleware(request: NextRequest) {
         const signInUrl = new URL('/login', host);
         return NextResponse.redirect(signInUrl);
       }
+    }
+
+    // Role-based access control check
+    const userRoles = session.roles || [];
+    if (!hasRouteAccess(pathname, userRoles)) {
+      // User doesn't have permission for this route
+      // Redirect to dashboard with unauthorized message
+      const unauthorizedUrl = new URL('/dashboard', request.url);
+      unauthorizedUrl.searchParams.set('error', 'unauthorized');
+      return NextResponse.redirect(unauthorizedUrl);
     }
   } catch (error) {
     console.error('Error unsealing session in middleware:', error);

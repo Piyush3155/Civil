@@ -3,6 +3,7 @@
 import type React from "react"
 import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
+import { useSearchParams, useRouter } from "next/navigation"
 import {
   Building2,
   Users,
@@ -14,7 +15,8 @@ import {
   MoreHorizontal,
   Calendar,
   Hammer,
-  FileUp
+  FileUp,
+  Bell
 } from "lucide-react"
 
 // UI Imports
@@ -46,12 +48,14 @@ import { ProjectStatusChart } from "@/components/project-status-chart"
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
 
 // Actions & Types
-import { fetchProjects } from "@/app/actions/projects/main"
+import { fetchProjects, fetchMyProjects } from "@/app/actions/projects/main"
 import { fetchContractors } from "@/app/actions/contractors/main"
 import { fetchLabours } from "@/app/actions/labours/main"
 import { fetchDrawings } from "@/app/actions/drawings/main"
+import { getSession } from "@/lib/sessionAction"
 import { Project, ProjectStats, DashboardStats } from "@/types/dashboard"
 import { ChartConfig } from "../ui/chart"
+import { useToast } from "@/hooks/use-toast"
 
 // --- Configuration ---
 
@@ -64,13 +68,43 @@ const chartConfig = {
 
 // --- Helper Components ---
 
-const Greeting = () => {
+// Roles that can see all data
+const MANAGER_ROLES = ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'];
+
+// Helper to check if user has manager-level access
+const hasManagerAccess = (roles: string[]): boolean => {
+  return roles.some(role => MANAGER_ROLES.includes(role));
+};
+
+// Helper to get role-based title
+const getRoleTitle = (roles: string[]): string => {
+  if (!roles.length) return 'User';
+  const role = roles[0];
+  switch (role) {
+    case 'ADMIN': return 'Admin';
+    case 'PROJECT_MANAGER': return 'Manager';
+    case 'SITE_ENGINEER': return 'Engineer';
+    case 'CONTRACTOR': return 'Contractor';
+    case 'LABOUR': return 'Worker';
+    case 'CLIENT': return 'Owner';
+    default: return 'User';
+  }
+};
+
+const Greeting = ({ username, roles }: { username: string; roles: string[] }) => {
   const hour = new Date().getHours()
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
+  const name = username || "User"
+  const title = getRoleTitle(roles)
+  
   return (
     <div className="flex flex-col space-y-1">
-      <h2 className="text-2xl font-bold tracking-tight">{greeting}, Engineer</h2>
-      <p className="text-muted-foreground">Here is what&apos;s happening on your sites today.</p>
+      <h2 className="text-2xl font-bold tracking-tight">{greeting}, {name}</h2>
+      <p className="text-muted-foreground">
+        {hasManagerAccess(roles) 
+          ? "Here's your construction overview for today."
+          : "Here are your assigned projects and tasks."}
+      </p>
     </div>
   )
 }
@@ -144,6 +178,21 @@ const StatusBadge = ({ status }: { status: string }) => {
 // --- Main Page ---
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const { toast } = useToast()
+  
+  // User session state
+  const [userInfo, setUserInfo] = useState<{
+    username: string;
+    roles: string[];
+    isLoading: boolean;
+  }>({
+    username: "",
+    roles: [],
+    isLoading: true,
+  })
+  
   const [stats, setStats] = useState<DashboardStats>({
     projects: { total: 0, active: 0, paused: 0, completed: 0 },
     contractors: 0,
@@ -153,14 +202,70 @@ export default function DashboardPage() {
     recentProjects: [],
   })
 
+  // Fetch user session on mount
   useEffect(() => {
+    async function fetchUserInfo() {
+      try {
+        const session = await getSession()
+        if (session.isLoggedIn) {
+          setUserInfo({
+            username: session.name || session.username || "User",
+            roles: session.roles || [],
+            isLoading: false,
+          })
+        } else {
+          setUserInfo(prev => ({ ...prev, isLoading: false }))
+        }
+      } catch (error) {
+        console.error("Failed to fetch user session:", error)
+        setUserInfo(prev => ({ ...prev, isLoading: false }))
+      }
+    }
+    fetchUserInfo()
+  }, [])
+
+  // Redirect client users to specialized client dashboard
+  useEffect(() => {
+    if (!userInfo.isLoading && userInfo.roles.includes('CLIENT')) {
+      router.push('/client')
+    }
+  }, [userInfo.roles, userInfo.isLoading, router])
+
+  // Check for unauthorized access redirect
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error === 'unauthorized') {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "You don't have permission to access that page. Contact your administrator if you need access.",
+      })
+      // Remove the error param from URL
+      router.replace('/dashboard')
+    }
+  }, [searchParams, toast, router])
+
+  // Load dashboard data based on user role
+  useEffect(() => {
+    // Wait for user info to load
+    if (userInfo.isLoading) return
+
     async function loadData() {
       try {
+        // Determine which projects to fetch based on role
+        const isManager = hasManagerAccess(userInfo.roles)
+        
+        // Managers see all projects; others see only their assigned projects
+        const projectsPromise = isManager ? fetchProjects() : fetchMyProjects()
+        
+        // Only managers can see all contractors, labours, drawings
+        const additionalDataPromises = isManager 
+          ? [fetchContractors(), fetchLabours(), fetchDrawings()]
+          : [Promise.resolve([]), Promise.resolve([]), Promise.resolve([])]
+        
         const [projects, contractors, labours, drawings] = await Promise.all([
-          fetchProjects(),
-          fetchContractors(),
-          fetchLabours(),
-          fetchDrawings(),
+          projectsPromise,
+          ...additionalDataPromises,
         ])
 
         const projectStats = (projects as Project[]).reduce(
@@ -176,11 +281,11 @@ export default function DashboardPage() {
 
         setStats({
           projects: projectStats,
-          contractors: contractors.length,
-          labours: labours.length,
-          drawings: drawings.length,
+          contractors: (contractors as unknown[]).length,
+          labours: (labours as unknown[]).length,
+          drawings: (drawings as unknown[]).length,
           loading: false,
-          recentProjects: projects.slice(0, 5),
+          recentProjects: (projects as Project[]).slice(0, 5),
         })
       } catch (error) {
         console.error("Dashboard Error:", error)
@@ -188,7 +293,7 @@ export default function DashboardPage() {
       }
     }
     loadData()
-  }, [])
+  }, [userInfo.isLoading, userInfo.roles])
 
   const chartData = useMemo(() => [
     { status: "active", visitors: stats.projects.active, fill: "oklch(0.55 0.15 250)" },
@@ -222,12 +327,15 @@ export default function DashboardPage() {
               className="w-64 pl-9 h-9 bg-muted/40 border-none shadow-none focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div> */}
-          <Button size="sm" className="h-9 gap-1 shadow-sm">
-              <Link href="/projects/new" className="flex items-center gap-2">
-                  <Plus className="h-3.5 w-3.5" />
-                  <span className="sr-only sm:not-sr-only">Create Project</span>
-              </Link>
-          </Button>
+          {/* Only show Create Project button for ADMIN and PROJECT_MANAGER */}
+          {(userInfo.roles.includes('ADMIN') || userInfo.roles.includes('PROJECT_MANAGER')) && (
+            <Button size="sm" className="h-9 gap-1 shadow-sm">
+                <Link href="/projects/new" className="flex items-center gap-2">
+                    <Plus className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only">Create Project</span>
+                </Link>
+            </Button>
+          )}
           
           <AnimatedThemeToggler className="h-9 w-9" />
         </div>
@@ -237,48 +345,73 @@ export default function DashboardPage() {
           
           {/* 1. Greeting Section */}
           <div className="flex items-end justify-between">
-              <Greeting />
+              <Greeting username={userInfo.username} roles={userInfo.roles} />
               <div className="hidden sm:flex text-sm text-muted-foreground items-center gap-2 bg-background/50 px-3 py-1 rounded-full border">
                   <Calendar className="h-3.5 w-3.5" />
                   {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
           </div>
 
-          {/* 2. Stats Grid */}
-          <div className="grid gap-4 grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
+          {/* 2. Stats Grid - Show different stats based on role */}
+          <div className={`grid gap-4 ${hasManagerAccess(userInfo.roles) ? 'grid-cols-2 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-2 md:grid-cols-4'}`}>
             <StatCard
-              title="Total Projects"
+              title={hasManagerAccess(userInfo.roles) ? "Total Projects" : "My Projects"}
               value={stats.projects.total}
               icon={Building2}
-              trend="Projects"
+              trend={hasManagerAccess(userInfo.roles) ? "All projects" : "Assigned to you"}
               trendUp={true}
               loading={stats.loading}
               iconColor="bg-blue-500/10 text-blue-600"
             />
             <StatCard
-              title="Active Contractors"
-              value={stats.contractors}
-              icon={Users}
-              trend="Verified partners"
-              loading={stats.loading}
-              iconColor="bg-violet-500/10 text-violet-600"
-            />
-            <StatCard
-              title="Total Workforce"
-              value={stats.labours}
-              icon={HardHat}
-              trend="On-site staff"
-              loading={stats.loading}
-              iconColor="bg-amber-500/10 text-amber-600"
-            />
-            <StatCard
-              title="Blueprints"
-              value={stats.drawings}
-              icon={FileText}
-              trend="Documents stored"
+              title="Active"
+              value={stats.projects.active}
+              icon={Building2}
+              trend="In progress"
+              trendUp={true}
               loading={stats.loading}
               iconColor="bg-emerald-500/10 text-emerald-600"
             />
+            {hasManagerAccess(userInfo.roles) && (
+              <>
+                <StatCard
+                  title="Active Contractors"
+                  value={stats.contractors}
+                  icon={Users}
+                  trend="Verified partners"
+                  loading={stats.loading}
+                  iconColor="bg-violet-500/10 text-violet-600"
+                />
+                <StatCard
+                  title="Total Workforce"
+                  value={stats.labours}
+                  icon={HardHat}
+                  trend="On-site staff"
+                  loading={stats.loading}
+                  iconColor="bg-amber-500/10 text-amber-600"
+                />
+              </>
+            )}
+            {!hasManagerAccess(userInfo.roles) && (
+              <>
+                <StatCard
+                  title="Completed"
+                  value={stats.projects.completed}
+                  icon={Building2}
+                  trend="Finished projects"
+                  loading={stats.loading}
+                  iconColor="bg-blue-500/10 text-blue-600"
+                />
+                <StatCard
+                  title="Paused"
+                  value={stats.projects.paused}
+                  icon={Building2}
+                  trend="On hold"
+                  loading={stats.loading}
+                  iconColor="bg-amber-500/10 text-amber-600"
+                />
+              </>
+            )}
           </div>
 
           {/* 3. Main Layout Grid */}
@@ -289,8 +422,14 @@ export default function DashboardPage() {
                   <Card className="h-full border shadow-sm">
                       <CardHeader className="flex flex-row items-center justify-between pb-4">
                           <div>
-                              <CardTitle className="text-lg">Recent Projects</CardTitle>
-                              <CardDescription>Overview of your latest construction sites.</CardDescription>
+                              <CardTitle className="text-lg">
+                                {hasManagerAccess(userInfo.roles) ? "Recent Projects" : "My Projects"}
+                              </CardTitle>
+                              <CardDescription>
+                                {hasManagerAccess(userInfo.roles) 
+                                  ? "Overview of your latest construction sites."
+                                  : "Projects assigned to you."}
+                              </CardDescription>
                           </div>
                           <Button variant="outline" size="sm" asChild>
                               <Link href="/projects" className="text-xs h-8 gap-1">
@@ -308,10 +447,14 @@ export default function DashboardPage() {
                                   <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
                                       <Building2 className="h-6 w-6 opacity-40" />
                                   </div>
-                                  <p className="font-medium text-sm">No projects created yet</p>
-                                  <Button variant="link" asChild className="mt-2">
-                                      <Link href="/projects/new">Create your first project</Link>
-                                  </Button>
+                                  <p className="font-medium text-sm">
+                                    {hasManagerAccess(userInfo.roles) ? "No projects created yet" : "No projects assigned yet"}
+                                  </p>
+                                  {(userInfo.roles.includes('ADMIN') || userInfo.roles.includes('PROJECT_MANAGER')) && (
+                                    <Button variant="link" asChild className="mt-2">
+                                        <Link href="/projects/new">Create your first project</Link>
+                                    </Button>
+                                  )}
                               </div>
                           ) : (
                               <div className="table-wrapper">
@@ -381,36 +524,65 @@ export default function DashboardPage() {
                     activeProjects={stats.projects.active}
                   />
 
-                  {/* Quick Actions Widget */}
+                  {/* Quick Actions Widget - Role-based */}
                   <Card className="border shadow-sm">
                       <CardHeader className="pb-3">
                           <CardTitle className="text-base">Quick Actions</CardTitle>
                       </CardHeader>
                       <CardContent className="grid gap-2">
-                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                        {/* Manager-level quick actions */}
+                        {hasManagerAccess(userInfo.roles) ? (
+                          <>
+                            <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
                               <Link href="/contractors/new">
                                   <Users className="h-4 w-4 text-violet-500" />
                                   <span>Register Contractor</span>
                               </Link>
-                           </Button>
-                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
                               <Link href="/labours/new">
                                   <HardHat className="h-4 w-4 text-amber-500" />
                                   <span>Add Labour</span>
                               </Link>
-                           </Button>
-                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
                               <Link href="/materials/new">
                                   <Hammer className="h-4 w-4 text-blue-500" />
                                   <span>Request Material</span>
                               </Link>
-                           </Button>
-                           <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
                               <Link href="/drawings/upload">
                                   <FileUp className="h-4 w-4 text-emerald-500" />
                                   <span>Upload Drawing</span>
                               </Link>
-                           </Button>
+                            </Button>
+                          </>
+                        ) : (
+                          /* Non-manager quick actions */
+                          <>
+                            <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                              <Link href="/projects">
+                                  <Building2 className="h-4 w-4 text-blue-500" />
+                                  <span>View My Projects</span>
+                              </Link>
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                              <Link href="/notifications">
+                                  <Bell className="h-4 w-4 text-violet-500" />
+                                  <span>View Notifications</span>
+                              </Link>
+                            </Button>
+                            {userInfo.roles.includes('CONTRACTOR') && (
+                              <Button variant="outline" className="w-full justify-start h-10 gap-2" asChild>
+                                <Link href="/labours">
+                                    <HardHat className="h-4 w-4 text-amber-500" />
+                                    <span>Manage My Labours</span>
+                                </Link>
+                              </Button>
+                            )}
+                          </>
+                        )}
                       </CardContent>
                   </Card>
               </div>

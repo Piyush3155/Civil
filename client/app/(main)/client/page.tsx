@@ -1,10 +1,5 @@
-import { ClientDashboard } from '@/components/client-dashboard'
-import React from 'react'
+import ClientDashboard from '@/components/dashboard/ClientDashboard'
 
 export default function ClientPage() {
-  return (
-    <div>
-        <ClientDashboard projectId={''}/>
-    </div>
-  )
+  return <ClientDashboard />
 }

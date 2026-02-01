@@ -2,7 +2,7 @@
 
 import { getSession } from "@/lib/sessionAction";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7001";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://localhost:7008";
 
 export async function fetchProjects() {
   const session = await getSession();
@@ -26,6 +26,36 @@ export async function fetchProjects() {
     return await response.json();
   } catch (error) {
     console.error("Error fetching projects:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch only projects assigned to the current user
+ * Used for roles like LABOUR, CONTRACTOR, CLIENT that should only see their assigned projects
+ */
+export async function fetchMyProjects() {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/projects/my-projects`, {
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch my projects");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching my projects:", error);
     throw error;
   }
 }
@@ -321,3 +351,41 @@ export async function updateProjectProgress(projectId: string, progress: number,
   }
 }
 
+/**
+ * Send a notification to all contractors associated with a project
+ * @param projectId - The project ID
+ * @param title - Notification title
+ * @param message - Notification message body
+ */
+export async function notifyProjectContractors(
+  projectId: string,
+  title: string,
+  message: string
+) {
+  const session = await getSession();
+
+  if (!session.isLoggedIn) {
+    throw new Error("User not authenticated");
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/projects/${projectId}/notify-contractors`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: JSON.stringify({ title, message }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to send notification");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error notifying contractors:", error);
+    throw error;
+  }
+}

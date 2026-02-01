@@ -139,4 +139,14 @@ export class ProjectsController {
   ) {
     return this.projectsService.updateProgress(id, body);
   }
+
+  @Post(':id/notify-contractors')
+  @Roles('ADMIN', 'PROJECT_MANAGER', 'CLIENT')
+  async notifyContractors(
+    @Param('id') id: string,
+    @Body() body: { title: string; message: string },
+    @Request() req,
+  ) {
+    return this.projectsService.notifyProjectContractors(id, body.title, body.message, req.user.userId);
+  }
 }

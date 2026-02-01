@@ -119,8 +119,15 @@ export default function ProjectDetailPage() {
   }, [loadProject])
 
   useEffect(() => {
-    loadUsersAndRoles()
-    loadLabours()
+    // Only load these for management/staff roles
+    const user = getCurrentUser()
+    const roles = user?.roles || []
+    const isManager = roles.some(role => ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR'].includes(role))
+    
+    if (isManager) {
+      loadUsersAndRoles()
+      loadLabours()
+    }
   }, [])
 
   async function loadUsersAndRoles() {
@@ -137,6 +144,10 @@ export default function ProjectDetailPage() {
 
   async function loadLabours() {
     try {
+      // Direct call check as well
+      const user = getCurrentUser()
+      if (user?.roles.includes('CLIENT')) return
+      
       const laboursData = await fetchLabours()
       setLabours(laboursData)
     } catch (error) {

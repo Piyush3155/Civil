@@ -55,11 +55,15 @@ import {
   deleteDrawing,
   uploadDrawingAttachment
 } from "@/app/actions/drawings/main"
-import { fetchProjects } from "@/app/actions/projects/main"
+import { fetchProjects, fetchMyProjects } from "@/app/actions/projects/main"
+import { getSession } from "@/lib/sessionAction"
 import Loader from "@/components/ui/loader";
 import dynamic from "next/dynamic";
 // IMPROVEMENT: Import toast for better error/success feedback
 import { toast } from 'sonner';
+
+// Roles that can create/edit/delete drawings
+const EDIT_ALLOWED_ROLES = ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'];
 
 // Dynamic import for DrawingViewer to avoid SSR issues
 const DrawingViewer = dynamic(() => import("./DrawingViewer"), {
@@ -112,6 +116,10 @@ export default function DrawingsPage() {
     version: 1,
     projectId: "",
   })
+  
+  // User role state for permission control
+  const [userRoles, setUserRoles] = useState<string[]>([])
+  const canEdit = userRoles.some(role => EDIT_ALLOWED_ROLES.includes(role))
 
   useEffect(() => {
     loadData()
@@ -120,9 +128,17 @@ export default function DrawingsPage() {
   async function loadData() {
     setLoading(true);
     try {
+      // First fetch user session to get roles
+      const session = await getSession()
+      const roles = session.roles || []
+      setUserRoles(roles)
+      
+      // Determine if user can see all projects or just their assigned ones
+      const canSeeAllProjects = roles.some(role => EDIT_ALLOWED_ROLES.includes(role))
+      
       const [drawingsData, projectsData] = await Promise.all([
         fetchDrawings(),
-        fetchProjects()
+        canSeeAllProjects ? fetchProjects() : fetchMyProjects()
       ])
       setDrawings(drawingsData)
       setProjects(projectsData)
@@ -297,21 +313,22 @@ export default function DrawingsPage() {
         </Breadcrumb>
         <h1 className="text-lg font-semibold sm:hidden">Drawings</h1> {/* IMPROVEMENT: Mobile title */}
         <div className="ml-auto">
-          {/* IMPROVEMENT: Made the Upload button more prominent and mobile-friendly */}
-          <Dialog open={createDialogOpen} onOpenChange={(open) => {
-            setCreateDialogOpen(open)
-            if (!open) resetForm()
-          }}>
-            <DialogTrigger asChild>
-                <Button 
-                    size="sm" 
-                    className="sm:size-default"
-                    // IMPROVEMENT: Use the `Plus` icon only on mobile for space saving
-                    >
-                  <Plus className="h-4 w-4 sm:mr-2 flex-shrink-0" /> 
-                  <span className="hidden sm:inline">Upload Drawing</span>
-                </Button>
-              </DialogTrigger>
+          {/* Only show Upload button for users with edit permissions */}
+          {canEdit && (
+            <Dialog open={createDialogOpen} onOpenChange={(open) => {
+              setCreateDialogOpen(open)
+              if (!open) resetForm()
+            }}>
+              <DialogTrigger asChild>
+                  <Button 
+                      size="sm" 
+                      className="sm:size-default"
+                      // IMPROVEMENT: Use the `Plus` icon only on mobile for space saving
+                      >
+                    <Plus className="h-4 w-4 sm:mr-2 flex-shrink-0" /> 
+                    <span className="hidden sm:inline">Upload Drawing</span>
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="max-w-[95vw] sm:max-w-[550px] max-h-[95vh] overflow-y-auto"> {/* IMPROVEMENT: Slightly wider dialog */}
                 <DialogHeader>
                   <DialogTitle className="text-lg">Upload New Drawing</DialogTitle>
@@ -436,6 +453,7 @@ export default function DrawingsPage() {
                 </form>
               </DialogContent>
             </Dialog>
+          )}
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6"> {/* IMPROVEMENT: Uniform padding and slightly larger gap */}
@@ -447,14 +465,20 @@ export default function DrawingsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center h-64 p-6"> {/* IMPROVEMENT: Taller placeholder */}
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2 text-center">No drawings yet</h3>
+                <h3 className="text-lg font-semibold mb-2 text-center">
+                  {canEdit ? "No drawings yet" : "No drawings available"}
+                </h3>
                 <p className="text-base text-muted-foreground mb-6 text-center px-4">
-                  Upload your first technical drawing to get started
+                  {canEdit 
+                    ? "Upload your first technical drawing to get started"
+                    : "There are no drawings available for your projects yet"}
                 </p>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Upload Drawing
-                </Button>
+                {canEdit && (
+                  <Button onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Upload Drawing
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -521,15 +545,18 @@ export default function DrawingsPage() {
                         <Eye className="mr-2 h-4 w-4" />
                         View
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-9 w-9 p-0"
-                        onClick={() => openEditDialog(drawing)}
-                        aria-label={`Edit ${drawing.title}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      {/* Edit button - only for users with edit permissions */}
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-9 w-9 p-0"
+                          onClick={() => openEditDialog(drawing)}
+                          aria-label={`Edit ${drawing.title}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -542,15 +569,18 @@ export default function DrawingsPage() {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="h-9 w-9 p-0"
-                        onClick={() => handleDeleteDrawing(drawing.id)}
-                        aria-label={`Delete ${drawing.title}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {/* Delete button - only for users with edit permissions */}
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-9 w-9 p-0"
+                          onClick={() => handleDeleteDrawing(drawing.id)}
+                          aria-label={`Delete ${drawing.title}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

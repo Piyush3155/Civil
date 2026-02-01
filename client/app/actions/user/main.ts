@@ -5,7 +5,7 @@ import { getIronSession } from 'iron-session';
 import { ironSessionOptions } from '../../../lib/sessionLib';
 import * as jwt from 'jsonwebtoken';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:7008';
 
 interface SessionData {
   isLoggedIn: boolean;

@@ -11,9 +11,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Building2, Plus, MapPin, Calendar, UsersIcon } from "lucide-react"
 import { useEffect, useState } from "react"
-import { fetchProjects } from "@/app/actions/projects/main"
+import { fetchProjects, fetchMyProjects } from "@/app/actions/projects/main"
+import { getSession } from "@/lib/sessionAction"
 import { useRouter } from "next/navigation"
 import Loader from "@/components/ui/loader"
+
+// Roles that can create/edit/delete projects
+const EDIT_ALLOWED_ROLES = ['ADMIN', 'PROJECT_MANAGER'];
+
 interface Project {
   id: string
   name: string
@@ -34,6 +39,10 @@ export default function ProjectsPage() {
   const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // User role state for permission control
+  const [userRoles, setUserRoles] = useState<string[]>([])
+  const canEdit = userRoles.some(role => EDIT_ALLOWED_ROLES.includes(role))
 
   useEffect(() => {
     loadProjects()
@@ -41,7 +50,15 @@ export default function ProjectsPage() {
 
   async function loadProjects() {
     try {
-      const data = await fetchProjects()
+      // First fetch user session to get roles
+      const session = await getSession()
+      const roles = session.roles || []
+      setUserRoles(roles)
+      
+      // Determine if user can see all projects or just their assigned ones
+      const canSeeAllProjects = roles.includes('ADMIN') || roles.includes('PROJECT_MANAGER') || roles.includes('SITE_ENGINEER')
+      
+      const data = canSeeAllProjects ? await fetchProjects() : await fetchMyProjects()
       setProjects(data)
     } catch (error) {
       console.error("Error loading projects:", error)
@@ -70,18 +87,23 @@ export default function ProjectsPage() {
           <Breadcrumb className="hidden md:flex">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage className="font-semibold">Projects</BreadcrumbPage>
+                <BreadcrumbPage className="font-semibold">
+                  {canEdit ? "All Projects" : "My Projects"}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
           <div className="ml-auto">
-            <Button className="gap-2" asChild>
-              <Link href="/projects/new">
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">New Project</span>
-                <span className="sm:hidden">New</span>
-              </Link>
-            </Button>
+            {/* Only show New Project button for users with edit permissions */}
+            {canEdit && (
+              <Button className="gap-2" asChild>
+                <Link href="/projects/new">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">New Project</span>
+                  <span className="sm:hidden">New</span>
+                </Link>
+              </Button>
+            )}
           </div>
         </header>
 
@@ -96,25 +118,34 @@ export default function ProjectsPage() {
                 <div className="rounded-lg bg-muted/50 p-3 mb-4">
                   <Building2 className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-center">No projects yet</h3>
+                <h3 className="text-lg font-semibold mb-2 text-center">
+                  {canEdit ? "No projects yet" : "No projects assigned"}
+                </h3>
                 <p className="text-muted-foreground mb-6 text-center max-w-xs text-sm">
-                  Get started by creating your first project to track all your construction work
+                  {canEdit 
+                    ? "Get started by creating your first project to track all your construction work"
+                    : "You have not been assigned to any projects yet. Contact your project manager for access."}
                 </p>
-                <Button asChild className="gap-2">
-                  <Link href="/projects/new">
-                    <Plus className="h-4 w-4" />
-                    Create Project
-                  </Link>
-                </Button>
+                {canEdit && (
+                  <Button asChild className="gap-2">
+                    <Link href="/projects/new">
+                      <Plus className="h-4 w-4" />
+                      Create Project
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h1 className="text-2xl md:text-3xl font-bold">Projects</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold">
+                    {canEdit ? "Projects" : "My Projects"}
+                  </h1>
                   <p className="text-sm text-muted-foreground mt-1">
                     {projects.length} {projects.length === 1 ? "project" : "projects"}
+                    {!canEdit && " assigned to you"}
                   </p>
                 </div>
               </div>

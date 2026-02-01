@@ -2,7 +2,7 @@
 
 import { getSession } from "@/lib/sessionAction";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:7001";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://localhost:7008";
 
 // Types for QC/NCR module
 export type QCType = "QUALITY" | "SAFETY" | "DEFECT" | "REWORK";

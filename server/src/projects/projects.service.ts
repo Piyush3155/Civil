@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async findAll() {
-    return this.prisma.project.findMany({
+    const projects = await this.prisma.project.findMany({
       include: {
         members: {
           include: {
@@ -33,6 +37,14 @@ export class ProjectsService {
           },
         },
       },
+    });
+
+    return projects.map((p) => {
+      const proj = p as any;
+      return {
+        ...proj,
+        progress: proj.progress ? Number(proj.progress) : 0,
+      };
     });
   }
 
@@ -93,7 +105,7 @@ export class ProjectsService {
     if (project) {
       await this.recalculateProjectProgress(id);
       // Fetch updated project with new progress
-      return this.prisma.project.findUnique({
+      const updatedProject = await this.prisma.project.findUnique({
         where: { id },
         include: {
           members: {
@@ -144,9 +156,23 @@ export class ProjectsService {
           },
         },
       });
+      
+      if (!updatedProject) return null;
+      const up = updatedProject as any;
+
+      return {
+        ...up,
+        progress: up.progress ? Number(up.progress) : 0,
+      };
     }
 
-    return project;
+    if (!project) return null;
+    const proj = project as any;
+
+    return {
+      ...proj,
+      progress: proj.progress ? Number(proj.progress) : 0,
+    };
   }
 
   async create(data: {
@@ -208,48 +234,64 @@ export class ProjectsService {
   }
 
   async getProjectsByUser(userId: string) {
-    return this.prisma.project.findMany({
-      where: {
-        OR: [
-          {
-            members: {
-              some: {
-                userId,
+    try {
+      const projects = await this.prisma.project.findMany({
+        where: {
+          OR: [
+            {
+              members: {
+                some: {
+                  userId,
+                },
               },
             },
-          },
-          {
-            owners: {
-              some: {
-                userId,
+            {
+              owners: {
+                some: {
+                  userId,
+                },
               },
             },
+          ],
+        },
+        include: {
+          members: {
+            include: {
+              role: true,
+            },
           },
-        ],
-      },
-      include: {
-        members: {
-          where: {
-            userId,
+          owners: true,
+          contractors: {
+            include: {
+              contractor: true,
+            },
           },
-          include: {
-            role: true,
+          _count: {
+            select: {
+              drawings: true,
+              models: true,
+              members: true,
+              contractors: true,
+            },
           },
         },
-        owners: {
-          where: {
-            userId,
-          },
+        orderBy: {
+          updatedAt: 'desc',
         },
-        _count: {
-          select: {
-            drawings: true,
-            models: true,
-            members: true,
-          },
-        },
-      },
-    });
+      });
+
+      // Map progress to number for reliable client-side handling
+      return projects.map(p => {
+        const proj = p as any;
+        return {
+          ...proj,
+          progress: proj.progress ? Number(proj.progress) : 0,
+        };
+      });
+    } catch (error) {
+      console.error('Error in getProjectsByUser:', error);
+      throw error;
+    }
   }
 
   async addOwner(projectId: string, userId: string) {
@@ -397,6 +439,84 @@ export class ProjectsService {
       },
     });
 
-    return project;
+    if (!project) return null;
+    const proj = project as any;
+
+    return {
+      ...proj,
+      progress: proj.progress ? Number(proj.progress) : 0,
+    };
+  }
+
+  /**
+   * Send notification to all contractors associated with a project
+   */
+  async notifyProjectContractors(
+    projectId: string,
+    title: string,
+    message: string,
+    sentById: string,
+  ) {
+    // Get project with contractors
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: {
+        contractors: {
+          include: {
+            contractor: {
+              include: {
+                contractorUsers: {
+                  select: { id: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Collect all user IDs from contractors
+    const contractorUserIds: string[] = [];
+    for (const pc of project.contractors) {
+      for (const user of pc.contractor.contractorUsers) {
+        contractorUserIds.push(user.id);
+      }
+    }
+
+    if (contractorUserIds.length === 0) {
+      return {
+        success: false,
+        message: 'No contractors with user accounts found for this project',
+        notifiedCount: 0,
+      };
+    }
+
+    // Send notification to all contractor users
+    const result = await this.notificationsService.sendNotificationToMultipleUsers(
+      contractorUserIds,
+      {
+        title: `[${project.name}] ${title}`,
+        body: message,
+        data: {
+          projectId: project.id,
+          projectName: project.name,
+          type: 'PROJECT_NOTIFICATION',
+        },
+      },
+      sentById,
+    );
+
+    return {
+      success: result.success > 0,
+      message: `Notification sent to ${result.success} contractor user(s)`,
+      notifiedCount: result.success,
+      failedCount: result.failure,
+      projectName: project.name,
+    };
   }
 }
+
