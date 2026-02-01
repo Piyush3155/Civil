@@ -1,6 +1,7 @@
 "use client"
 
 import {  LucideIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 
 import {
@@ -28,6 +29,7 @@ export function NavMain({
     }[]
   }[]
 }) {
+  const router = useRouter()
   return (
     <>
       {groups.map((group) => (
@@ -36,12 +38,13 @@ export function NavMain({
           <SidebarMenu>
             {group.items.map((item) => (
               <SidebarMenuItem key={item.title}>
-                 <SidebarMenuButton asChild tooltip={item.title}>
-                    <a href={item.url}>
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
+                <SidebarMenuButton 
+                  tooltip={item.title} 
+                  onClick={() => router.push(item.url)}
+                >
+                  {item.icon && <item.icon />}
+                  <span>{item.title}</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

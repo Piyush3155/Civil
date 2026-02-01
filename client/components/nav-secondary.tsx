@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { type LucideIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import {
   SidebarGroup,
@@ -22,17 +23,16 @@ export function NavSecondary({
   }[]
   className?: string
 }) {
+  const router = useRouter()
   return (
     <SidebarGroup className={className}>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild size="sm">
-                <a href={item.url}>
+              <SidebarMenuButton size="sm" onClick={() => router.push(item.url)}>
                   <item.icon />
                   <span>{item.title}</span>
-                </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
