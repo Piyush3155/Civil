@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Mail, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowRight, CheckCircle2, KeyRound } from "lucide-react";
 import { login, storeFcmToken } from "@/app/actions/user/main";
+import { requestPasswordReset } from "@/app/actions/password-reset/main";
 import { updateUserToken } from "@/app/actions/notification/main";
 import { useRouter } from "next/navigation";
 import { setAuthenticated } from "@/lib/session";
@@ -14,12 +15,25 @@ import useFcmToken from "@/hooks/useFcmToken";
 import { getDeviceId } from "@/lib/firebase";
 import { toast } from "sonner";
 import { motion, HTMLMotionProps } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export function LoginForm({
   className,
   ...props
 }: HTMLMotionProps<"form">) {
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [isRequestingReset, setIsRequestingReset] = useState(false);
+  const [resetRequestSent, setResetRequestSent] = useState(false);
   const router = useRouter();
   const { token, requestPermission } = useFcmToken();
 
@@ -100,6 +114,31 @@ export function LoginForm({
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    setIsRequestingReset(true);
+    try {
+      await requestPasswordReset(forgotPasswordEmail);
+      setResetRequestSent(true);
+      toast.success("Password reset request sent to admin");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to request password reset';
+      toast.error(errorMessage);
+    } finally {
+      setIsRequestingReset(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setIsForgotPasswordOpen(false);
+    setForgotPasswordEmail("");
+    setResetRequestSent(false);
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -158,12 +197,84 @@ export function LoginForm({
             <Label htmlFor="password" className="text-sm font-medium">
               Password
             </Label>
-            <a 
-              href="#" 
-              className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-            >
-              Forgot password?
-            </a>
+            <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+              <DialogTrigger asChild>
+                <button 
+                  type="button"
+                  className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <KeyRound className="h-5 w-5 text-primary" />
+                    Reset Password
+                  </DialogTitle>
+                  <DialogDescription>
+                    {resetRequestSent 
+                      ? "Your password reset request has been sent to the administrator. You will be notified when your password has been reset."
+                      : "Enter your email address and we'll send a password reset request to the administrator."}
+                  </DialogDescription>
+                </DialogHeader>
+                {resetRequestSent ? (
+                  <div className="flex flex-col items-center justify-center py-8 gap-4">
+                    <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <p className="text-center text-sm text-muted-foreground">
+                      Please wait for the admin to process your request. You will receive a new password once approved.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="forgot-email">Email Address</Label>
+                      <div className="relative group">
+                        <Mail className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground/70" />
+                        <Input
+                          id="forgot-email"
+                          type="email"
+                          placeholder="Enter your registered email"
+                          value={forgotPasswordEmail}
+                          onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                          className="pl-10"
+                          autoComplete="email"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  {resetRequestSent ? (
+                    <Button onClick={handleCloseDialog} className="w-full">
+                      Close
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={handleCloseDialog} type="button">
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleForgotPassword} 
+                        disabled={isRequestingReset || !forgotPasswordEmail}
+                        className="gap-2"
+                      >
+                        {isRequestingReset ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          "Send Request"
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
           <div className="relative group">
             <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-muted-foreground/70 transition-colors group-hover:text-primary group-focus-within:text-primary" />
@@ -208,3 +319,4 @@ export function LoginForm({
     </motion.form>
   );
 }
+

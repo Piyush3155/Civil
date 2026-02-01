@@ -26,6 +26,7 @@ import { EquipmentModule } from './equipment/equipment.module';
 import { EquipmentCategoryModule } from './equipment-category/equipment-category.module';
 import { AiController } from './ai/ai.controller';
 import { AiModule } from './ai/ai.module';
+import { PasswordResetModule } from './password-reset/password-reset.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { AiModule } from './ai/ai.module';
     EquipmentModule,
     EquipmentCategoryModule,
     AiModule,
+    PasswordResetModule,
   ],
   controllers: [AppController],
   providers: [AppService],

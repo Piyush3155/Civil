@@ -14,6 +14,7 @@ import {
   BarChart3,
   UserCheck,
   Wrench,
+  KeyRound,
   LucideIcon,
 } from "lucide-react"
 
@@ -131,6 +132,12 @@ const navigationData: NavGroup[] = [
         url: "/notifications",
         icon: Bell,
         allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR', 'LABOUR', 'CLIENT'],
+      },
+      {
+        title: "Password Requests",
+        url: "/password-reset",
+        icon: KeyRound,
+        allowedRoles: ['ADMIN', 'PROJECT_MANAGER'],
       },
       {
         title: "Send FCM",
