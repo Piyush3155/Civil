@@ -193,7 +193,7 @@ export async function fetchUsers() {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/users`, {
+    const response = await fetch(`${BACKEND_URL}/users?limit=100`, {
       headers: {
         Authorization: `Bearer ${session.accessToken}`,
       },

@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter, usePathname } from "next/navigation"
 import { 
   LayoutDashboard,
   Building2,
@@ -16,9 +15,6 @@ import {
   UserCheck,
   Wrench,
   LucideIcon,
-  LogOut,
-  User,
-  ChevronUp
 } from "lucide-react"
 
 import {
@@ -30,7 +26,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getSession } from "@/lib/sessionAction"
@@ -244,9 +239,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5 hover:bg-transparent"
+              className="data-[slot=sidebar-menu-button]:!py-6 !px-1.5 hover:bg-transparent"
             >
-              <Link href="/dashboard" className="flex items-center gap-2 py-2">
+              <Link href="/dashboard" className="flex items-center gap-2 pb-1">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Image
                     src="/ios/1024.png"
@@ -260,7 +255,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <span className="text-base font-bold tracking-tight text-sidebar-foreground">
                     CIVIL DESK
                   </span>
-                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">
                     Engineering Portal
                   </span>
                 </div>
