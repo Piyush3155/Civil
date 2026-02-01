@@ -19,7 +19,7 @@ export class ContractorsController {
   constructor(private readonly contractorsService: ContractorsService) {}
 
   @Get()
-  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER')
+  @Roles('ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'CONTRACTOR')
   async findAll() {
     return this.contractorsService.findAll();
   }
