@@ -15,6 +15,7 @@ import {
   UserCheck,
   Wrench,
   KeyRound,
+  Box,
   LucideIcon,
 } from "lucide-react"
 
@@ -84,6 +85,12 @@ const navigationData: NavGroup[] = [
         url: "/drawings",
         icon: FileText,
         allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER', 'LABOUR'],
+      },
+      {
+        title: "PEB Designer",
+        url: "/peb-designer",
+        icon: Box,
+        allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'],
       },
       {
         title: "Analytics",
