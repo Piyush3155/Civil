@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, MouseEvent } from "react";
-import { FloorPlanData, WallNode, Wall, Opening } from "./types";
-import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle } from "lucide-react";
+import { FloorPlanData, WallNode, Wall, Opening, SiteElement, SiteElementType } from "./types";
+import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 
@@ -12,12 +12,13 @@ interface Editor2DProps {
   title?: string;
 }
 
-type Mode = "select" | "draw_wall" | "add_door" | "add_window";
+type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree";
 
 export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [mode, setMode] = useState<Mode>("select");
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null);
+  const [selectedSiteElementId, setSelectedSiteElementId] = useState<string | null>(null);
   const [drawingStartNode, setDrawingStartNode] = useState<WallNode | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [snappedWallInfo, setSnappedWallInfo] = useState<{ wall: Wall; t: number } | null>(null);
@@ -118,6 +119,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
     if (mode === "select") {
       setSelectedWallId(null);
       setSelectedOpeningId(null);
+      setSelectedSiteElementId(null);
       return;
     }
 
@@ -181,6 +183,43 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         });
       }
     }
+
+    if (mode.startsWith("add_") && !["add_door", "add_window"].includes(mode)) {
+      const typeMap: Record<string, SiteElementType> = {
+        add_grass: "grass",
+        add_parking: "parking",
+        add_vehicle: "vehicle",
+        add_gate: "gate",
+        add_tree: "tree",
+      };
+      const siteType = typeMap[mode];
+      if (siteType) {
+        let defaultWidth = 2;
+        let defaultLength = 2;
+        if (siteType === "grass") { defaultWidth = 4; defaultLength = 4; }
+        if (siteType === "parking") { defaultWidth = 3; defaultLength = 5; }
+        if (siteType === "vehicle") { defaultWidth = 2; defaultLength = 4.5; }
+        if (siteType === "gate") { defaultWidth = 3; defaultLength = 0.2; }
+        if (siteType === "tree") { defaultWidth = 1.5; defaultLength = 1.5; }
+
+        const newSiteElement: SiteElement = {
+          id: `site_${Date.now()}`,
+          type: siteType,
+          x: mousePos.x,
+          y: mousePos.y,
+          rotation: 0,
+          width: defaultWidth,
+          length: defaultLength,
+          floorIndex: activeFloor,
+        };
+
+        onChange({
+          ...data,
+          siteElements: [...(data.siteElements || []), newSiteElement],
+        });
+      }
+      return;
+    }
   };
 
   const handleDelete = () => {
@@ -201,6 +240,10 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       const newOpenings = data.openings.filter(o => o.id !== selectedOpeningId);
       onChange({ ...data, openings: newOpenings });
       setSelectedOpeningId(null);
+    } else if (selectedSiteElementId) {
+      const newSiteElements = (data.siteElements || []).filter(s => s.id !== selectedSiteElementId);
+      onChange({ ...data, siteElements: newSiteElements });
+      setSelectedSiteElementId(null);
     }
   };
 
@@ -404,6 +447,63 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           doc.text(`${lenM.toFixed(1)}m`, mapX(tx), mapY(ty), { align: "center" });
         }
       });
+
+      // Draw Site Elements
+      const floorSites = (data.siteElements || []).filter(s => (s.floorIndex || 0) === floor);
+      floorSites.forEach(site => {
+        const wMM = site.width * PIXELS_PER_METER * scaleMM;
+        const lMM = site.length * PIXELS_PER_METER * scaleMM;
+        const sx = mapX(site.x);
+        const sy = mapY(site.y);
+
+        // A basic representation for blueprint: save context is not easy in raw jspdf without advanced plugins,
+        // so we just draw the bounding box to keep it simple, applying rotation manually if possible, or just a simple rect if not rotated.
+        // For simplicity, let's draw a rotated rectangle manually using lines.
+        const rad = (site.rotation * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+
+        const pts = [
+          { x: -wMM/2, y: -lMM/2 },
+          { x: wMM/2, y: -lMM/2 },
+          { x: wMM/2, y: lMM/2 },
+          { x: -wMM/2, y: lMM/2 }
+        ].map(p => ({
+          x: sx + (p.x * cos - p.y * sin),
+          y: sy + (p.x * sin + p.y * cos)
+        }));
+
+        if (site.type === "grass") {
+          doc.setDrawColor(34, 197, 94); // green
+          doc.setLineWidth(0.5);
+        } else if (site.type === "parking") {
+          doc.setDrawColor(100, 116, 139); // slate
+          doc.setLineWidth(0.8);
+        } else if (site.type === "vehicle") {
+          doc.setDrawColor(2, 132, 199); // sky
+          doc.setLineWidth(0.6);
+        } else if (site.type === "gate") {
+          doc.setDrawColor(180, 83, 9); // amber/brown
+          doc.setLineWidth(1.0);
+        } else if (site.type === "tree") {
+          doc.setDrawColor(21, 128, 61); // green
+          doc.setLineWidth(0.6);
+          // Drawing a simple circle
+          doc.circle(sx, sy, wMM/2, "S");
+          return; // Skip rect drawing
+        }
+
+        // Draw rotated rect
+        doc.line(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+        doc.line(pts[1].x, pts[1].y, pts[2].x, pts[2].y);
+        doc.line(pts[2].x, pts[2].y, pts[3].x, pts[3].y);
+        doc.line(pts[3].x, pts[3].y, pts[0].x, pts[0].y);
+
+        // Add label
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(6);
+        doc.text(site.type.toUpperCase(), sx, sy, { align: "center", baseline: "middle" });
+      });
     }
 
     // Download
@@ -418,6 +518,17 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         handleDelete();
+      }
+      if (e.key === "R" || e.key === "r") {
+        if (selectedSiteElementId) {
+          const newSiteElements = (data.siteElements || []).map(s => {
+            if (s.id === selectedSiteElementId) {
+              return { ...s, rotation: (s.rotation + 90) % 360 };
+            }
+            return s;
+          });
+          onChange({ ...data, siteElements: newSiteElements });
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -436,6 +547,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             setDrawingStartNode(null);
             setSelectedWallId(null);
             setSelectedOpeningId(null);
+            setSelectedSiteElementId(null);
           }}
         >
           {Array.from({ length: maxFloorIndex + 1 }, (_, i) => (
@@ -503,10 +615,51 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         </Button>
         <div className="w-px h-6 bg-slate-700 mx-1" />
         <Button 
+          variant={mode === "add_grass" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}
+        >
+          <LayoutPanelLeft className="h-3.5 w-3.5 mr-1" /> Grass
+        </Button>
+        <Button 
+          variant={mode === "add_parking" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}
+        >
+          <Box className="h-3.5 w-3.5 mr-1" /> Parking
+        </Button>
+        <Button 
+          variant={mode === "add_vehicle" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}
+        >
+          <Car className="h-3.5 w-3.5 mr-1" /> Car
+        </Button>
+        <Button 
+          variant={mode === "add_gate" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}
+        >
+          <Fence className="h-3.5 w-3.5 mr-1" /> Gate
+        </Button>
+        <Button 
+          variant={mode === "add_tree" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}
+        >
+          <Trees className="h-3.5 w-3.5 mr-1" /> Tree
+        </Button>
+        <div className="w-px h-6 bg-slate-700 mx-1" />
+        <Button 
           variant="destructive" 
           size="sm"
           className="h-8 px-2"
-          disabled={!selectedWallId && !selectedOpeningId}
+          disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId}
           onClick={handleDelete}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -697,8 +850,51 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           <circle key={node.id} cx={node.x} cy={node.y} r={4} fill="#475569" />
         ))}
 
+        {/* Render Active Floor Site Elements */}
+        {(data.siteElements || []).filter(s => (s.floorIndex || 0) === activeFloor).map(site => {
+          const isSelected = selectedSiteElementId === site.id;
+          const wPx = site.width * PIXELS_PER_METER;
+          const lPx = site.length * PIXELS_PER_METER;
+
+          let renderEl = null;
+          if (site.type === "grass") {
+            renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#166534" opacity={0.6} stroke={isSelected ? "#3b82f6" : "#22c55e"} strokeWidth={isSelected ? 3 : 1} strokeDasharray="4,4" />;
+          } else if (site.type === "parking") {
+            renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#334155" stroke={isSelected ? "#3b82f6" : "#475569"} strokeWidth={isSelected ? 3 : 2} />;
+          } else if (site.type === "vehicle") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} rx={4} fill="#0284c7" stroke={isSelected ? "#3b82f6" : "#0369a1"} strokeWidth={isSelected ? 3 : 1} />
+                <rect x={-wPx/2 + 2} y={-lPx/4} width={wPx - 4} height={lPx/2} rx={2} fill="#0f172a" opacity={0.8} />
+              </g>
+            );
+          } else if (site.type === "gate") {
+            renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#b45309" stroke={isSelected ? "#3b82f6" : "#78350f"} strokeWidth={isSelected ? 3 : 1} />;
+          } else if (site.type === "tree") {
+            renderEl = <circle cx={0} cy={0} r={wPx/2} fill="#22c55e" opacity={0.8} stroke={isSelected ? "#3b82f6" : "#15803d"} strokeWidth={isSelected ? 3 : 2} />;
+          }
+
+          return (
+            <g
+              key={site.id}
+              transform={`translate(${site.x}, ${site.y}) rotate(${site.rotation})`}
+              className={mode === "select" ? "cursor-pointer" : ""}
+              onClick={(e) => {
+                if (mode === "select") {
+                  e.stopPropagation();
+                  setSelectedSiteElementId(site.id);
+                  setSelectedWallId(null);
+                  setSelectedOpeningId(null);
+                }
+              }}
+            >
+              {renderEl}
+            </g>
+          );
+        })}
+
         {/* Placing indicator */}
-        {(mode === "add_door" || mode === "add_window") && snappedWallInfo && (
+        {mode.startsWith("add_") && (mode === "add_door" || mode === "add_window" ? snappedWallInfo : true) && (
           <g>
             <circle cx={mousePos.x} cy={mousePos.y} r={5} fill="#fbbf24" className="animate-ping" />
           </g>

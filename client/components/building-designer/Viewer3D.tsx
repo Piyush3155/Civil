@@ -441,6 +441,65 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           }
         })}
 
+        {/* 3D Site Elements */}
+        {(data.siteElements || []).map((site) => {
+          const cx = site.x / PIXELS_PER_METER;
+          const cz = site.y / PIXELS_PER_METER;
+          const cy = (site.floorIndex || 0) * 3.0; // Base Y for this floor
+          const rotY = -(site.rotation * Math.PI) / 180;
+
+          if (site.type === "grass") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 0.02, cz]} rotation={[0, rotY, 0]} receiveShadow>
+                <boxGeometry args={[site.width, 0.05, site.length]} />
+                <meshStandardMaterial color="#15803d" roughness={1} />
+              </mesh>
+            );
+          } else if (site.type === "parking") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 0.03, cz]} rotation={[0, rotY, 0]} receiveShadow>
+                <boxGeometry args={[site.width, 0.04, site.length]} />
+                <meshStandardMaterial color="#334155" roughness={0.9} />
+              </mesh>
+            );
+          } else if (site.type === "vehicle") {
+            // A simple vehicle made of two boxes
+            return (
+              <group key={site.id} position={[cx, cy + 0.05, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.3, 0]} castShadow>
+                  <boxGeometry args={[site.width, 0.6, site.length]} />
+                  <meshStandardMaterial color="#0284c7" roughness={0.4} metalness={0.6} />
+                </mesh>
+                <mesh position={[0, 0.8, -0.2]} castShadow>
+                  <boxGeometry args={[site.width - 0.2, 0.5, site.length * 0.6]} />
+                  <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.8} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "gate") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 0.6, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
+                <boxGeometry args={[site.width, 1.2, site.length]} />
+                <meshStandardMaterial color="#b45309" roughness={0.7} />
+              </mesh>
+            );
+          } else if (site.type === "tree") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 1.5, 0]} castShadow>
+                  <cylinderGeometry args={[0.2, 0.3, 3, 8]} />
+                  <meshStandardMaterial color="#78350f" roughness={0.9} />
+                </mesh>
+                <mesh position={[0, 3.5, 0]} castShadow>
+                  <sphereGeometry args={[1.5, 16, 16]} />
+                  <meshStandardMaterial color="#16a34a" roughness={0.8} />
+                </mesh>
+              </group>
+            );
+          }
+          return null;
+        })}
+
         {/* Stacked roof mesh at very top */}
         {roofMesh}
 

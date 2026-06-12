@@ -28,10 +28,24 @@ export interface Opening {
   floorIndex?: number;
 }
 
+export type SiteElementType = "grass" | "parking" | "vehicle" | "gate" | "tree";
+
+export interface SiteElement {
+  id: string;
+  type: SiteElementType;
+  x: number; // Center x in SVG coordinates
+  y: number; // Center y in SVG coordinates
+  rotation: number; // degrees
+  width: number; // in meters (width along local X)
+  length: number; // in meters (length/depth along local Y/Z)
+  floorIndex?: number; // Usually 0 for ground level elements
+}
+
 export interface FloorPlanData {
   nodes: WallNode[];
   walls: Wall[];
   openings: Opening[];
+  siteElements?: SiteElement[]; // Optional for backward compatibility
 }
 
 export interface Aesthetics {
