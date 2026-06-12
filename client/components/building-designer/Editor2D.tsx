@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, MouseEvent } from "react";
 import { FloorPlanData, WallNode, Wall, Opening } from "./types";
-import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, HardDriveUpload } from "lucide-react";
+import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 
@@ -21,12 +21,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [drawingStartNode, setDrawingStartNode] = useState<WallNode | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [snappedWallInfo, setSnappedWallInfo] = useState<{ wall: Wall; t: number } | null>(null);
+  const [activeFloor, setActiveFloor] = useState<number>(0);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Constants
   const GRID_SIZE = 20;
   const SNAP_DISTANCE = 15;
   const PIXELS_PER_METER = 20; // 1 Meter = 20 SVG units
+
+  // Helper to find defined floors dynamically
+  const maxFloorIndex = Math.max(
+    0,
+    ...data.nodes.map((n) => n.floorIndex || 0),
+    ...data.walls.map((w) => w.floorIndex || 0)
+  );
 
   const getSvgCoordinates = (e: MouseEvent) => {
     if (!svgRef.current) return { x: 0, y: 0 };
@@ -40,17 +48,22 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
 
   const snapToGrid = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
 
+  // Filter current floor walls/nodes/openings
+  const currentNodes = data.nodes.filter(n => (n.floorIndex || 0) === activeFloor);
+  const currentWalls = data.walls.filter(w => (w.floorIndex || 0) === activeFloor);
+  const currentOpenings = data.openings.filter(o => (o.floorIndex || 0) === activeFloor);
+
   const handleMouseMove = (e: MouseEvent) => {
     const rawPos = getSvgCoordinates(e);
 
     if (mode === "add_door" || mode === "add_window") {
-      // Find nearest wall for opening snapping
       let snapWall: Wall | null = null;
       let snapPos = { x: 0, y: 0 };
       let snapDist = Infinity;
       let snapT = 0;
 
-      data.walls.forEach(wall => {
+      // Only snap to walls on the active floor
+      currentWalls.forEach(wall => {
         const start = data.nodes.find(n => n.id === wall.startNodeId);
         const end = data.nodes.find(n => n.id === wall.endNodeId);
         if (!start || !end) return;
@@ -60,9 +73,8 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         const wallLen = Math.hypot(dx, dy);
         if (wallLen === 0) return;
 
-        // Projection factor t
         let t = ((rawPos.x - start.x) * dx + (rawPos.y - start.y) * dy) / (wallLen * wallLen);
-        t = Math.max(0, Math.min(1, t)); // clamp to wall segment
+        t = Math.max(0, Math.min(1, t));
 
         const projX = start.x + t * dx;
         const projY = start.y + t * dy;
@@ -84,13 +96,12 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         setSnappedWallInfo(null);
       }
     } else {
-      // Standard snapping to grid or nodes
       let snappedPos = {
         x: snapToGrid(rawPos.x),
         y: snapToGrid(rawPos.y),
       };
 
-      for (const node of data.nodes) {
+      for (const node of currentNodes) {
         const dist = Math.hypot(node.x - rawPos.x, node.y - rawPos.y);
         if (dist < SNAP_DISTANCE) {
           snappedPos = { x: node.x, y: node.y };
@@ -113,13 +124,13 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
     if (mode === "draw_wall") {
       const pos = mousePos;
 
-      let existingNode = data.nodes.find(n => n.x === pos.x && n.y === pos.y);
+      let existingNode = currentNodes.find(n => n.x === pos.x && n.y === pos.y);
       let nodeId = existingNode?.id;
 
       let newNodes = [...data.nodes];
       if (!existingNode) {
         nodeId = `node_${Date.now()}`;
-        const newNode = { id: nodeId, x: pos.x, y: pos.y };
+        const newNode = { id: nodeId, x: pos.x, y: pos.y, floorIndex: activeFloor };
         newNodes.push(newNode);
         existingNode = newNode;
       }
@@ -133,8 +144,9 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             id: `wall_${Date.now()}`,
             startNodeId: drawingStartNode.id,
             endNodeId: nodeId as string,
-            thickness: 0.2, // 20cm thickness
-            height: 3,      // 3m height
+            thickness: 0.2,
+            height: 3,
+            floorIndex: activeFloor,
           };
           onChange({
             ...data,
@@ -157,9 +169,10 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           wallId: wall.id,
           type: mode === "add_door" ? "door" : "window",
           distanceFromStart: t * wallLen,
-          width: mode === "add_door" ? 0.9 : 1.2, // 0.9m door, 1.2m window
+          width: mode === "add_door" ? 0.9 : 1.2,
           height: mode === "add_door" ? 2.1 : 1.2,
           elevation: mode === "add_door" ? 0 : 0.9,
+          floorIndex: activeFloor,
         };
 
         onChange({
@@ -173,7 +186,6 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const handleDelete = () => {
     if (selectedWallId) {
       const newWalls = data.walls.filter(w => w.id !== selectedWallId);
-      // Clean up openings tied to deleted wall
       const newOpenings = data.openings.filter(o => o.wallId !== selectedWallId);
       
       const usedNodeIds = new Set<string>();
@@ -192,49 +204,34 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
     }
   };
 
+  const handleAddFloor = () => {
+    setActiveFloor(maxFloorIndex + 1);
+  };
+
+  const handleDeleteFloor = () => {
+    if (activeFloor === 0) {
+      // Clear ground floor
+      const newWalls = data.walls.filter(w => (w.floorIndex || 0) !== 0);
+      const newOpenings = data.openings.filter(o => (o.floorIndex || 0) !== 0);
+      const newNodes = data.nodes.filter(n => (n.floorIndex || 0) !== 0);
+      onChange({ ...data, walls: newWalls, nodes: newNodes, openings: newOpenings });
+      return;
+    }
+
+    // Delete current floor and shift floors above down (optional) or just delete current floor
+    const newWalls = data.walls.filter(w => (w.floorIndex || 0) !== activeFloor);
+    const newOpenings = data.openings.filter(o => (o.floorIndex || 0) !== activeFloor);
+    const newNodes = data.nodes.filter(n => (n.floorIndex || 0) !== activeFloor);
+    
+    onChange({ ...data, walls: newWalls, nodes: newNodes, openings: newOpenings });
+    setActiveFloor(activeFloor - 1);
+  };
+
   const handleDownloadPdf = () => {
     const doc = new jsPDF({ orientation: "landscape", unit: "mm" });
     const titleText = title || "Building Floor Plan";
 
-    // Draw blueprint margins
-    doc.setDrawColor(71, 85, 105);
-    doc.setLineWidth(0.8);
-    doc.rect(8, 8, 281, 194);
-    doc.rect(9.5, 9.5, 278, 191);
-
-    // Write title block
-    doc.rect(190, 140, 97.5, 60.5);
-    doc.line(190, 153, 287.5, 153);
-    doc.line(190, 168, 287.5, 168);
-    doc.line(238.75, 168, 238.75, 200.5);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(15, 23, 42);
-    doc.text("CIVIL DESK", 194, 147);
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 116, 139);
-    doc.text("ENGINEERING PLAN DESIGNER", 194, 151);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text("DRAWING TITLE:", 194, 157);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10.5);
-    doc.setTextColor(15, 23, 42);
-    doc.text(titleText, 194, 163);
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.text("SCALE: 1:100 (A4)", 194, 175);
-    doc.text("DATE: " + new Date().toLocaleDateString(), 194, 184);
-
-    doc.text("TYPE: HOUSE PLAN", 242.75, 175);
-    doc.text("VERSION: 1.0", 242.75, 184);
-
-    // Map drawing coordinates to fit landscape A4 nicely
+    // Global layout scaling coordinates based on ALL nodes
     const paperCX = 95;
     const paperCY = 100;
 
@@ -253,122 +250,161 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
     const mapX = (svgX: number) => paperCX + (svgX - (minX + maxX) / 2) * scaleMM;
     const mapY = (svgY: number) => paperCY + (svgY - (minY + maxY) / 2) * scaleMM;
 
-    // Draw background grid lines on blueprint
-    doc.setDrawColor(241, 245, 249);
-    doc.setLineWidth(0.1);
-    for (let g = -500; g <= 500; g += GRID_SIZE) {
-      if (mapX(g) >= 12 && mapX(g) <= 185) {
-        doc.line(mapX(g), mapY(-500), mapX(g), mapY(500));
+    for (let floor = 0; floor <= maxFloorIndex; floor++) {
+      if (floor > 0) doc.addPage();
+
+      // Draw border
+      doc.setDrawColor(71, 85, 105);
+      doc.setLineWidth(0.8);
+      doc.rect(8, 8, 281, 194);
+      doc.rect(9.5, 9.5, 278, 191);
+
+      // Write title block
+      doc.rect(190, 140, 97.5, 60.5);
+      doc.line(190, 153, 287.5, 153);
+      doc.line(190, 168, 287.5, 168);
+      doc.line(238.75, 168, 238.75, 200.5);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(15, 23, 42);
+      doc.text("CIVIL DESK", 194, 147);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100, 116, 139);
+      doc.text("ENGINEERING PLAN DESIGNER", 194, 151);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text("DRAWING TITLE:", 194, 157);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${titleText} - ${floor === 0 ? "GROUND FLOOR" : `FLOOR ${floor}`}`, 194, 163);
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("SCALE: 1:100 (A4)", 194, 175);
+      doc.text("DATE: " + new Date().toLocaleDateString(), 194, 184);
+
+      doc.text(`LEVEL: L${floor}`, 242.75, 175);
+      doc.text("VERSION: 1.0", 242.75, 184);
+
+      // Draw background grid lines on blueprint
+      doc.setDrawColor(241, 245, 249);
+      doc.setLineWidth(0.1);
+      for (let g = -500; g <= 500; g += GRID_SIZE) {
+        if (mapX(g) >= 12 && mapX(g) <= 185) doc.line(mapX(g), mapY(-500), mapX(g), mapY(500));
+        if (mapY(g) >= 12 && mapY(g) <= 190) doc.line(mapX(-500), mapY(g), mapX(500), mapY(g));
       }
-      if (mapY(g) >= 12 && mapY(g) <= 190) {
-        doc.line(mapX(-500), mapY(g), mapX(500), mapY(g));
-      }
-    }
 
-    // Draw walls (solid slate lines)
-    doc.setDrawColor(51, 65, 85);
-    data.walls.forEach(wall => {
-      const start = data.nodes.find(n => n.id === wall.startNodeId);
-      const end = data.nodes.find(n => n.id === wall.endNodeId);
-      if (start && end) {
-        const thicknessMM = wall.thickness * PIXELS_PER_METER * scaleMM;
-        doc.setLineWidth(thicknessMM);
-        doc.line(mapX(start.x), mapY(start.y), mapX(end.x), mapY(end.y));
-      }
-    });
+      // Draw walls on this floor
+      doc.setDrawColor(51, 65, 85);
+      const floorWalls = data.walls.filter(w => (w.floorIndex || 0) === floor);
+      const floorOpenings = data.openings.filter(o => (o.floorIndex || 0) === floor);
 
-    // Erase openings and draw door swing arcs / window highlights
-    data.openings.forEach(opening => {
-      const wall = data.walls.find(w => w.id === opening.wallId);
-      if (!wall) return;
-      const start = data.nodes.find(n => n.id === wall.startNodeId);
-      const end = data.nodes.find(n => n.id === wall.endNodeId);
-      if (start && end) {
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const wallLen = Math.hypot(dx, dy);
-        const ux = dx / wallLen;
-        const uy = dy / wallLen;
-        const cx = start.x + ux * opening.distanceFromStart;
-        const cy = start.y + uy * opening.distanceFromStart;
-        const wPx = opening.width * PIXELS_PER_METER;
-
-        const ox1 = cx - ux * (wPx / 2);
-        const oy1 = cy - uy * (wPx / 2);
-        const ox2 = cx + ux * (wPx / 2);
-        const oy2 = cy + uy * (wPx / 2);
-
-        // Erase wall segment underneath the opening
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(wall.thickness * PIXELS_PER_METER * scaleMM + 0.3);
-        doc.line(mapX(ox1), mapY(oy1), mapX(ox2), mapY(oy2));
-
-        const angle = Math.atan2(dy, dx);
-        const px = -Math.sin(angle);
-        const py = Math.cos(angle);
-
-        if (opening.type === "door") {
-          // Swing direction perpendicular
-          const sx = px * wPx;
-          const sy = py * wPx;
-
-          doc.setDrawColor(244, 63, 94); // rose-500 door
-          doc.setLineWidth(0.4);
-          doc.line(mapX(ox1), mapY(oy1), mapX(ox1 + sx), mapY(oy1 + sy)); // door panel
-
-          // Dotted swing path
-          doc.setLineWidth(0.15);
-          const segments = 8;
-          let prevX = ox2;
-          let prevY = oy2;
-          for (let i = 1; i <= segments; i++) {
-            const theta = (i / segments) * (Math.PI / 2);
-            const localX = wPx * Math.cos(theta);
-            const localY = wPx * Math.sin(theta);
-            const arcX = ox1 + (localX * ux - localY * px);
-            const arcY = oy1 + (localX * uy - localY * py);
-            if (i % 2 === 0) {
-              doc.line(mapX(prevX), mapY(prevY), mapX(arcX), mapY(arcY));
-            }
-            prevX = arcX;
-            prevY = arcY;
-          }
-        } else {
-          // Window
-          doc.setDrawColor(14, 165, 233); // sky-500 window
-          doc.setLineWidth(0.3);
-          doc.line(mapX(ox1), mapY(oy1), mapX(ox2), mapY(oy2));
-          // outer glass boundary rectangles
-          doc.setLineWidth(0.1);
-          const thicknessMM = (wall.thickness * PIXELS_PER_METER * scaleMM) / 2;
-          doc.line(mapX(ox1 + px * thicknessMM), mapY(oy1 + py * thicknessMM), mapX(ox2 + px * thicknessMM), mapY(oy2 + py * thicknessMM));
-          doc.line(mapX(ox1 - px * thicknessMM), mapY(oy1 - py * thicknessMM), mapX(ox2 - px * thicknessMM), mapY(oy2 - py * thicknessMM));
+      floorWalls.forEach(wall => {
+        const start = data.nodes.find(n => n.id === wall.startNodeId);
+        const end = data.nodes.find(n => n.id === wall.endNodeId);
+        if (start && end) {
+          const thicknessMM = wall.thickness * PIXELS_PER_METER * scaleMM;
+          doc.setLineWidth(thicknessMM);
+          doc.line(mapX(start.x), mapY(start.y), mapX(end.x), mapY(end.y));
         }
-      }
-    });
+      });
 
-    // Write dimension labels on PDF
-    doc.setTextColor(2, 132, 199);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    data.walls.forEach(wall => {
-      const start = data.nodes.find(n => n.id === wall.startNodeId);
-      const end = data.nodes.find(n => n.id === wall.endNodeId);
-      if (start && end) {
-        const dx = end.x - start.x;
-        const dy = end.y - start.y;
-        const lenM = Math.hypot(dx, dy) / PIXELS_PER_METER;
-        const midX = (start.x + end.x) / 2;
-        const midY = (start.y + end.y) / 2;
-        const angle = Math.atan2(dy, dx);
-        const px = -Math.sin(angle);
-        const py = Math.cos(angle);
-        const tx = midX + px * 15;
-        const ty = midY + py * 15;
+      // Erase openings and draw door swing arcs / window highlights
+      floorOpenings.forEach(opening => {
+        const wall = data.walls.find(w => w.id === opening.wallId);
+        if (!wall) return;
+        const start = data.nodes.find(n => n.id === wall.startNodeId);
+        const end = data.nodes.find(n => n.id === wall.endNodeId);
+        if (start && end) {
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const wallLen = Math.hypot(dx, dy);
+          const ux = dx / wallLen;
+          const uy = dy / wallLen;
+          const cx = start.x + ux * opening.distanceFromStart;
+          const cy = start.y + uy * opening.distanceFromStart;
+          const wPx = opening.width * PIXELS_PER_METER;
 
-        doc.text(`${lenM.toFixed(1)}m`, mapX(tx), mapY(ty), { align: "center" });
-      }
-    });
+          const ox1 = cx - ux * (wPx / 2);
+          const oy1 = cy - uy * (wPx / 2);
+          const ox2 = cx + ux * (wPx / 2);
+          const oy2 = cy + uy * (wPx / 2);
+
+          // Erase wall segment underneath the opening
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(wall.thickness * PIXELS_PER_METER * scaleMM + 0.3);
+          doc.line(mapX(ox1), mapY(oy1), mapX(ox2), mapY(oy2));
+
+          const angle = Math.atan2(dy, dx);
+          const px = -Math.sin(angle);
+          const py = Math.cos(angle);
+
+          if (opening.type === "door") {
+            const sx = px * wPx;
+            const sy = py * wPx;
+
+            doc.setDrawColor(244, 63, 94); // rose-500 door
+            doc.setLineWidth(0.4);
+            doc.line(mapX(ox1), mapY(oy1), mapX(ox1 + sx), mapY(oy1 + sy)); // door panel
+
+            // Dotted swing path
+            doc.setLineWidth(0.15);
+            const segments = 8;
+            let prevX = ox2;
+            let prevY = oy2;
+            for (let i = 1; i <= segments; i++) {
+              const theta = (i / segments) * (Math.PI / 2);
+              const localX = wPx * Math.cos(theta);
+              const localY = wPx * Math.sin(theta);
+              const arcX = ox1 + (localX * ux - localY * px);
+              const arcY = oy1 + (localX * uy - localY * py);
+              if (i % 2 === 0) {
+                doc.line(mapX(prevX), mapY(prevY), mapX(arcX), mapY(arcY));
+              }
+              prevX = arcX;
+              prevY = arcY;
+            }
+          } else {
+            // Window
+            doc.setDrawColor(14, 165, 233); // sky-500 window
+            doc.setLineWidth(0.3);
+            doc.line(mapX(ox1), mapY(oy1), mapX(ox2), mapY(oy2));
+            doc.setLineWidth(0.1);
+            const thicknessMM = (wall.thickness * PIXELS_PER_METER * scaleMM) / 2;
+            doc.line(mapX(ox1 + px * thicknessMM), mapY(oy1 + py * thicknessMM), mapX(ox2 + px * thicknessMM), mapY(oy2 + py * thicknessMM));
+            doc.line(mapX(ox1 - px * thicknessMM), mapY(oy1 - py * thicknessMM), mapX(ox2 - px * thicknessMM), mapY(oy2 - py * thicknessMM));
+          }
+        }
+      });
+
+      // Write dimensions on this floor
+      doc.setTextColor(2, 132, 199);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      floorWalls.forEach(wall => {
+        const start = data.nodes.find(n => n.id === wall.startNodeId);
+        const end = data.nodes.find(n => n.id === wall.endNodeId);
+        if (start && end) {
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const lenM = Math.hypot(dx, dy) / PIXELS_PER_METER;
+          const midX = (start.x + end.x) / 2;
+          const midY = (start.y + end.y) / 2;
+          const angle = Math.atan2(dy, dx);
+          const px = -Math.sin(angle);
+          const py = Math.cos(angle);
+          const tx = midX + px * 15;
+          const ty = midY + py * 15;
+
+          doc.text(`${lenM.toFixed(1)}m`, mapX(tx), mapY(ty), { align: "center" });
+        }
+      });
+    }
 
     // Download
     doc.save(`${titleText.replace(/\s+/g, "_")}.pdf`);
@@ -386,61 +422,102 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedWallId, selectedOpeningId, data]);
+  }, [selectedWallId, selectedOpeningId, data, activeFloor]);
 
   return (
     <div className="w-full h-full relative flex flex-col bg-slate-900">
+      {/* Floor Stack Navigation and controls */}
+      <div className="absolute top-4 left-4 z-10 flex items-center gap-1 bg-slate-800/90 border border-slate-700 p-1 rounded-xl shadow-2xl">
+        <select
+          className="bg-slate-900 text-slate-200 border-none rounded px-2.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+          value={activeFloor}
+          onChange={(e) => {
+            setActiveFloor(parseInt(e.target.value));
+            setDrawingStartNode(null);
+            setSelectedWallId(null);
+            setSelectedOpeningId(null);
+          }}
+        >
+          {Array.from({ length: maxFloorIndex + 1 }, (_, i) => (
+            <option key={i} value={i}>
+              {i === 0 ? "Ground Floor" : `Floor ${i}`}
+            </option>
+          ))}
+        </select>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 text-emerald-400 hover:text-emerald-300 hover:bg-slate-700/50" 
+          onClick={handleAddFloor}
+          title="Add Floor"
+        >
+          <PlusCircle className="h-4 w-4" />
+        </Button>
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-8 w-8 text-rose-400 hover:text-rose-300 hover:bg-slate-700/50" 
+          disabled={maxFloorIndex === 0 && activeFloor === 0}
+          onClick={handleDeleteFloor}
+          title="Delete Level"
+        >
+          <MinusCircle className="h-4 w-4" />
+        </Button>
+      </div>
+
       {/* 2D Design Toolbar */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-wrap items-center gap-1.5 bg-slate-800/95 backdrop-blur border border-slate-700 p-1.5 rounded-xl shadow-2xl max-w-[95vw]">
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-slate-800/95 border border-slate-700 p-1.5 rounded-xl shadow-2xl">
         <Button 
           variant={mode === "select" ? "default" : "secondary"} 
           size="sm" 
-          className="h-8"
+          className="h-8 text-xs px-2.5"
           onClick={() => { setMode("select"); setDrawingStartNode(null); }}
         >
-          <MousePointer2 className="h-4 w-4 mr-1.5" /> Select
+          <MousePointer2 className="h-3.5 w-3.5 mr-1" /> Select
         </Button>
         <Button 
           variant={mode === "draw_wall" ? "default" : "secondary"} 
           size="sm"
-          className="h-8"
+          className="h-8 text-xs px-2.5"
           onClick={() => setMode("draw_wall")}
         >
-          <Plus className="h-4 w-4 mr-1.5" /> Wall
+          <Plus className="h-3.5 w-3.5 mr-1" /> Wall
         </Button>
         <Button 
           variant={mode === "add_door" ? "default" : "secondary"} 
           size="sm"
-          className="h-8"
+          className="h-8 text-xs px-2.5"
           onClick={() => { setMode("add_door"); setDrawingStartNode(null); }}
         >
-          <DoorOpen className="h-4 w-4 mr-1.5" /> Door
+          <DoorOpen className="h-3.5 w-3.5 mr-1" /> Door
         </Button>
         <Button 
           variant={mode === "add_window" ? "default" : "secondary"} 
           size="sm"
-          className="h-8"
+          className="h-8 text-xs px-2.5"
           onClick={() => { setMode("add_window"); setDrawingStartNode(null); }}
         >
-          <Plus className="h-4 w-4 mr-1.5" /> Window
+          <Plus className="h-3.5 w-3.5 mr-1" /> Window
         </Button>
         <div className="w-px h-6 bg-slate-700 mx-1" />
         <Button 
           variant="destructive" 
           size="sm"
-          className="h-8"
+          className="h-8 px-2"
           disabled={!selectedWallId && !selectedOpeningId}
           onClick={handleDelete}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
         </Button>
         <Button 
           variant="outline" 
           size="sm"
-          className="h-8 border-slate-600 hover:bg-slate-700 text-slate-200"
+          className="h-8 border-slate-600 hover:bg-slate-700 text-slate-200 text-xs px-2.5"
           onClick={handleDownloadPdf}
         >
-          <FileDown className="h-4 w-4 mr-1.5 text-sky-400" /> Export PDF
+          <FileDown className="h-3.5 w-3.5 mr-1 text-sky-400" /> Export PDF
         </Button>
       </div>
 
@@ -451,7 +528,6 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         onClick={handleSvgClick}
         viewBox="-400 -300 800 600"
       >
-        {/* Background Grid */}
         <defs>
           <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
             <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="#27272a" strokeWidth="0.5" />
@@ -459,7 +535,28 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         </defs>
         <rect x="-2000" y="-2000" width="4000" height="4000" fill="url(#grid)" />
 
-        {/* Dynamic Measurement overlay while drawing a new wall */}
+        {/* Lower Floor Ghost Trace Overlay */}
+        {activeFloor > 0 && data.walls.filter(w => (w.floorIndex || 0) === activeFloor - 1).map(wall => {
+          const start = data.nodes.find(n => n.id === wall.startNodeId);
+          const end = data.nodes.find(n => n.id === wall.endNodeId);
+          if (!start || !end) return null;
+          return (
+            <line
+              key={`ghost_${wall.id}`}
+              x1={start.x}
+              y1={start.y}
+              x2={end.x}
+              y2={end.y}
+              stroke="#059669" // green overlay
+              strokeWidth={wall.thickness * PIXELS_PER_METER}
+              strokeDasharray="4,4"
+              opacity={0.3}
+              pointerEvents="none"
+            />
+          );
+        })}
+
+        {/* Dynamic Measurement overlay while drawing */}
         {mode === "draw_wall" && drawingStartNode && (
           <g>
             <line
@@ -473,7 +570,6 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               strokeLinecap="round"
               opacity={0.5}
             />
-            {/* Draw length callout while active */}
             <g transform={`translate(${(drawingStartNode.x + mousePos.x)/2}, ${(drawingStartNode.y + mousePos.y)/2})`}>
               <rect x={-20} y={-8} width={40} height={16} rx={4} fill="#1e293b" />
               <text textAnchor="middle" dominantBaseline="central" fill="#fbbf24" fontSize={9} fontWeight="bold">
@@ -483,32 +579,26 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           </g>
         )}
 
-        {/* Render Existing Walls */}
-        {data.walls.map(wall => {
+        {/* Render Active Floor Walls */}
+        {currentWalls.map(wall => {
           const start = data.nodes.find(n => n.id === wall.startNodeId);
           const end = data.nodes.find(n => n.id === wall.endNodeId);
           if (!start || !end) return null;
 
           const isSelected = selectedWallId === wall.id;
-          const length = Math.hypot(end.x - start.x, end.y - start.y);
-          const lengthMeters = length / PIXELS_PER_METER;
+          const lengthMeters = Math.hypot(end.x - start.x, end.y - start.y) / PIXELS_PER_METER;
 
           const angleRad = Math.atan2(end.y - start.y, end.x - start.x);
           let angleDeg = (angleRad * 180) / Math.PI;
-          if (angleDeg > 90 || angleDeg < -90) {
-            angleDeg += 180;
-          }
+          if (angleDeg > 90 || angleDeg < -90) angleDeg += 180;
 
-          // Perpendicular offset for measurements label
           const px = -Math.sin(angleRad);
           const py = Math.cos(angleRad);
-          const offset = 15;
-          const textX = (start.x + end.x) / 2 + px * offset;
-          const textY = (start.y + end.y) / 2 + py * offset;
+          const textX = (start.x + end.x) / 2 + px * 15;
+          const textY = (start.y + end.y) / 2 + py * 15;
 
           return (
             <g key={wall.id}>
-              {/* Wall structure line */}
               <line
                 x1={start.x}
                 y1={start.y}
@@ -526,16 +616,9 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
                   }
                 }}
               />
-              {/* Dimension label */}
               <g transform={`translate(${textX}, ${textY}) rotate(${angleDeg})`}>
                 <rect x={-20} y={-8} width={40} height={16} rx={4} fill="#1e293b" opacity={0.8} />
-                <text
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fill="#38bdf8"
-                  fontSize={10}
-                  fontWeight="semibold"
-                >
+                <text textAnchor="middle" dominantBaseline="central" fill="#38bdf8" fontSize={10} fontWeight="semibold">
                   {lengthMeters.toFixed(1)}m
                 </text>
               </g>
@@ -543,8 +626,8 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           );
         })}
 
-        {/* Cutouts & Openings (Doors / Windows) on top of walls */}
-        {data.openings.map(opening => {
+        {/* Render Active Floor Openings */}
+        {currentOpenings.map(opening => {
           const wall = data.walls.find(w => w.id === opening.wallId);
           if (!wall) return null;
           const start = data.nodes.find(n => n.id === wall.startNodeId);
@@ -585,7 +668,6 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               }}
               className="cursor-pointer"
             >
-              {/* Gap cutout background */}
               <rect
                 x={-wPx/2}
                 y={-thicknessPx/2 - 1}
@@ -596,77 +678,32 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               />
 
               {opening.type === "door" ? (
-                // Swing Arc representation
                 <g>
-                  {/* Swinging door panel line */}
-                  <line
-                    x1={x1}
-                    y1={y1}
-                    x2={x1 + px * wPx}
-                    y2={y1 + py * wPx}
-                    stroke={isSelected ? "#3b82f6" : "#f43f5e"}
-                    strokeWidth={2.5}
-                  />
-                  {/* Dashed swing path */}
-                  <path
-                    d={`M ${x2} ${y2} A ${wPx} ${wPx} 0 0 0 ${x1 + px * wPx} ${y1 + py * wPx}`}
-                    fill="none"
-                    stroke={isSelected ? "#3b82f6" : "#f43f5e"}
-                    strokeWidth={1.5}
-                    strokeDasharray="3,3"
-                  />
+                  <line x1={x1} y1={y1} x2={x1 + px * wPx} y2={y1 + py * wPx} stroke={isSelected ? "#3b82f6" : "#f43f5e"} strokeWidth={2.5} />
+                  <path d={`M ${x2} ${y2} A ${wPx} ${wPx} 0 0 0 ${x1 + px * wPx} ${y1 + py * wPx}`} fill="none" stroke={isSelected ? "#3b82f6" : "#f43f5e"} strokeWidth={1.5} strokeDasharray="3,3" />
                 </g>
               ) : (
-                // Window double-line representation
                 <g transform={`translate(${cx}, ${cy}) rotate(${angleDeg})`}>
-                  {/* Frame */}
-                  <rect
-                    x={-wPx/2}
-                    y={-thicknessPx/2}
-                    width={wPx}
-                    height={thicknessPx}
-                    fill="none"
-                    stroke={isSelected ? "#3b82f6" : "#0ea5e9"}
-                    strokeWidth={1.5}
-                  />
-                  {/* Glass pane line */}
-                  <line
-                    x1={-wPx/2}
-                    y1={0}
-                    x2={wPx/2}
-                    y2={0}
-                    stroke={isSelected ? "#3b82f6" : "#38bdf8"}
-                    strokeWidth={2}
-                  />
+                  <rect x={-wPx/2} y={-thicknessPx/2} width={wPx} height={thicknessPx} fill="none" stroke={isSelected ? "#3b82f6" : "#0ea5e9"} strokeWidth={1.5} />
+                  <line x1={-wPx/2} y1={0} x2={wPx/2} y2={0} stroke={isSelected ? "#3b82f6" : "#38bdf8"} strokeWidth={2} />
                 </g>
               )}
             </g>
           );
         })}
 
-        {/* Existing structural nodes */}
-        {data.nodes.map(node => (
-          <circle
-            key={node.id}
-            cx={node.x}
-            cy={node.y}
-            r={4}
-            fill="#475569"
-          />
+        {/* Structural nodes on current floor */}
+        {currentNodes.map(node => (
+          <circle key={node.id} cx={node.x} cy={node.y} r={4} fill="#475569" />
         ))}
 
-        {/* Snipping/Ghost previews when placing elements */}
+        {/* Placing indicator */}
         {(mode === "add_door" || mode === "add_window") && snappedWallInfo && (
           <g>
-            {/* Draw a preview circle at snapped point */}
             <circle cx={mousePos.x} cy={mousePos.y} r={5} fill="#fbbf24" className="animate-ping" />
-            <text x={mousePos.x + 10} y={mousePos.y - 10} fill="#fbbf24" fontSize={10} fontWeight="bold">
-              Place {mode === "add_door" ? "Door" : "Window"}
-            </text>
           </g>
         )}
 
-        {/* Cursor indicator */}
         {mode === "draw_wall" && (
           <circle cx={mousePos.x} cy={mousePos.y} r={4} fill="#3b82f6" className="animate-pulse" />
         )}

@@ -4,6 +4,7 @@ export interface WallNode {
   id: string;
   x: number;
   y: number;
+  floorIndex?: number; // Level index (0 = Ground Floor, 1 = First Floor, etc.)
 }
 
 export interface Wall {
@@ -13,16 +14,18 @@ export interface Wall {
   thickness: number;
   height: number;
   color?: string; // Customizable color
+  floorIndex?: number;
 }
 
 export interface Opening {
   id: string;
   wallId: string;
   type: "door" | "window";
-  distanceFromStart: number; // Center of the opening along the wall in SVG coordinates (scaled by PIXELS_PER_METER)
+  distanceFromStart: number; // Center of the opening along the wall in SVG coordinates
   width: number; // in meters
   height: number; // in meters
-  elevation: number; // in meters (distance from floor, e.g., 0 for doors, 0.9 for standard windows)
+  elevation: number; // in meters (distance from floor)
+  floorIndex?: number;
 }
 
 export interface FloorPlanData {
@@ -39,17 +42,17 @@ export interface Aesthetics {
   // Roof aesthetics
   showRoof: boolean;
   roofColor: string;
-  roofType: "flat" | "pitched";
-  roofHeight: number; // in meters (height of pitch above the wall height)
+  roofType: "flat" | "pitched" | "hip" | "shed";
+  roofHeight: number; // height of ridge pitch in meters
 }
 
 export const DEFAULT_AESTHETICS: Aesthetics = {
-  wallColor: "#cbd5e1", // slate-300
-  floorColor: "#475569", // slate-600
-  groundColor: "#0f172a", // slate-900
+  wallColor: "#cbd5e1",
+  floorColor: "#475569",
+  groundColor: "#0f172a",
   ambientLightIntensity: 0.6,
   showRoof: false,
-  roofColor: "#64748b", // slate-500
+  roofColor: "#64748b",
   roofType: "flat",
   roofHeight: 2.0,
 };

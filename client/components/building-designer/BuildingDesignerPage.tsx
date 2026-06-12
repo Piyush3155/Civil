@@ -22,8 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FloorPlanData, Aesthetics, DEFAULT_AESTHETICS } from "./types";
-import Editor2D from "./Editor2D";
-import Viewer3D from "./Viewer3D";
+
 import { Box, Pencil, Save, Settings, Move, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -33,6 +32,8 @@ import {
 import { fetchProjects, fetchMyProjects } from "@/app/actions/projects/main";
 import { getSession } from "@/lib/sessionAction";
 import Loader from "@/components/ui/loader";
+import Editor2D from "./Editor2D";
+import Viewer3D from "./Viewer3D";
 
 interface BuildingDesignerPageProps {
   initialData?: any;
@@ -290,16 +291,18 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
                     <select
                       className="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-sm text-slate-200 mt-1"
                       value={aesthetics.roofType}
-                      onChange={(e) => setAesthetics({ ...aesthetics, roofType: e.target.value as "flat" | "pitched" })}
+                      onChange={(e) => setAesthetics({ ...aesthetics, roofType: e.target.value as any })}
                     >
                       <option value="flat">Flat Slab</option>
                       <option value="pitched">Pitched Gable</option>
+                      <option value="hip">Hip Roof</option>
+                      <option value="shed">Shed Roof</option>
                     </select>
                   </div>
 
-                  {aesthetics.roofType === "pitched" && (
+                  {aesthetics.roofType !== "flat" && (
                     <div>
-                      <Label>Pitch Height (meters)</Label>
+                      <Label>Ridge Height (meters)</Label>
                       <Input
                         type="number"
                         step="0.5"

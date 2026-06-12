@@ -14,6 +14,46 @@ interface Viewer3DProps {
 const PIXELS_PER_METER = 20;
 
 export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
+  // Compute max floor index
+  const maxFloorIndex = useMemo(() => {
+    return Math.max(
+      0,
+      ...data.nodes.map((n) => n.floorIndex || 0),
+      ...data.walls.map((w) => w.floorIndex || 0)
+    );
+  }, [data]);
+
+  // Compute separation concrete slabs between stacked floors
+  const separationSlabs = useMemo(() => {
+    const slabs: any[] = [];
+    if (data.nodes.length === 0) return slabs;
+
+    for (let f = 1; f <= maxFloorIndex; f++) {
+      // Find boundary of nodes on this level (or fallback to global nodes if level nodes are missing)
+      const levelNodes = data.nodes.filter((n) => (n.floorIndex || 0) === f);
+      const targetNodes = levelNodes.length > 0 ? levelNodes : data.nodes;
+
+      const xs = targetNodes.map((n) => n.x / PIXELS_PER_METER);
+      const zs = targetNodes.map((n) => n.y / PIXELS_PER_METER);
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minZ = Math.min(...zs);
+      const maxZ = Math.max(...zs);
+
+      const w = maxX - minX;
+      const d = maxZ - minZ;
+      const cx = (minX + maxX) / 2;
+      const cz = (minZ + maxZ) / 2;
+
+      slabs.push({
+        id: `slab_${f}`,
+        position: [cx, f * 3.0 - 0.075, cz], // 15cm slab centered right below level boundary
+        args: [w + 0.4, 0.15, d + 0.4], // with a small overhang
+      });
+    }
+    return slabs;
+  }, [data, maxFloorIndex]);
+
   // Compute dynamic split wall segments and opening models in 3D meters
   const { wallSegments, openingModels } = useMemo(() => {
     const segments: any[] = [];
@@ -24,7 +64,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
       const end = data.nodes.find((n) => n.id === wall.endNodeId);
       if (!start || !end) return;
 
-      // Convert SVG coordinates (pixels) to 3D meters
       const x1 = start.x / PIXELS_PER_METER;
       const z1 = start.y / PIXELS_PER_METER;
       const x2 = end.x / PIXELS_PER_METER;
@@ -36,12 +75,12 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
       const ux = (x2 - x1) / wallLen;
       const uz = (z2 - z1) / wallLen;
 
-      // Perpendicular vector for thickness
-      const px = -uz;
-      const pz = ux;
-
       const angle = Math.atan2(z1 - z2, x1 - x2);
       const rotationY = -angle;
+
+      // Vertical stack base Y coordinate based on floorIndex
+      const floorIdx = wall.floorIndex || 0;
+      const baseY = floorIdx * 3.0; // 3 meters per level
 
       // Get openings associated with this wall
       const wallOpenings = data.openings
@@ -50,13 +89,11 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           ...op,
           distM: op.distanceFromStart / PIXELS_PER_METER,
         }))
-        // Sort openings along wall start-to-end
         .sort((a, b) => a.distM - b.distM);
 
       let currentPos = 0;
 
       wallOpenings.forEach((op) => {
-        // Op boundaries in meters
         const halfWidth = op.width / 2;
         const opStart = Math.max(0, op.distM - halfWidth);
         const opEnd = Math.min(wallLen, op.distM + halfWidth);
@@ -67,7 +104,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           const midM = currentPos + segLen / 2;
           const cx = x1 + ux * midM;
           const cz = z1 + uz * midM;
-          const cy = wall.height / 2;
+          const cy = baseY + wall.height / 2;
 
           segments.push({
             id: `${wall.id}_seg_${currentPos.toFixed(2)}`,
@@ -78,7 +115,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           });
         }
 
-        // 2. Erased zone (render sill/header pieces for openings)
+        // 2. Sill/Header segments around opening
         const opLen = opEnd - opStart;
         const midM = opStart + opLen / 2;
         const cx = x1 + ux * midM;
@@ -87,7 +124,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         if (op.type === "window") {
           // Sill wall (below window)
           if (op.elevation > 0) {
-            const cy = op.elevation / 2;
+            const cy = baseY + op.elevation / 2;
             segments.push({
               id: `${wall.id}_sill_${op.id}`,
               position: [cx, cy, cz],
@@ -100,7 +137,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           // Header wall (above window)
           const headerHeight = wall.height - (op.elevation + op.height);
           if (headerHeight > 0) {
-            const cy = op.elevation + op.height + headerHeight / 2;
+            const cy = baseY + op.elevation + op.height + headerHeight / 2;
             segments.push({
               id: `${wall.id}_header_${op.id}`,
               position: [cx, cy, cz],
@@ -114,7 +151,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           models.push({
             id: op.id,
             type: "window",
-            position: [cx, op.elevation + op.height / 2, cz],
+            position: [cx, baseY + op.elevation + op.height / 2, cz],
             rotation: [0, rotationY, 0],
             width: opLen,
             height: op.height,
@@ -124,7 +161,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           // Header wall above door
           const headerHeight = wall.height - op.height;
           if (headerHeight > 0) {
-            const cy = op.height + headerHeight / 2;
+            const cy = baseY + op.height + headerHeight / 2;
             segments.push({
               id: `${wall.id}_header_${op.id}`,
               position: [cx, cy, cz],
@@ -138,7 +175,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           models.push({
             id: op.id,
             type: "door",
-            position: [cx, op.height / 2, cz],
+            position: [cx, baseY + op.height / 2, cz],
             rotation: [0, rotationY, 0],
             width: opLen,
             height: op.height,
@@ -155,7 +192,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         const midM = currentPos + segLen / 2;
         const cx = x1 + ux * midM;
         const cz = z1 + uz * midM;
-        const cy = wall.height / 2;
+        const cy = baseY + wall.height / 2;
 
         segments.push({
           id: `${wall.id}_seg_end`,
@@ -170,13 +207,16 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
     return { wallSegments: segments, openingModels: models };
   }, [data, aesthetics]);
 
-  // Compute Roof structure if enabled
+  // Compute Roof structure on top of the highest floor
   const roofMesh = useMemo(() => {
     if (!aesthetics.showRoof || data.nodes.length === 0) return null;
 
-    // Find boundary of nodes
-    const xs = data.nodes.map((n) => n.x / PIXELS_PER_METER);
-    const zs = data.nodes.map((n) => n.y / PIXELS_PER_METER);
+    // Use nodes of the top floor for roof scaling
+    const topFloorNodes = data.nodes.filter(n => (n.floorIndex || 0) === maxFloorIndex);
+    const targetNodes = topFloorNodes.length > 0 ? topFloorNodes : data.nodes;
+
+    const xs = targetNodes.map((n) => n.x / PIXELS_PER_METER);
+    const zs = targetNodes.map((n) => n.y / PIXELS_PER_METER);
     const minX = Math.min(...xs);
     const maxX = Math.max(...xs);
     const minZ = Math.min(...zs);
@@ -187,100 +227,129 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
     const cx = (minX + maxX) / 2;
     const cz = (minZ + maxZ) / 2;
 
-    const wallHeight = data.walls.length > 0 ? Math.max(...data.walls.map((w) => w.height)) : 3.0;
+    const roofBaseY = (maxFloorIndex + 1) * 3.0; // stacked ceiling height
+    const overhang = 0.6; // 60cm overhang
+    const roofW = w + overhang * 2;
+    const roofD = d + overhang * 2;
+    const pitchHeight = aesthetics.roofHeight;
+    const roofThick = 0.15;
 
-    // Overhang in meters
-    const overhang = 0.6;
-
-    if (aesthetics.roofType === "flat") {
-      return (
-        <mesh position={[cx, wallHeight + 0.1, cz]} castShadow receiveShadow>
-          <boxGeometry args={[w + overhang * 2, 0.2, d + overhang * 2]} />
-          <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
-        </mesh>
-      );
-    } else {
-      // Pitched roof gable style
-      // Ridge runs parallel to the longer axis of layout
-      const isXLonger = w >= d;
-      const pitchHeight = aesthetics.roofHeight;
-      const roofThick = 0.15;
-
-      if (isXLonger) {
-        // Ridge parallel to X axis at cz. Slabs slope down to minZ and maxZ.
-        const halfSpan = d / 2 + overhang;
-        const slopeLen = Math.hypot(pitchHeight, halfSpan);
-        const pitchAngle = Math.atan(pitchHeight / halfSpan);
-
-        // Center height of slope slab
-        const slabCY = wallHeight + pitchHeight / 2;
-
+    switch (aesthetics.roofType) {
+      case "flat":
         return (
-          <group position={[cx, 0, cz]}>
-            {/* Front slope */}
-            <mesh 
-              position={[0, slabCY, -halfSpan / 2]} 
-              rotation={[-pitchAngle, 0, 0]}
-              castShadow 
-              receiveShadow
-            >
-              <boxGeometry args={[w + overhang * 2, roofThick, slopeLen]} />
-              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
-            </mesh>
-            {/* Back slope */}
-            <mesh 
-              position={[0, slabCY, halfSpan / 2]} 
-              rotation={[pitchAngle, 0, 0]}
-              castShadow 
-              receiveShadow
-            >
-              <boxGeometry args={[w + overhang * 2, roofThick, slopeLen]} />
-              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
-            </mesh>
-          </group>
+          <mesh position={[cx, roofBaseY + 0.1, cz]} castShadow receiveShadow>
+            <boxGeometry args={[roofW, 0.2, roofD]} />
+            <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+          </mesh>
         );
-      } else {
-        // Ridge parallel to Z axis at cx. Slabs slope down to minX and maxX.
-        const halfSpan = w / 2 + overhang;
-        const slopeLen = Math.hypot(pitchHeight, halfSpan);
-        const pitchAngle = Math.atan(pitchHeight / halfSpan);
 
-        const slabCY = wallHeight + pitchHeight / 2;
+      case "pitched": {
+        // Gable style slanting from ridge
+        const isXLonger = w >= d;
+        if (isXLonger) {
+          const halfSpan = d / 2 + overhang;
+          const slopeLen = Math.hypot(pitchHeight, halfSpan);
+          const pitchAngle = Math.atan(pitchHeight / halfSpan);
+          const slabCY = roofBaseY + pitchHeight / 2;
+
+          return (
+            <group position={[cx, 0, cz]}>
+              <mesh position={[0, slabCY, -halfSpan / 2]} rotation={[-pitchAngle, 0, 0]} castShadow receiveShadow>
+                <boxGeometry args={[roofW, roofThick, slopeLen]} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+              </mesh>
+              <mesh position={[0, slabCY, halfSpan / 2]} rotation={[pitchAngle, 0, 0]} castShadow receiveShadow>
+                <boxGeometry args={[roofW, roofThick, slopeLen]} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+              </mesh>
+            </group>
+          );
+        } else {
+          const halfSpan = w / 2 + overhang;
+          const slopeLen = Math.hypot(pitchHeight, halfSpan);
+          const pitchAngle = Math.atan(pitchHeight / halfSpan);
+          const slabCY = roofBaseY + pitchHeight / 2;
+
+          return (
+            <group position={[cx, 0, cz]}>
+              <mesh position={[-halfSpan / 2, slabCY, 0]} rotation={[0, 0, pitchAngle]} castShadow receiveShadow>
+                <boxGeometry args={[slopeLen, roofThick, roofD]} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+              </mesh>
+              <mesh position={[halfSpan / 2, slabCY, 0]} rotation={[0, 0, -pitchAngle]} castShadow receiveShadow>
+                <boxGeometry args={[slopeLen, roofThick, roofD]} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+              </mesh>
+            </group>
+          );
+        }
+      }
+
+      case "hip": {
+        // Hip style slanting pyramid-like on all four sides
+        // Renders as a 4-sided cylinder (pyramid), scaled to rectangular dimensions
+        const scaleX = roofW / Math.sqrt(2);
+        const scaleZ = roofD / Math.sqrt(2);
 
         return (
-          <group position={[cx, 0, cz]}>
-            {/* Left slope */}
+          <mesh 
+            position={[cx, roofBaseY + pitchHeight / 2, cz]} 
+            rotation={[0, Math.PI / 4, 0]} // rotate 45 deg to align faces
+            scale={[scaleX, 1, scaleZ]}
+            castShadow 
+            receiveShadow
+          >
+            <cylinderGeometry args={[0, 1, pitchHeight, 4, 1]} />
+            <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+          </mesh>
+        );
+      }
+
+      case "shed": {
+        // Mono-pitched style slants single direction
+        const isXLonger = w >= d;
+        if (isXLonger) {
+          const pitchAngle = Math.atan(pitchHeight / roofW);
+          const slabLen = Math.hypot(pitchHeight, roofW);
+          return (
             <mesh 
-              position={[-halfSpan / 2, slabCY, 0]} 
-              rotation={[0, 0, pitchAngle]}
-              castShadow 
-              receiveShadow
-            >
-              <boxGeometry args={[slopeLen, roofThick, d + overhang * 2]} />
-              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
-            </mesh>
-            {/* Right slope */}
-            <mesh 
-              position={[halfSpan / 2, slabCY, 0]} 
+              position={[cx, roofBaseY + pitchHeight / 2, cz]} 
               rotation={[0, 0, -pitchAngle]}
               castShadow 
               receiveShadow
             >
-              <boxGeometry args={[slopeLen, roofThick, d + overhang * 2]} />
+              <boxGeometry args={[slabLen, roofThick, roofD]} />
               <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
             </mesh>
-          </group>
-        );
+          );
+        } else {
+          const pitchAngle = Math.atan(pitchHeight / roofD);
+          const slabLen = Math.hypot(pitchHeight, roofD);
+          return (
+            <mesh 
+              position={[cx, roofBaseY + pitchHeight / 2, cz]} 
+              rotation={[pitchAngle, 0, 0]}
+              castShadow 
+              receiveShadow
+            >
+              <boxGeometry args={[roofW, roofThick, slabLen]} />
+              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+            </mesh>
+          );
+        }
       }
+
+      default:
+        return null;
     }
-  }, [data, aesthetics]);
+  }, [data, aesthetics, maxFloorIndex]);
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: aesthetics.groundColor }}>
-      <Canvas camera={{ position: [10, 15, 10], fov: 50 }} shadows>
+      <Canvas camera={{ position: [15, 20, 15], fov: 45 }} shadows>
         <ambientLight intensity={aesthetics.ambientLightIntensity} />
         <directionalLight 
-          position={[12, 25, 12]} 
+          position={[15, 35, 15]} 
           intensity={1.2} 
           castShadow 
           shadow-mapSize-width={1024} 
@@ -292,7 +361,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         {/* Floor Grid */}
         <Grid
           infiniteGrid
-          fadeDistance={50}
+          fadeDistance={60}
           sectionColor={aesthetics.floorColor}
           cellColor="#334155"
           cellSize={1}
@@ -300,7 +369,15 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           position={[0, 0.01, 0]}
         />
 
-        {/* Extruded Wall Segments */}
+        {/* Floor concrete separation slabs */}
+        {separationSlabs.map((slab) => (
+          <mesh key={slab.id} position={slab.position} castShadow receiveShadow>
+            <boxGeometry args={slab.args} />
+            <meshStandardMaterial color={aesthetics.floorColor} roughness={0.8} />
+          </mesh>
+        ))}
+
+        {/* Extruded Wall segments stacked vertically */}
         {wallSegments.map((seg) => (
           <mesh
             key={seg.id}
@@ -314,49 +391,41 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           </mesh>
         ))}
 
-        {/* 3D Door and Window Models inside cutouts */}
+        {/* 3D door/window opening models */}
         {openingModels.map((model) => {
           if (model.type === "door") {
-            // Door Frame and swung panel
             const panelWidth = model.width - 0.08;
-            const swingAngle = Math.PI / 6; // 30 degrees open swing
+            const swingAngle = Math.PI / 6;
 
             return (
               <group key={model.id} position={model.position} rotation={model.rotation}>
-                {/* Frame Left */}
                 <mesh position={[-model.width / 2 + 0.02, 0, 0]}>
                   <boxGeometry args={[0.04, model.height, model.thickness]} />
                   <meshStandardMaterial color="#1e293b" roughness={0.6} />
                 </mesh>
-                {/* Frame Right */}
                 <mesh position={[model.width / 2 - 0.02, 0, 0]}>
                   <boxGeometry args={[0.04, model.height, model.thickness]} />
                   <meshStandardMaterial color="#1e293b" roughness={0.6} />
                 </mesh>
-                {/* Frame Top */}
                 <mesh position={[0, model.height / 2 - 0.02, 0]}>
                   <boxGeometry args={[model.width, 0.04, model.thickness]} />
                   <meshStandardMaterial color="#1e293b" roughness={0.6} />
                 </mesh>
-                {/* Door Panel pivot (rotated) */}
                 <group position={[-model.width / 2 + 0.04, 0, 0]} rotation={[0, swingAngle, 0]}>
                   <mesh position={[panelWidth / 2, 0, 0]}>
                     <boxGeometry args={[panelWidth, model.height - 0.08, 0.04]} />
-                    <meshStandardMaterial color="#b45309" roughness={0.8} /> {/* amber-700 wooden color */}
+                    <meshStandardMaterial color="#b45309" roughness={0.8} />
                   </mesh>
                 </group>
               </group>
             );
           } else {
-            // Window Outer frame + Glass pane
             return (
               <group key={model.id} position={model.position} rotation={model.rotation}>
-                {/* Frame Border */}
                 <mesh>
                   <boxGeometry args={[model.width, model.height, 0.04]} />
                   <meshStandardMaterial color="#1e293b" roughness={0.6} />
                 </mesh>
-                {/* Glass Panel */}
                 <mesh>
                   <boxGeometry args={[model.width - 0.08, model.height - 0.08, 0.01]} />
                   <meshStandardMaterial 
@@ -372,10 +441,10 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           }
         })}
 
-        {/* Roof rendering (Flat / Pitched) */}
+        {/* Stacked roof mesh at very top */}
         {roofMesh}
 
-        {/* Solid ground plane base */}
+        {/* Ground base plate */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
           <planeGeometry args={[150, 150]} />
           <meshStandardMaterial color={aesthetics.floorColor} opacity={0.6} transparent />
