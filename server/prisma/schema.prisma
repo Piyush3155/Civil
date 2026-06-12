@@ -538,6 +538,7 @@ enum DrawingType {
   MAP
   MP4
   PEB
+  PLAN
 }
 
 model DrawingAccess {

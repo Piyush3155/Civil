@@ -44,6 +44,18 @@ const PebViewer = dynamic(() => import("./PebViewer"), {
   ),
 });
 
+const PlanViewer = dynamic(() => import("./PlanViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-48 sm:h-56 md:h-64 bg-slate-900 rounded-lg">
+      <div className="text-center space-y-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="text-sm text-slate-400">Loading 3D Engine...</p>
+      </div>
+    </div>
+  ),
+});
+
 interface DrawingViewerProps {
   fileUrl: string;
   fileType: string;
@@ -97,6 +109,9 @@ export default function DrawingViewer({
 
       case "PEB":
         return <PebViewer description={description} />;
+
+      case "PLAN":
+        return <PlanViewer description={description} />;
 
       case "DWG":
       case "DXF":

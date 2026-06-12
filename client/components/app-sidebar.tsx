@@ -93,6 +93,12 @@ const navigationData: NavGroup[] = [
         allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'],
       },
       {
+        title: "Building Designer",
+        url: "/building-designer",
+        icon: Box,
+        allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'],
+      },
+      {
         title: "Analytics",
         url: "/analytics",
         icon: BarChart3,
