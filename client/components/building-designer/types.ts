@@ -19,10 +19,10 @@ export interface Opening {
   id: string;
   wallId: string;
   type: "door" | "window";
-  distanceFromStart: number; // Center of the opening along the wall
-  width: number;
-  height: number;
-  elevation: number; // Distance from floor (0 for doors)
+  distanceFromStart: number; // Center of the opening along the wall in SVG coordinates (scaled by PIXELS_PER_METER)
+  width: number; // in meters
+  height: number; // in meters
+  elevation: number; // in meters (distance from floor, e.g., 0 for doors, 0.9 for standard windows)
 }
 
 export interface FloorPlanData {
@@ -36,11 +36,20 @@ export interface Aesthetics {
   floorColor: string;
   groundColor: string;
   ambientLightIntensity: number;
+  // Roof aesthetics
+  showRoof: boolean;
+  roofColor: string;
+  roofType: "flat" | "pitched";
+  roofHeight: number; // in meters (height of pitch above the wall height)
 }
 
 export const DEFAULT_AESTHETICS: Aesthetics = {
-  wallColor: "#e2e8f0", // slate-200
-  floorColor: "#94a3b8", // slate-400
-  groundColor: "#0f172a", // slate-900 (for neon style: #020617)
-  ambientLightIntensity: 0.5,
+  wallColor: "#cbd5e1", // slate-300
+  floorColor: "#475569", // slate-600
+  groundColor: "#0f172a", // slate-900
+  ambientLightIntensity: 0.6,
+  showRoof: false,
+  roofColor: "#64748b", // slate-500
+  roofType: "flat",
+  roofHeight: 2.0,
 };

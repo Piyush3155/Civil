@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
-import type { FloorPlanData, Aesthetics } from "@/components/building-designer/types";
+import { FloorPlanData, Aesthetics, DEFAULT_AESTHETICS } from "@/components/building-designer/types";
 import { Box, Move, ZoomIn } from "lucide-react";
 
 // Dynamic import to avoid SSR issues with Three.js canvas
@@ -25,13 +25,6 @@ const DEFAULT_PLAN_DATA: FloorPlanData = {
   nodes: [],
   walls: [],
   openings: [],
-};
-
-const DEFAULT_AESTHETICS: Aesthetics = {
-  wallColor: "#e2e8f0",
-  floorColor: "#94a3b8",
-  groundColor: "#0f172a",
-  ambientLightIntensity: 0.5,
 };
 
 /**

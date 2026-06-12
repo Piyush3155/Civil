@@ -268,6 +268,59 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
                   <Input value={aesthetics.groundColor} onChange={(e) => setAesthetics({ ...aesthetics, groundColor: e.target.value })} />
                 </div>
               </div>
+
+              {/* Roof Settings */}
+              <div className="pt-3 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="show-roof" className="cursor-pointer">Enable Roof</Label>
+                  <input
+                    id="show-roof"
+                    type="checkbox"
+                    className="h-4 w-4 rounded bg-slate-900 border-slate-700 text-primary focus:ring-primary cursor-pointer"
+                    checked={aesthetics.showRoof}
+                    onChange={(e) => setAesthetics({ ...aesthetics, showRoof: e.target.checked })}
+                  />
+                </div>
+              </div>
+
+              {aesthetics.showRoof && (
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <Label>Roof Style</Label>
+                    <select
+                      className="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-sm text-slate-200 mt-1"
+                      value={aesthetics.roofType}
+                      onChange={(e) => setAesthetics({ ...aesthetics, roofType: e.target.value as "flat" | "pitched" })}
+                    >
+                      <option value="flat">Flat Slab</option>
+                      <option value="pitched">Pitched Gable</option>
+                    </select>
+                  </div>
+
+                  {aesthetics.roofType === "pitched" && (
+                    <div>
+                      <Label>Pitch Height (meters)</Label>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min="0.5"
+                        max="6"
+                        className="mt-1"
+                        value={aesthetics.roofHeight}
+                        onChange={(e) => setAesthetics({ ...aesthetics, roofHeight: parseFloat(e.target.value) || 2.0 })}
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Roof Color</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input type="color" className="w-12 h-10 p-1" value={aesthetics.roofColor} onChange={(e) => setAesthetics({ ...aesthetics, roofColor: e.target.value })} />
+                      <Input value={aesthetics.roofColor} onChange={(e) => setAesthetics({ ...aesthetics, roofColor: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -294,7 +347,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
           </div>
         )}
         {activeTab === "2d" ? (
-          <Editor2D data={data} onChange={setData} />
+          <Editor2D data={data} onChange={setData} title={saveForm.title} />
         ) : (
           <Viewer3D data={data} aesthetics={aesthetics} />
         )}
