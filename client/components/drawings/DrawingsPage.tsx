@@ -46,6 +46,7 @@ import {
   FileArchive, 
   Image as ImageIcon,
   BookOpenText,
+  Box,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { 
@@ -281,6 +282,7 @@ export default function DrawingsPage() {
       IFC: FileArchive,
       RVT: FileArchive,
       IMAGE: ImageIcon,
+      PEB: Box,
     }
     const Icon = iconMap[type] || FileText
     return <Icon className="h-5 w-5" />
@@ -295,6 +297,7 @@ export default function DrawingsPage() {
       IFC: "destructive", // IFC/RVT are typically BIM models, making them stand out
       RVT: "destructive", 
       IMAGE: "default",
+      PEB: "secondary",
     }
     return colorMap[type] || "default"
   }
@@ -701,7 +704,7 @@ export default function DrawingsPage() {
             }
           }}>
             {/* IMPROVEMENT: Made the dialog full-screen on mobile and nearly full-screen on larger devices */}
-            <DialogContent className="fixed inset-0 max-w-full max-h-full w-screen h-screen sm:max-w-[98vw] sm:max-h-[98vh] sm:w-[98vw] sm:h-[98vh] p-0 flex flex-col">
+            <DialogContent className="max-w-full max-h-full w-screen h-screen sm:max-w-[98vw] sm:max-h-[98vh] sm:w-[98vw] sm:h-[98vh] p-0 flex flex-col">
               <DialogHeader className="p-4 sm:p-6 border-b flex-shrink-0">
                 <DialogTitle className="flex items-center gap-3 text-lg sm:text-xl">
                   {viewingDrawing && getFileIcon(viewingDrawing.fileType)}
@@ -717,6 +720,7 @@ export default function DrawingsPage() {
                   <DrawingViewer
                     fileUrl={getDrawingFileUrl(viewingDrawing)}
                     fileType={viewingDrawing.fileType}
+                    description={viewingDrawing.description}
                   />
                 )}
               </div>

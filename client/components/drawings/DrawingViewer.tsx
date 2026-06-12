@@ -32,10 +32,23 @@ const DwgViewer = dynamic(() => import("./DwgViewer"), {
   ),
 });
 
+const PebViewer = dynamic(() => import("./PebViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-48 sm:h-56 md:h-64 bg-slate-900 rounded-lg">
+      <div className="text-center space-y-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <p className="text-sm text-slate-400">Loading 3D Engine...</p>
+      </div>
+    </div>
+  ),
+});
+
 interface DrawingViewerProps {
   fileUrl: string;
   fileType: string;
   title?: string;
+  description?: string; // Used for PEB config parsing
   urn?: string; // For Autodesk Forge viewer (DWG files)
   accessToken?: string; // For Autodesk Forge viewer
 }
@@ -47,6 +60,7 @@ export default function DrawingViewer({
   fileUrl,
   fileType,
   title,
+  description,
   urn,
   accessToken,
 }: DrawingViewerProps) {
@@ -80,6 +94,9 @@ export default function DrawingViewer({
       case "GIF":
       case "WEBP":
         return <ImageViewer fileUrl={fullUrl} title={title} />;
+
+      case "PEB":
+        return <PebViewer description={description} />;
 
       case "DWG":
       case "DXF":
@@ -161,7 +178,7 @@ export default function DrawingViewer({
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex flex-col">
       {renderViewer()}
     </div>
   );

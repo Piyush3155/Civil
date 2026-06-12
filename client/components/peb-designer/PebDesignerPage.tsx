@@ -155,18 +155,18 @@ export default function PebDesignerPage() {
       const fileUrl = uploadResult.data.attachmentUrls[0];
 
       // Step 3: Build description with PEB config
-      const configJson = JSON.stringify(params, null, 2);
+      const configJson = JSON.stringify(params);
       const fullDescription = saveForm.description
-        ? `${saveForm.description}\n\n--- PEB Configuration ---\n${configJson}`
-        : `PEB Structure Design\n\n--- PEB Configuration ---\n${configJson}`;
+        ? `${saveForm.description}\n\n<!--PEB_CONFIG:${configJson}:PEB_CONFIG-->`
+        : `PEB Structure Design\n\n<!--PEB_CONFIG:${configJson}:PEB_CONFIG-->`;
 
-      // Step 4: Create drawing record
+      // Step 4: Create drawing record with PEB type
       await createDrawing({
         projectId: saveForm.projectId,
         title: saveForm.title,
         description: fullDescription,
         fileUrl,
-        fileType: "IMAGE",
+        fileType: "PEB",
         version: 1,
       });
 
@@ -264,7 +264,7 @@ export default function PebDesignerPage() {
               Save PEB Design
             </DialogTitle>
             <DialogDescription>
-              Save the current 3D view as an image to the Drawings section
+              Save the current 3D design to the Drawings section. The interactive 3D view will be preserved.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveToDrawings}>

@@ -46,19 +46,19 @@ export interface PebCanvas3DHandle {
 // Color palette
 // ──────────────────────────────────────────────
 const COLORS = {
-  column:   "#3b82f6", // blue-500
-  rafter:   "#ef4444", // red-500
-  purlin:   "#22c55e", // green-500
-  girt:     "#f97316", // orange-500
-  base:     "#6b7280", // gray-500
-  ridge:    "#a855f7", // purple-500
-  bracing:  "#eab308", // yellow-500
-  grid:     "rgba(148, 163, 184, 0.18)", // slate-400 faint
-  gridAxis: "rgba(148, 163, 184, 0.35)",
-  label:    "#94a3b8", // slate-400
-  dimLine:  "#60a5fa", // blue-400
-  bgGradientTop: "#0f172a",    // slate-900
-  bgGradientBot: "#1e293b",    // slate-800
+  column:   "#60a5fa", // blue-400 (brighter)
+  rafter:   "#f87171", // red-400 (brighter)
+  purlin:   "#4ade80", // green-400 (brighter)
+  girt:     "#fb923c", // orange-400 (brighter)
+  base:     "#a1a1aa", // zinc-400 (brighter)
+  ridge:    "#c084fc", // purple-400 (brighter)
+  bracing:  "#facc15", // yellow-400 (brighter)
+  grid:     "rgba(148, 163, 184, 0.12)",
+  gridAxis: "rgba(148, 163, 184, 0.25)",
+  label:    "#cbd5e1", // slate-300 (brighter)
+  dimLine:  "#93c5fd", // blue-300 (brighter)
+  bgGradientTop: "#020617",    // slate-950 (darker for contrast)
+  bgGradientBot: "#0f172a",    // slate-900
 };
 
 // ──────────────────────────────────────────────
@@ -68,8 +68,8 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
   function PebCanvas3D({ params }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const frameRef = useRef<number>(0);
-    const rotRef = useRef({ rx: -0.45, ry: 0.65 }); // orbit angles
-    const zoomRef = useRef(1);
+    const rotRef = useRef({ rx: -0.5, ry: 0.7 }); // orbit angles
+    const zoomRef = useRef(1.4); // bigger default zoom for visibility
     const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
       active: false,
       lastX: 0,
@@ -95,7 +95,7 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
 
     const project = useCallback(
       (v: Vec3, w: number, h: number, zoom: number): { x: number; y: number; depth: number } => {
-        const fov = 600;
+        const fov = 800; // wider FOV for better perspective
         const dist = fov + v.z;
         const scale = (fov / Math.max(dist, 1)) * zoom;
         return { x: w / 2 + v.x * scale, y: h / 2 - v.y * scale, depth: v.z };
@@ -125,14 +125,19 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
         const ridgeH = H + ridgeRise;
         const baySpacing = L / p.bays;
 
-        // Center the model
+        // Center the model on all axes
         const cx = W / 2;
+        const cy = ridgeH / 2; // vertical center so structure appears in the middle
         const cz = L / 2;
 
+        // Scale factor adapts to structure size so it always fills the viewport nicely
+        const maxDim = Math.max(W, L, H);
+        const scaleFactor = Math.max(4, Math.min(14, 180 / maxDim));
+
         const pt = (x: number, y: number, z: number): Vec3 => ({
-          x: (x - cx) * 8,
-          y: (y) * 8,
-          z: (z - cz) * 8,
+          x: (x - cx) * scaleFactor,
+          y: (y - cy) * scaleFactor,
+          z: (z - cz) * scaleFactor,
         });
 
         // Bay positions along Z
@@ -148,14 +153,14 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(0, 0, z),
             to: pt(0, H, z),
             color: COLORS.column,
-            width: 2.5,
+            width: 3.5,
           });
           // Right column
           edges.push({
             from: pt(W, 0, z),
             to: pt(W, H, z),
             color: COLORS.column,
-            width: 2.5,
+            width: 3.5,
           });
         }
 
@@ -166,14 +171,14 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(0, H, z),
             to: pt(W / 2, ridgeH, z),
             color: COLORS.rafter,
-            width: 2.2,
+            width: 3,
           });
           // Right slope
           edges.push({
             from: pt(W, H, z),
             to: pt(W / 2, ridgeH, z),
             color: COLORS.rafter,
-            width: 2.2,
+            width: 3,
           });
         }
 
@@ -184,7 +189,7 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(0, 0, bayPositions[i]),
             to: pt(0, 0, bayPositions[i + 1]),
             color: COLORS.base,
-            width: 2,
+            width: 3,
           });
         }
         // Along length (right side)
@@ -193,12 +198,12 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(W, 0, bayPositions[i]),
             to: pt(W, 0, bayPositions[i + 1]),
             color: COLORS.base,
-            width: 2,
+            width: 3,
           });
         }
         // End walls base
-        edges.push({ from: pt(0, 0, 0), to: pt(W, 0, 0), color: COLORS.base, width: 2 });
-        edges.push({ from: pt(0, 0, L), to: pt(W, 0, L), color: COLORS.base, width: 2 });
+        edges.push({ from: pt(0, 0, 0), to: pt(W, 0, 0), color: COLORS.base, width: 3 });
+        edges.push({ from: pt(0, 0, L), to: pt(W, 0, L), color: COLORS.base, width: 3 });
 
         // ─── Eave beams (top of walls along length) ──
         for (let i = 0; i < bayPositions.length - 1; i++) {
@@ -206,13 +211,13 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(0, H, bayPositions[i]),
             to: pt(0, H, bayPositions[i + 1]),
             color: COLORS.column,
-            width: 1.8,
+            width: 2.5,
           });
           edges.push({
             from: pt(W, H, bayPositions[i]),
             to: pt(W, H, bayPositions[i + 1]),
             color: COLORS.column,
-            width: 1.8,
+            width: 2.5,
           });
         }
 
@@ -222,7 +227,7 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(W / 2, ridgeH, bayPositions[i]),
             to: pt(W / 2, ridgeH, bayPositions[i + 1]),
             color: COLORS.ridge,
-            width: 2,
+            width: 3,
           });
         }
 
@@ -240,7 +245,7 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
                 from: pt(lx, ly, z1),
                 to: pt(lx, ly, z2),
                 color: COLORS.purlin,
-                width: 1.2,
+                width: 2,
               });
               // Right slope purlins
               const rx = W - t * (W / 2);
@@ -248,7 +253,7 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
                 from: pt(rx, ly, z1),
                 to: pt(rx, ly, z2),
                 color: COLORS.purlin,
-                width: 1.2,
+                width: 2,
               });
             }
           }
@@ -267,14 +272,14 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
                 from: pt(0, gy, z1),
                 to: pt(0, gy, z2),
                 color: COLORS.girt,
-                width: 1.2,
+                width: 2,
               });
               // Right wall girts
               edges.push({
                 from: pt(W, gy, z1),
                 to: pt(W, gy, z2),
                 color: COLORS.girt,
-                width: 1.2,
+                width: 2,
               });
             }
           }
@@ -287,30 +292,30 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
             from: pt(0, 0, 0),
             to: pt(W / 2, H, 0),
             color: COLORS.bracing,
-            width: 1.2,
-            dash: [6, 4],
+            width: 2,
+            dash: [8, 5],
           });
           edges.push({
             from: pt(W, 0, 0),
             to: pt(W / 2, H, 0),
             color: COLORS.bracing,
-            width: 1.2,
-            dash: [6, 4],
+            width: 2,
+            dash: [8, 5],
           });
           // Back wall (z=L) X-brace
           edges.push({
             from: pt(0, 0, L),
             to: pt(W / 2, H, L),
             color: COLORS.bracing,
-            width: 1.2,
-            dash: [6, 4],
+            width: 2,
+            dash: [8, 5],
           });
           edges.push({
             from: pt(W, 0, L),
             to: pt(W / 2, H, L),
             color: COLORS.bracing,
-            width: 1.2,
-            dash: [6, 4],
+            width: 2,
+            dash: [8, 5],
           });
 
           // Side wall bracing (first and last bay)
@@ -351,9 +356,9 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
 
         // ─── End wall cladding framing ──────────
         // Front end wall (z=0) top beams
-        edges.push({ from: pt(0, H, 0), to: pt(W, H, 0), color: COLORS.column, width: 1.8 });
+        edges.push({ from: pt(0, H, 0), to: pt(W, H, 0), color: COLORS.column, width: 2.5 });
         // Back end wall (z=L) top beams
-        edges.push({ from: pt(0, H, L), to: pt(W, H, L), color: COLORS.column, width: 1.8 });
+        edges.push({ from: pt(0, H, L), to: pt(W, H, L), color: COLORS.column, width: 2.5 });
 
         // ─── Dimension labels ───────────────────
         // Width label
@@ -447,13 +452,30 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      // Helper to draw an edge
-      const drawEdge = (edge: Edge) => {
+      // Helper to draw an edge with glow effect
+      const drawEdge = (edge: Edge, glow = false) => {
         const from = transformAndProject(edge.from, rx, ry, w, h, zoom);
         const to = transformAndProject(edge.to, rx, ry, w, h, zoom);
+
+        // Glow layer (soft wider line behind)
+        if (glow && !edge.dash) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.strokeStyle = edge.color;
+          ctx.lineWidth = edge.width + 4;
+          ctx.globalAlpha = 0.15;
+          ctx.lineCap = "round";
+          ctx.moveTo(from.x, from.y);
+          ctx.lineTo(to.x, to.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+
         ctx.beginPath();
         ctx.strokeStyle = edge.color;
         ctx.lineWidth = edge.width;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
         if (edge.dash) {
           ctx.setLineDash(edge.dash);
         } else {
@@ -486,10 +508,10 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
       });
 
       for (const e of sortedEdges) {
-        drawEdge(e);
+        drawEdge(e, true); // draw with glow
       }
 
-      // Draw joint nodes
+      // Draw joint nodes with glow
       const nodeSet = new Set<string>();
       for (const e of edges) {
         for (const p of [e.from, e.to]) {
@@ -497,32 +519,38 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
           if (!nodeSet.has(key)) {
             nodeSet.add(key);
             const sp = transformAndProject(p, rx, ry, w, h, zoom);
+            // Outer glow
             ctx.beginPath();
-            ctx.arc(sp.x, sp.y, 2.5, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.6)";
+            ctx.arc(sp.x, sp.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.12)";
+            ctx.fill();
+            // Inner bright dot
+            ctx.beginPath();
+            ctx.arc(sp.x, sp.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.8)";
             ctx.fill();
           }
         }
       }
 
-      // Draw labels
-      ctx.font = "600 12px Inter, system-ui, sans-serif";
+      // Draw labels — larger and bolder
+      ctx.font = "700 14px Inter, system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       for (const label of labels) {
         const sp = transformAndProject(label.position, rx, ry, w, h, zoom);
         // Background pill
         const metrics = ctx.measureText(label.text);
-        const pw = metrics.width + 14;
-        const ph = 20;
-        ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+        const pw = metrics.width + 20;
+        const ph = 26;
+        ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
         ctx.beginPath();
-        ctx.roundRect(sp.x - pw / 2, sp.y - ph / 2, pw, ph, 4);
+        ctx.roundRect(sp.x - pw / 2, sp.y - ph / 2, pw, ph, 6);
         ctx.fill();
         ctx.strokeStyle = label.color;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.roundRect(sp.x - pw / 2, sp.y - ph / 2, pw, ph, 4);
+        ctx.roundRect(sp.x - pw / 2, sp.y - ph / 2, pw, ph, 6);
         ctx.stroke();
         // Text
         ctx.fillStyle = label.color;
@@ -530,10 +558,10 @@ const PebCanvas3D = forwardRef<PebCanvas3DHandle, { params: PebParams }>(
       }
 
       // Watermark
-      ctx.font = "500 11px Inter, system-ui, sans-serif";
-      ctx.fillStyle = "rgba(148, 163, 184, 0.3)";
+      ctx.font = "500 12px Inter, system-ui, sans-serif";
+      ctx.fillStyle = "rgba(148, 163, 184, 0.4)";
       ctx.textAlign = "right";
-      ctx.fillText("Civil Desk — PEB Designer", w - 16, h - 14);
+      ctx.fillText("Civil Desk — PEB Designer", w - 20, h - 18);
 
       frameRef.current = requestAnimationFrame(render);
     }, [params, transformAndProject, generateGeometry, generateGrid]);
