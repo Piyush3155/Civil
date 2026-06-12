@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { MapPin, Calendar, Edit, Trash2, UserPlus, FileText, TrendingUp, ChevronRight, ReceiptText } from "lucide-react"
+import { MapPin, Calendar, Edit, Trash2, UserPlus, FileText, TrendingUp, ChevronRight, ReceiptText, FileArchive, Image as ImageIcon, BookOpenText, Box, File } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import {
   fetchProjectById,
@@ -51,6 +51,18 @@ import { FinanceManagement } from "@/components/finance/finance-management";
 import Loader from "@/components/ui/loader"
 import { Project } from "@/types/project"
 import { SidebarTrigger } from "../ui/sidebar"
+import DrawingViewer from "@/components/drawings/DrawingViewer"
+
+// Type for drawing to avoid full any typing
+interface DrawingBase {
+  id: string;
+  title: string;
+  category: string;
+  description?: string;
+  fileUrl: string;
+  fileType: string;
+  version: number;
+}
 
 export default function ProjectDetailPage() {
   const router = useRouter()
@@ -91,6 +103,10 @@ export default function ProjectDetailPage() {
     milestone: "",
     notes: "",
   })
+
+  // State for viewing drawings
+  const [viewDialogOpen, setViewDialogOpen] = useState(false)
+  const [viewingDrawing, setViewingDrawing] = useState<DrawingBase | null>(null)
 
   useEffect(() => {
     const user = getCurrentUser()
@@ -246,7 +262,22 @@ export default function ProjectDetailPage() {
     }
     return variants[status] || "default"
   }
-if (loading) {
+
+  function getFileIcon(type: string) {
+    const iconMap: { [key: string]: React.ElementType } = {
+      PDF: BookOpenText,
+      DWG: File,
+      DXF: File,
+      IFC: FileArchive,
+      RVT: FileArchive,
+      IMAGE: ImageIcon,
+      PEB: Box,
+    }
+    const Icon = iconMap[type] || FileText
+    return <Icon className="h-5 w-5" />
+  }
+
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <Loader/>
@@ -569,16 +600,23 @@ if (loading) {
                     {project.drawings.map((drawing) => (
                       <div
                         key={drawing.id}
-                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                        onClick={() => {
+                          // @ts-ignore - drawing from project includes these fields
+                          setViewingDrawing(drawing);
+                          setViewDialogOpen(true);
+                        }}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="rounded bg-muted p-2 shrink-0">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            {/* @ts-ignore */}
+                            {getFileIcon(drawing.fileType)}
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-sm truncate">{drawing.title}</p>
                             <p className="text-xs text-muted-foreground">
-                              v{drawing.version} • {drawing.type}
+                              {/* @ts-ignore */}
+                              v{drawing.version} • {drawing.fileType || 'Unknown'}
                             </p>
                           </div>
                         </div>
@@ -786,7 +824,38 @@ if (loading) {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog></></>
+        </Dialog>
 
+        {/* View Drawing Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={(open) => {
+          setViewDialogOpen(open)
+          if (!open) {
+            setViewingDrawing(null)
+          }
+        }}>
+          <DialogContent className="max-w-full max-h-full w-screen h-screen sm:max-w-[98vw] sm:max-h-[98vh] sm:w-[98vw] sm:h-[98vh] p-0 flex flex-col">
+            <DialogHeader className="p-4 sm:p-6 border-b flex-shrink-0">
+              <DialogTitle className="flex items-center gap-3 text-lg sm:text-xl">
+                {viewingDrawing && getFileIcon(viewingDrawing.fileType)}
+                <span className="truncate">{viewingDrawing?.title}</span>
+              </DialogTitle>
+              <DialogDescription className="text-sm sm:text-base">
+                <Badge variant="outline" className="mr-2">{project.name} ({project.code})</Badge>
+                  • Version **{viewingDrawing?.version?.toFixed(1)}**
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden">
+              {viewingDrawing && (
+                <DrawingViewer
+                  fileUrl={viewingDrawing.fileUrl}
+                  fileType={viewingDrawing.fileType}
+                  description={viewingDrawing.description}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    </>
   )
 }
