@@ -721,6 +721,7 @@ export default function DrawingsPage() {
                     fileUrl={getDrawingFileUrl(viewingDrawing)}
                     fileType={viewingDrawing.fileType}
                     description={viewingDrawing.description}
+                    id={viewingDrawing.id}
                   />
                 )}
               </div>

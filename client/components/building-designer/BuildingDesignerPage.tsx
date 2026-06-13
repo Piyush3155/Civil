@@ -25,9 +25,12 @@ import { FloorPlanData, Aesthetics, DEFAULT_AESTHETICS } from "./types";
 
 import { Box, Pencil, Save, Settings, Move, ZoomIn } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   uploadDrawingAttachment,
   createDrawing,
+  fetchDrawingById,
+  updateDrawing,
 } from "@/app/actions/drawings/main";
 import { fetchProjects, fetchMyProjects } from "@/app/actions/projects/main";
 import { getSession } from "@/lib/sessionAction";
@@ -41,6 +44,10 @@ interface BuildingDesignerPageProps {
 }
 
 export default function BuildingDesignerPage({ initialData, projectId }: BuildingDesignerPageProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const drawingId = searchParams.get("drawingId");
+
   const [activeTab, setActiveTab] = useState("2d");
   const [data, setData] = useState<FloorPlanData>({
     nodes: [],
@@ -60,6 +67,42 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
     projectId: projectId || "",
     description: "",
   });
+
+  const [editingDrawingId, setEditingDrawingId] = useState<string | null>(null);
+  const [originalDrawing, setOriginalDrawing] = useState<any | null>(null);
+
+  // Load drawing from drawingId if present in search parameters
+  useEffect(() => {
+    if (drawingId) {
+      setEditingDrawingId(drawingId);
+      const loadDrawing = async () => {
+        try {
+          const drawing = await fetchDrawingById(drawingId);
+          setOriginalDrawing(drawing);
+          setSaveForm({
+            title: drawing.title || "New Building Plan",
+            projectId: drawing.project?.id || drawing.projectId || "",
+            description: drawing.description?.split("\n\n<!--PLAN_CONFIG:")[0] || "",
+          });
+          
+          const match = drawing.description?.match(/<!--PLAN_CONFIG:(.*?):PLAN_CONFIG-->/);
+          if (match && match[1]) {
+            const parsed = JSON.parse(match[1]);
+            if (parsed.data) {
+              setData({ siteElements: [], roomLabels: [], ...parsed.data });
+            }
+            if (parsed.aesthetics) {
+              setAesthetics(parsed.aesthetics);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading drawing for editing:", error);
+          toast.error("Failed to load drawing data.");
+        }
+      };
+      loadDrawing();
+    }
+  }, [drawingId]);
 
   // Load initial data
   useEffect(() => {
@@ -153,8 +196,8 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
     });
   };
 
-  const handleSaveToDrawings = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveToDrawings = async (e: React.FormEvent, saveAsCopy = false) => {
+    if (e) e.preventDefault();
 
     if (!saveForm.projectId) {
       toast.error("Please select a project.");
@@ -197,22 +240,43 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
         ? `${saveForm.description}\n\n<!--PLAN_CONFIG:${configJson}:PLAN_CONFIG-->`
         : `Building Plan Design\n\n<!--PLAN_CONFIG:${configJson}:PLAN_CONFIG-->`;
 
-      // Step 4: Create drawing record
-      await createDrawing({
-        projectId: saveForm.projectId,
-        title: saveForm.title,
-        description: fullDescription,
-        fileUrl,
-        fileType: "PLAN",
-        version: 1,
-      });
+      if (editingDrawingId && !saveAsCopy) {
+        // Step 4: Update drawing record
+        const nextVersion = originalDrawing ? parseFloat((originalDrawing.version + 0.1).toFixed(1)) : 1.1;
+        await updateDrawing(editingDrawingId, {
+          title: saveForm.title,
+          description: fullDescription,
+          fileUrl,
+          version: nextVersion,
+        });
 
-      toast.success("Building plan saved to Drawings!", {
-        id: "save-plan",
-        description: "You can find it in the Drawings section.",
-      });
+        toast.success(`Building plan updated to version ${nextVersion.toFixed(1)}!`, {
+          id: "save-plan",
+        });
+        
+        // Update original drawing ref
+        setOriginalDrawing((prev: any) => prev ? { ...prev, title: saveForm.title, description: fullDescription, fileUrl, version: nextVersion } : null);
+      } else {
+        // Step 4: Create new drawing record
+        await createDrawing({
+          projectId: saveForm.projectId,
+          title: saveForm.title,
+          description: fullDescription,
+          fileUrl,
+          fileType: "PLAN",
+          version: 1.0,
+        });
+
+        toast.success("Building plan saved to Drawings!", {
+          id: "save-plan",
+          description: "You can find it in the Drawings section.",
+        });
+      }
 
       setSaveDialogOpen(false);
+      setTimeout(() => {
+        router.push("/drawings");
+      }, 1000);
     } catch (error) {
       console.error("Error saving building plan:", error);
       toast.error("Failed to save plan. Please try again.", { id: "save-plan" });
@@ -375,7 +439,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
               Save the current building plan to the Drawings section of a project.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveToDrawings}>
+          <form onSubmit={(e) => handleSaveToDrawings(e, false)}>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor="save-title">Title *</Label>
@@ -434,7 +498,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -443,9 +507,19 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
               >
                 Cancel
               </Button>
+              {editingDrawingId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={(e) => handleSaveToDrawings(e, true)}
+                  disabled={isSaving}
+                >
+                  Save as Copy
+                </Button>
+              )}
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? <Loader /> : <Save className="mr-2 h-4 w-4" />}
-                {isSaving ? "Saving..." : "Save Drawing"}
+                {isSaving ? "Saving..." : editingDrawingId ? "Update Original" : "Save Drawing"}
               </Button>
             </DialogFooter>
           </form>

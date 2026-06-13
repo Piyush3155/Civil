@@ -850,6 +850,7 @@ export default function ProjectDetailPage() {
                   fileUrl={viewingDrawing.fileUrl}
                   fileType={viewingDrawing.fileType}
                   description={viewingDrawing.description}
+                  id={viewingDrawing.id}
                 />
               )}
             </div>

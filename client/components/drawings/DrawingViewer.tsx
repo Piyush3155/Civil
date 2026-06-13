@@ -63,6 +63,7 @@ interface DrawingViewerProps {
   description?: string; // Used for PEB config parsing
   urn?: string; // For Autodesk Forge viewer (DWG files)
   accessToken?: string; // For Autodesk Forge viewer
+  id?: string; // Drawing ID
 }
 
 // CDN URL for file downloads
@@ -75,6 +76,7 @@ export default function DrawingViewer({
   description,
   urn,
   accessToken,
+  id,
 }: DrawingViewerProps) {
   const fullUrl = fileUrl.startsWith("http") ? fileUrl : `${CDN_URL}${fileUrl}`;
 
@@ -111,7 +113,7 @@ export default function DrawingViewer({
         return <PebViewer description={description} />;
 
       case "PLAN":
-        return <PlanViewer description={description} />;
+        return <PlanViewer description={description} drawingId={id} />;
 
       case "DWG":
       case "DXF":

@@ -208,6 +208,8 @@ export async function updateDrawing(
   data: {
     title?: string;
     description?: string;
+    fileUrl?: string;
+    version?: number;
   }
 ) {
   const session = await getSession();
@@ -218,7 +220,7 @@ export async function updateDrawing(
 
   try {
     const response = await fetch(`${BACKEND_URL}/drawings/${id}`, {
-      method: "PATCH",
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.accessToken}`,
@@ -227,6 +229,8 @@ export async function updateDrawing(
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Update drawing error:", errorText);
       throw new Error("Failed to update drawing");
     }
 

@@ -3,7 +3,9 @@
 import { useMemo } from "react";
 import dynamic from "next/dynamic";
 import { FloorPlanData, Aesthetics, DEFAULT_AESTHETICS } from "@/components/building-designer/types";
-import { Box, Move, ZoomIn } from "lucide-react";
+import { Box, Move, ZoomIn, Edit } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 // Dynamic import to avoid SSR issues with Three.js canvas
 const Viewer3D = dynamic(
@@ -52,9 +54,11 @@ function parsePlanConfig(description?: string): { data: FloorPlanData; aesthetic
 
 interface PlanViewerProps {
   description?: string;
+  drawingId?: string;
 }
 
-export default function PlanViewer({ description }: PlanViewerProps) {
+export default function PlanViewer({ description, drawingId }: PlanViewerProps) {
+  const router = useRouter();
   const { data, aesthetics } = useMemo(() => parsePlanConfig(description), [description]);
 
   return (
@@ -68,6 +72,18 @@ export default function PlanViewer({ description }: PlanViewerProps) {
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs text-slate-500">
+          {drawingId && (
+            <Button
+              variant="outline"
+              className="h-7 px-3 text-xs flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white border-none transition-colors font-semibold cursor-pointer"
+              onClick={() => {
+                router.push(`/building-designer?drawingId=${drawingId}`);
+              }}
+            >
+              <Edit className="h-3.5 w-3.5" />
+              Edit Design
+            </Button>
+          )}
           <span className="flex items-center gap-1.5">
             <Move className="h-3 w-3" />
             Drag to rotate

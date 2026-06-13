@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import BuildingDesignerPage from "@/components/building-designer/BuildingDesignerPage";
+import Loader from "@/components/ui/loader";
 
 export const metadata = {
   title: "Building Designer | Civil Desk",
@@ -6,5 +8,15 @@ export const metadata = {
 };
 
 export default function Page() {
-  return <BuildingDesignerPage />;
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
+          <Loader />
+        </div>
+      }
+    >
+      <BuildingDesignerPage />
+    </Suspense>
+  );
 }
