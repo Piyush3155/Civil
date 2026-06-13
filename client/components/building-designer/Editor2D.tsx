@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect, MouseEvent } from "react";
-import { FloorPlanData, WallNode, Wall, Opening, SiteElement, SiteElementType } from "./types";
-import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box } from "lucide-react";
+import { FloorPlanData, WallNode, Wall, Opening, SiteElement, SiteElementType, RoomLabel } from "./types";
+import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 
@@ -12,13 +12,14 @@ interface Editor2DProps {
   title?: string;
 }
 
-type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree";
+type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_label";
 
 export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [mode, setMode] = useState<Mode>("select");
   const [selectedWallId, setSelectedWallId] = useState<string | null>(null);
   const [selectedOpeningId, setSelectedOpeningId] = useState<string | null>(null);
   const [selectedSiteElementId, setSelectedSiteElementId] = useState<string | null>(null);
+  const [selectedLabelId, setSelectedLabelId] = useState<string | null>(null);
   const [drawingStartNode, setDrawingStartNode] = useState<WallNode | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [snappedWallInfo, setSnappedWallInfo] = useState<{ wall: Wall; t: number } | null>(null);
@@ -120,6 +121,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       setSelectedWallId(null);
       setSelectedOpeningId(null);
       setSelectedSiteElementId(null);
+      setSelectedLabelId(null);
       return;
     }
 
@@ -184,7 +186,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       }
     }
 
-    if (mode.startsWith("add_") && !["add_door", "add_window"].includes(mode)) {
+    if (mode.startsWith("add_") && !["add_door", "add_window", "add_label"].includes(mode)) {
       const typeMap: Record<string, SiteElementType> = {
         add_grass: "grass",
         add_parking: "parking",
@@ -220,6 +222,27 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       }
       return;
     }
+
+    if (mode === "add_label") {
+      const presets = ["Bedroom", "Bathroom", "Kitchen", "Living Room", "Dining Room", "Hall", "Balcony", "Store", "Garage", "Office", "Lobby", "Staircase"];
+      const labelText = prompt(
+        `Enter room name:\n\nPresets: ${presets.join(", ")}\n\nOr type your own:`
+      );
+      if (labelText && labelText.trim()) {
+        const newLabel: RoomLabel = {
+          id: `label_${Date.now()}`,
+          text: labelText.trim(),
+          x: mousePos.x,
+          y: mousePos.y,
+          floorIndex: activeFloor,
+        };
+        onChange({
+          ...data,
+          roomLabels: [...(data.roomLabels || []), newLabel],
+        });
+      }
+      return;
+    }
   };
 
   const handleDelete = () => {
@@ -244,6 +267,10 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       const newSiteElements = (data.siteElements || []).filter(s => s.id !== selectedSiteElementId);
       onChange({ ...data, siteElements: newSiteElements });
       setSelectedSiteElementId(null);
+    } else if (selectedLabelId) {
+      const newLabels = (data.roomLabels || []).filter(l => l.id !== selectedLabelId);
+      onChange({ ...data, roomLabels: newLabels });
+      setSelectedLabelId(null);
     }
   };
 
@@ -504,11 +531,31 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         doc.setFontSize(6);
         doc.text(site.type.toUpperCase(), sx, sy, { align: "center", baseline: "middle" });
       });
+
+      // Draw Room Labels
+      const floorLabels = (data.roomLabels || []).filter(l => (l.floorIndex || 0) === floor);
+      floorLabels.forEach(label => {
+        const lx = mapX(label.x);
+        const ly = mapY(label.y);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(15, 23, 42);
+        doc.text(label.text.toUpperCase(), lx, ly, { align: "center", baseline: "middle" });
+      });
     }
 
     // Download
     doc.save(`${titleText.replace(/\s+/g, "_")}.pdf`);
   };
+
+  const handleDeleteRef = useRef(handleDelete);
+  handleDeleteRef.current = handleDelete;
+  const selectedSiteElementIdRef = useRef(selectedSiteElementId);
+  selectedSiteElementIdRef.current = selectedSiteElementId;
+  const dataRef = useRef(data);
+  dataRef.current = data;
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -517,23 +564,25 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         setMode("select");
       }
       if (e.key === "Delete" || e.key === "Backspace") {
-        handleDelete();
+        handleDeleteRef.current();
       }
       if (e.key === "R" || e.key === "r") {
-        if (selectedSiteElementId) {
-          const newSiteElements = (data.siteElements || []).map(s => {
-            if (s.id === selectedSiteElementId) {
+        const siteId = selectedSiteElementIdRef.current;
+        if (siteId) {
+          const currentData = dataRef.current;
+          const newSiteElements = (currentData.siteElements || []).map(s => {
+            if (s.id === siteId) {
               return { ...s, rotation: (s.rotation + 90) % 360 };
             }
             return s;
           });
-          onChange({ ...data, siteElements: newSiteElements });
+          onChangeRef.current({ ...currentData, siteElements: newSiteElements });
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedWallId, selectedOpeningId, data, activeFloor]);
+  }, []);
 
   return (
     <div className="w-full h-full relative flex flex-col bg-slate-900">
@@ -654,12 +703,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         >
           <Trees className="h-3.5 w-3.5 mr-1" /> Tree
         </Button>
+        <Button 
+          variant={mode === "add_label" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}
+        >
+          <Tag className="h-3.5 w-3.5 mr-1" /> Label
+        </Button>
         <div className="w-px h-6 bg-slate-700 mx-1" />
         <Button 
           variant="destructive" 
           size="sm"
           className="h-8 px-2"
-          disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId}
+          disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId && !selectedLabelId}
           onClick={handleDelete}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -889,6 +946,64 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               }}
             >
               {renderEl}
+            </g>
+          );
+        })}
+
+        {/* Render Active Floor Room Labels */}
+        {(data.roomLabels || []).filter(l => (l.floorIndex || 0) === activeFloor).map(label => {
+          const isSelected = selectedLabelId === label.id;
+          const textLen = label.text.length;
+          const bgWidth = Math.max(50, textLen * 8 + 16);
+
+          return (
+            <g
+              key={label.id}
+              transform={`translate(${label.x}, ${label.y})`}
+              className={mode === "select" ? "cursor-pointer" : ""}
+              onClick={(e) => {
+                if (mode === "select") {
+                  e.stopPropagation();
+                  setSelectedLabelId(label.id);
+                  setSelectedWallId(null);
+                  setSelectedOpeningId(null);
+                  setSelectedSiteElementId(null);
+                }
+              }}
+              onDoubleClick={(e) => {
+                if (mode === "select") {
+                  e.stopPropagation();
+                  const newText = prompt("Rename room:", label.text);
+                  if (newText && newText.trim()) {
+                    const updatedLabels = (data.roomLabels || []).map(l =>
+                      l.id === label.id ? { ...l, text: newText.trim() } : l
+                    );
+                    onChange({ ...data, roomLabels: updatedLabels });
+                  }
+                }
+              }}
+            >
+              <rect
+                x={-bgWidth / 2}
+                y={-10}
+                width={bgWidth}
+                height={20}
+                rx={6}
+                fill={isSelected ? "#1e3a5f" : "#1e293b"}
+                stroke={isSelected ? "#3b82f6" : "#475569"}
+                strokeWidth={isSelected ? 2 : 1}
+                opacity={0.9}
+              />
+              <text
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={isSelected ? "#93c5fd" : "#e2e8f0"}
+                fontSize={11}
+                fontWeight="bold"
+                style={{ pointerEvents: "none", userSelect: "none" }}
+              >
+                {label.text}
+              </text>
             </g>
           );
         })}

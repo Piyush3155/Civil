@@ -47,6 +47,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
     walls: [],
     openings: [],
     siteElements: [],
+    roomLabels: [],
   });
 
   const [aesthetics, setAesthetics] = useState<Aesthetics>(DEFAULT_AESTHETICS);
@@ -68,7 +69,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
       }
       try {
         const parsed = JSON.parse(initialData.description || "{}");
-        if (parsed.data) setData({ siteElements: [], ...parsed.data });
+        if (parsed.data) setData({ siteElements: [], roomLabels: [], ...parsed.data });
         if (parsed.aesthetics) setAesthetics(parsed.aesthetics);
       } catch (e) {
         console.error("Failed to parse initial plan data");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, Environment } from "@react-three/drei";
 import { FloorPlanData, Aesthetics } from "./types";
@@ -500,6 +500,22 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           return null;
         })}
 
+        {/* 3D Room Labels */}
+        {(data.roomLabels || []).map((label) => {
+          const cx = label.x / PIXELS_PER_METER;
+          const cz = label.y / PIXELS_PER_METER;
+          const floorIdx = label.floorIndex || 0;
+          const cy = floorIdx * 3.0 + 0.15; // Slightly above floor
+
+          return (
+            <RoomLabel3D
+              key={label.id}
+              text={label.text}
+              position={[cx, cy, cz]}
+            />
+          );
+        })}
+
         {/* Stacked roof mesh at very top */}
         {roofMesh}
 
@@ -510,5 +526,102 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         </mesh>
       </Canvas>
     </div>
+  );
+}
+
+interface RoomLabel3DProps {
+  text: string;
+  position: [number, number, number];
+}
+
+function RoomLabel3D({ text, position }: RoomLabel3DProps) {
+  const labelData = useMemo(() => {
+    if (typeof window === "undefined") return null;
+
+    // Create a temporary canvas to measure text length
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    if (!tempCtx) return null;
+
+    const fontSize = 44;
+    tempCtx.font = `bold ${fontSize}px sans-serif`;
+    const textUpper = text.toUpperCase();
+    const textWidth = tempCtx.measureText(textUpper).width;
+
+    const paddingX = 40;
+    const paddingY = 20;
+    const borderThickness = 4;
+
+    const rectW = textWidth + paddingX * 2;
+    const rectH = fontSize + paddingY * 2;
+
+    const canvasW = Math.max(128, Math.ceil(rectW));
+    const canvasH = Math.max(64, Math.ceil(rectH));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Background Rounded Rect with Neon Border
+    const radius = 16;
+    const halfBorder = borderThickness / 2;
+    const rx = halfBorder;
+    const ry = halfBorder;
+    const rw = canvasW - borderThickness;
+    const rh = canvasH - borderThickness;
+
+    ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
+    ctx.strokeStyle = "#3b82f6";
+    ctx.lineWidth = borderThickness;
+
+    ctx.beginPath();
+    ctx.moveTo(rx + radius, ry);
+    ctx.lineTo(rx + rw - radius, ry);
+    ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+    ctx.lineTo(rx + rw, ry + rh - radius);
+    ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+    ctx.lineTo(rx + radius, ry + rh);
+    ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+    ctx.lineTo(rx, ry + radius);
+    ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+    ctx.closePath();
+
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw text centered
+    ctx.fillStyle = "#f1f5f9";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.fillText(textUpper, canvasW / 2, canvasH / 2);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+
+    return {
+      texture: tex,
+      width: canvasW / 200,
+      height: canvasH / 200,
+    };
+  }, [text]);
+
+  useEffect(() => {
+    return () => {
+      if (labelData?.texture) {
+        labelData.texture.dispose();
+      }
+    };
+  }, [labelData]);
+
+  if (!labelData) return null;
+
+  return (
+    <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
+      <planeGeometry args={[labelData.width, labelData.height]} />
+      <meshBasicMaterial map={labelData.texture} transparent depthWrite={false} />
+    </mesh>
   );
 }

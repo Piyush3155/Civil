@@ -41,11 +41,20 @@ export interface SiteElement {
   floorIndex?: number; // Usually 0 for ground level elements
 }
 
+export interface RoomLabel {
+  id: string;
+  text: string; // e.g. "Bedroom", "Kitchen", "Bathroom"
+  x: number; // Center x in SVG coordinates
+  y: number; // Center y in SVG coordinates
+  floorIndex?: number;
+}
+
 export interface FloorPlanData {
   nodes: WallNode[];
   walls: Wall[];
   openings: Opening[];
   siteElements?: SiteElement[]; // Optional for backward compatibility
+  roomLabels?: RoomLabel[]; // Optional for backward compatibility
 }
 
 export interface Aesthetics {
