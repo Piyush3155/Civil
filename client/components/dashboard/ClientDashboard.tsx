@@ -152,7 +152,7 @@ const StatCard = ({
 }: { 
   title: string
   value: number | string
-  icon: React.ElementType
+  icon: React.ComponentType<any>
   description?: string
   loading?: boolean
 }) => {

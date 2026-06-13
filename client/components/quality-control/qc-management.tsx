@@ -64,7 +64,7 @@ interface QCManagementProps {
 }
 
 // Status configuration with colors and icons
-const statusConfig: Record<NCRStatus, { label: string; color: "default" | "secondary" | "destructive" | "outline"; icon: React.ElementType; bgClass: string }> = {
+const statusConfig: Record<NCRStatus, { label: string; color: "default" | "secondary" | "destructive" | "outline"; icon: React.ComponentType<any>; bgClass: string }> = {
   OPEN: { label: "Open", color: "destructive", icon: AlertCircle, bgClass: "bg-red-50 dark:bg-red-950/20" },
   ASSIGNED: { label: "Assigned", color: "default", icon: User, bgClass: "bg-blue-50 dark:bg-blue-950/20" },
   IN_PROGRESS: { label: "In Progress", color: "default", icon: PlayCircle, bgClass: "bg-yellow-50 dark:bg-yellow-950/20" },
@@ -74,7 +74,7 @@ const statusConfig: Record<NCRStatus, { label: string; color: "default" | "secon
   REJECTED: { label: "Rejected", color: "destructive", icon: XCircle, bgClass: "bg-red-50 dark:bg-red-950/20" },
 }
 
-const typeConfig: Record<QCType, { label: string; icon: React.ElementType; color: string }> = {
+const typeConfig: Record<QCType, { label: string; icon: React.ComponentType<any>; color: string }> = {
   QUALITY: { label: "Quality Issue", icon: AlertTriangle, color: "text-orange-600" },
   SAFETY: { label: "Safety Issue", icon: HardHat, color: "text-red-600" },
   DEFECT: { label: "Defect/Snag", icon: Bug, color: "text-purple-600" },

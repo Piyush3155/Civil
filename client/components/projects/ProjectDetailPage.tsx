@@ -264,7 +264,7 @@ export default function ProjectDetailPage() {
   }
 
   function getFileIcon(type: string) {
-    const iconMap: { [key: string]: React.ElementType } = {
+    const iconMap: { [key: string]: React.ComponentType<any> } = {
       PDF: BookOpenText,
       DWG: File,
       DXF: File,
