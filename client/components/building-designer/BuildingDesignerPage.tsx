@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { FloorPlanData, Aesthetics, DEFAULT_AESTHETICS } from "./types";
 
-import { Box, Pencil, Save, Settings, Move, ZoomIn } from "lucide-react";
+import { Box, Pencil, Save, Settings, Move, ZoomIn, PanelLeftClose, PanelLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -70,6 +70,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
 
   const [editingDrawingId, setEditingDrawingId] = useState<string | null>(null);
   const [originalDrawing, setOriginalDrawing] = useState<any | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Load drawing from drawingId if present in search parameters
   useEffect(() => {
@@ -286,9 +287,32 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background">
+    <div className="flex h-[calc(100vh-4rem)] bg-background relative">
+      {/* Mobile sidebar toggle */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="absolute top-3 left-3 z-30 lg:hidden flex items-center justify-center h-9 w-9 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors shadow-lg backdrop-blur-sm"
+        title={sidebarOpen ? "Close panel" : "Open panel"}
+      >
+        {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
+      </button>
+
+      {/* Sidebar backdrop (mobile) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar / Properties Panel */}
-      <div className="w-80 border-r bg-card flex flex-col">
+      <div className={`
+        fixed lg:relative z-20 lg:z-auto
+        w-72 sm:w-80 h-[calc(100vh-4rem)]
+        border-r bg-card flex flex-col
+        transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:min-w-0 lg:overflow-hidden lg:border-r-0 lg:p-0'}
+      `}>
         <div className="p-4 border-b">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <Box className="h-5 w-5" />

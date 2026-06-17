@@ -614,7 +614,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   return (
     <div className="w-full h-full relative flex flex-col bg-slate-900">
       {/* Floor Stack Navigation and controls */}
-      <div className="absolute top-4 left-4 z-10 flex items-center gap-1 bg-slate-800/90 border border-slate-700 p-1 rounded-xl shadow-2xl">
+      <div className="absolute top-14 lg:top-4 left-4 z-10 flex items-center gap-1 bg-slate-800/90 border border-slate-700 p-1 rounded-xl shadow-2xl">
         <select
           className="bg-slate-900 text-slate-200 border-none rounded px-2.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none cursor-pointer"
           value={activeFloor}
@@ -656,7 +656,9 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       </div>
 
       {/* 2D Design Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-slate-800/95 border border-slate-700 p-1.5 rounded-xl shadow-2xl">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-2rem)] lg:max-w-none">
+        {/* Structural Tools Row */}
+        <div className="flex flex-wrap items-center gap-1 bg-slate-800/95 border border-slate-700 p-1.5 rounded-xl shadow-2xl">
         <Button 
           variant={mode === "select" ? "default" : "secondary"} 
           size="sm" 
@@ -689,64 +691,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         >
           <Plus className="h-3.5 w-3.5 mr-1" /> Window
         </Button>
-        <div className="w-px h-6 bg-slate-700 mx-1" />
-        <Button 
-          variant={mode === "add_grass" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}
-        >
-          <LayoutPanelLeft className="h-3.5 w-3.5 mr-1" /> Grass
-        </Button>
-        <Button 
-          variant={mode === "add_parking" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}
-        >
-          <Box className="h-3.5 w-3.5 mr-1" /> Parking
-        </Button>
-        <Button 
-          variant={mode === "add_vehicle" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}
-        >
-          <Car className="h-3.5 w-3.5 mr-1" /> Car
-        </Button>
-        <Button 
-          variant={mode === "add_gate" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}
-        >
-          <Fence className="h-3.5 w-3.5 mr-1" /> Gate
-        </Button>
-        <Button 
-          variant={mode === "add_tree" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}
-        >
-          <Trees className="h-3.5 w-3.5 mr-1" /> Tree
-        </Button>
-        <Button 
-          variant={mode === "add_stairs" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}
-        >
-          <Footprints className="h-3.5 w-3.5 mr-1" /> Stairs
-        </Button>
-        <Button 
-          variant={mode === "add_label" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2.5"
-          onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}
-        >
-          <Tag className="h-3.5 w-3.5 mr-1" /> Label
-        </Button>
-        <div className="w-px h-6 bg-slate-700 mx-1" />
+        <div className="w-px h-6 bg-slate-700 mx-0.5 hidden sm:block" />
         <Button 
           variant="destructive" 
           size="sm"
@@ -764,6 +709,67 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         >
           <FileDown className="h-3.5 w-3.5 mr-1 text-sky-400" /> Export PDF
         </Button>
+        </div>
+
+        {/* Site Elements Row */}
+        <div className="flex flex-wrap items-center gap-1 bg-slate-800/95 border border-slate-700 p-1.5 rounded-xl shadow-2xl">
+        <Button 
+          variant={mode === "add_grass" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}
+        >
+          <LayoutPanelLeft className="h-3.5 w-3.5 mr-1" /> Grass
+        </Button>
+        <Button 
+          variant={mode === "add_parking" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}
+        >
+          <Box className="h-3.5 w-3.5 mr-1" /> Parking
+        </Button>
+        <Button 
+          variant={mode === "add_vehicle" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}
+        >
+          <Car className="h-3.5 w-3.5 mr-1" /> Car
+        </Button>
+        <Button 
+          variant={mode === "add_gate" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}
+        >
+          <Fence className="h-3.5 w-3.5 mr-1" /> Gate
+        </Button>
+        <Button 
+          variant={mode === "add_tree" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}
+        >
+          <Trees className="h-3.5 w-3.5 mr-1" /> Tree
+        </Button>
+        <Button 
+          variant={mode === "add_stairs" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}
+        >
+          <Footprints className="h-3.5 w-3.5 mr-1" /> Stairs
+        </Button>
+        <Button 
+          variant={mode === "add_label" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}
+        >
+          <Tag className="h-3.5 w-3.5 mr-1" /> Label
+        </Button>
+        </div>
       </div>
 
       <svg
