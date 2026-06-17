@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { FloorPlanData, Aesthetics, DEFAULT_AESTHETICS } from "./types";
 
-import { Box, Pencil, Save, Settings, Move, ZoomIn, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Box, Pencil, Save, Settings, Move, ZoomIn, PanelLeftClose, PanelLeft, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
@@ -37,6 +37,7 @@ import { getSession } from "@/lib/sessionAction";
 import Loader from "@/components/ui/loader";
 import Editor2D from "./Editor2D";
 import Viewer3D from "./Viewer3D";
+import { generateFloorPlan } from "@/app/actions/ai/main";
 
 interface BuildingDesignerPageProps {
   initialData?: any;
@@ -71,6 +72,8 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
   const [editingDrawingId, setEditingDrawingId] = useState<string | null>(null);
   const [originalDrawing, setOriginalDrawing] = useState<any | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Load drawing from drawingId if present in search parameters
   useEffect(() => {
@@ -286,6 +289,59 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
     }
   };
 
+  const handleGenerateAI = async () => {
+    // Guard: prevent duplicate requests
+    if (isGenerating) return;
+
+    if (!aiPrompt.trim()) {
+      toast.error("Please enter a description of the floor plan you want.");
+      return;
+    }
+
+    // Confirm if there's existing data
+    if (data.walls.length > 0) {
+      const confirmed = window.confirm(
+        "This will replace your current design with an AI-generated plan. Continue?"
+      );
+      if (!confirmed) return;
+    }
+
+    setIsGenerating(true);
+    toast.loading("AI is generating your floor plan...", { id: "ai-generate" });
+
+    try {
+      const result = await generateFloorPlan(aiPrompt);
+
+      if (!result.success || !result.data) {
+        toast.error(result.error || "Failed to generate floor plan.", {
+          id: "ai-generate",
+        });
+        return;
+      }
+
+      // Merge with defaults for backward compatibility
+      setData({
+        nodes: result.data.nodes || [],
+        walls: result.data.walls || [],
+        openings: result.data.openings || [],
+        siteElements: result.data.siteElements || [],
+        roomLabels: result.data.roomLabels || [],
+      });
+
+      toast.success("Floor plan generated successfully!", {
+        id: "ai-generate",
+        description: "You can now edit the plan in 2D or view it in 3D.",
+      });
+    } catch (error) {
+      console.error("AI generation error:", error);
+      toast.error("Something went wrong. Please try again.", {
+        id: "ai-generate",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-background relative">
       {/* Mobile sidebar toggle */}
@@ -321,6 +377,39 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-6">
+          {/* AI Plan Generator */}
+          <div className="space-y-3 p-3 rounded-xl bg-gradient-to-br from-violet-950/50 to-indigo-950/50 border border-violet-800/40">
+            <h3 className="font-semibold text-sm flex items-center gap-2 text-violet-200">
+              <Sparkles className="h-4 w-4 text-violet-400" />
+              AI Plan Generator
+            </h3>
+            <Textarea
+              placeholder='e.g. "Create a 2 BHK house plan, plot size 49x41 feet with parking and garden"'
+              className="bg-slate-900/80 border-violet-800/30 text-sm min-h-[72px] resize-none placeholder:text-slate-500 focus:border-violet-500 focus:ring-violet-500/20"
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              disabled={isGenerating}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGenerateAI();
+                }
+              }}
+            />
+            <Button
+              onClick={handleGenerateAI}
+              disabled={isGenerating || !aiPrompt.trim()}
+              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/30 transition-all"
+              size="sm"
+            >
+              {isGenerating ? (
+                <><Loader /> Generating...</>
+              ) : (
+                <><Sparkles className="h-4 w-4 mr-2" /> Generate Plan</>
+              )}
+            </Button>
+          </div>
+
           <div className="space-y-3">
             <Label>Project Title</Label>
             <Input value={saveForm.title} onChange={(e) => setSaveForm({ ...saveForm, title: e.target.value })} />
