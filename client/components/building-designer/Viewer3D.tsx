@@ -463,16 +463,110 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               </mesh>
             );
           } else if (site.type === "vehicle") {
-            // A simple vehicle made of two boxes
+            // Detailed vehicle with body, cabin, wheels, lights
+            const bW = site.width;   // body width
+            const bL = site.length;  // body length
+            const bodyH = 0.5;
+            const cabinH = 0.45;
+            const wheelR = 0.25;
+            const wheelW = 0.15;
+
             return (
-              <group key={site.id} position={[cx, cy + 0.05, cz]} rotation={[0, rotY, 0]}>
-                <mesh position={[0, 0.3, 0]} castShadow>
-                  <boxGeometry args={[site.width, 0.6, site.length]} />
-                  <meshStandardMaterial color="#0284c7" roughness={0.4} metalness={0.6} />
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                {/* Lower body / chassis */}
+                <mesh position={[0, bodyH / 2, 0]} castShadow>
+                  <boxGeometry args={[bW, bodyH, bL]} />
+                  <meshStandardMaterial color="#1e40af" roughness={0.3} metalness={0.7} />
                 </mesh>
-                <mesh position={[0, 0.8, -0.2]} castShadow>
-                  <boxGeometry args={[site.width - 0.2, 0.5, site.length * 0.6]} />
-                  <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.8} />
+
+                {/* Upper cabin (windowed section, offset toward front) */}
+                <mesh position={[0, bodyH + cabinH / 2, -bL * 0.05]} castShadow>
+                  <boxGeometry args={[bW - 0.15, cabinH, bL * 0.55]} />
+                  <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.8} transparent opacity={0.85} />
+                </mesh>
+
+                {/* Windshield (front glass, angled) */}
+                <mesh position={[0, bodyH + cabinH * 0.6, bL * 0.22]} rotation={[0.3, 0, 0]} castShadow>
+                  <boxGeometry args={[bW - 0.2, cabinH * 0.7, 0.02]} />
+                  <meshStandardMaterial color="#38bdf8" roughness={0.05} metalness={0.9} transparent opacity={0.4} />
+                </mesh>
+
+                {/* Rear windshield */}
+                <mesh position={[0, bodyH + cabinH * 0.6, -bL * 0.32]} rotation={[-0.3, 0, 0]} castShadow>
+                  <boxGeometry args={[bW - 0.2, cabinH * 0.7, 0.02]} />
+                  <meshStandardMaterial color="#38bdf8" roughness={0.05} metalness={0.9} transparent opacity={0.4} />
+                </mesh>
+
+                {/* Front bumper */}
+                <mesh position={[0, 0.15, bL / 2 + 0.04]} castShadow>
+                  <boxGeometry args={[bW + 0.04, 0.2, 0.08]} />
+                  <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.5} />
+                </mesh>
+
+                {/* Rear bumper */}
+                <mesh position={[0, 0.15, -bL / 2 - 0.04]} castShadow>
+                  <boxGeometry args={[bW + 0.04, 0.2, 0.08]} />
+                  <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.5} />
+                </mesh>
+
+                {/* Headlights (front left & right) */}
+                <mesh position={[-bW / 2 + 0.2, 0.3, bL / 2 + 0.01]}>
+                  <boxGeometry args={[0.22, 0.1, 0.04]} />
+                  <meshStandardMaterial color="#fef3c7" emissive="#fbbf24" emissiveIntensity={0.8} />
+                </mesh>
+                <mesh position={[bW / 2 - 0.2, 0.3, bL / 2 + 0.01]}>
+                  <boxGeometry args={[0.22, 0.1, 0.04]} />
+                  <meshStandardMaterial color="#fef3c7" emissive="#fbbf24" emissiveIntensity={0.8} />
+                </mesh>
+
+                {/* Taillights (rear left & right) */}
+                <mesh position={[-bW / 2 + 0.2, 0.3, -bL / 2 - 0.01]}>
+                  <boxGeometry args={[0.22, 0.1, 0.04]} />
+                  <meshStandardMaterial color="#fca5a5" emissive="#ef4444" emissiveIntensity={0.6} />
+                </mesh>
+                <mesh position={[bW / 2 - 0.2, 0.3, -bL / 2 - 0.01]}>
+                  <boxGeometry args={[0.22, 0.1, 0.04]} />
+                  <meshStandardMaterial color="#fca5a5" emissive="#ef4444" emissiveIntensity={0.6} />
+                </mesh>
+
+                {/* 4 Wheels (cylinders rotated sideways) */}
+                {/* Front-left */}
+                <mesh position={[-bW / 2 - wheelW / 2, wheelR, bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                  <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
+                  <meshStandardMaterial color="#1c1917" roughness={0.9} />
+                </mesh>
+                {/* Front-right */}
+                <mesh position={[bW / 2 + wheelW / 2, wheelR, bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                  <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
+                  <meshStandardMaterial color="#1c1917" roughness={0.9} />
+                </mesh>
+                {/* Rear-left */}
+                <mesh position={[-bW / 2 - wheelW / 2, wheelR, -bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                  <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
+                  <meshStandardMaterial color="#1c1917" roughness={0.9} />
+                </mesh>
+                {/* Rear-right */}
+                <mesh position={[bW / 2 + wheelW / 2, wheelR, -bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
+                  <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
+                  <meshStandardMaterial color="#1c1917" roughness={0.9} />
+                </mesh>
+
+                {/* Wheel rims (shiny disc inside each wheel) */}
+                {[[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([xSign, zSign], idx) => (
+                  <mesh
+                    key={`rim_${idx}`}
+                    position={[xSign * (bW / 2 + wheelW / 2), wheelR, zSign * bL * 0.3]}
+                    rotation={[0, 0, Math.PI / 2]}
+                  >
+                    <cylinderGeometry args={[wheelR * 0.55, wheelR * 0.55, wheelW + 0.02, 16]} />
+                    <meshStandardMaterial color="#a1a1aa" roughness={0.2} metalness={0.8} />
+                  </mesh>
+                ))}
+
+                {/* Roof rack lines (subtle chrome strips on top) */}
+                <mesh position={[0, bodyH + cabinH + 0.02, -bL * 0.05]}>
+                  <boxGeometry args={[bW - 0.3, 0.02, bL * 0.45]} />
+                  <meshStandardMaterial color="#475569" roughness={0.3} metalness={0.6} />
                 </mesh>
               </group>
             );
@@ -494,6 +588,104 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   <sphereGeometry args={[1.5, 16, 16]} />
                   <meshStandardMaterial color="#16a34a" roughness={0.8} />
                 </mesh>
+              </group>
+            );
+          } else if (site.type === "stairs") {
+            // 3D Staircase with individual treads, stringers, and railings
+            const stW = site.width;
+            const stL = site.length;
+            const totalH = 3.0; // One floor height
+            const numTreads = Math.max(4, Math.round(stL / 0.28)); // ~28cm tread depth
+            const treadDepth = stL / numTreads;
+            const riserH = totalH / numTreads;
+            const treadThickness = 0.05;
+            const railHeight = 0.9;
+            const railThickness = 0.04;
+            const postSize = 0.05;
+
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                {/* Individual treads */}
+                {Array.from({ length: numTreads }, (_, i) => {
+                  const treadY = riserH * (i + 1);
+                  const treadZ = -stL / 2 + treadDepth * i + treadDepth / 2;
+
+                  return (
+                    <mesh key={`tread_${i}`} position={[0, treadY, treadZ]} castShadow receiveShadow>
+                      <boxGeometry args={[stW, treadThickness, treadDepth]} />
+                      <meshStandardMaterial color="#78716c" roughness={0.7} />
+                    </mesh>
+                  );
+                })}
+
+                {/* Risers (vertical faces between treads) */}
+                {Array.from({ length: numTreads }, (_, i) => {
+                  const riserY = riserH * i + riserH / 2;
+                  const riserZ = -stL / 2 + treadDepth * i + treadDepth / 2;
+
+                  return (
+                    <mesh key={`riser_${i}`} position={[0, riserY, riserZ]} castShadow>
+                      <boxGeometry args={[stW, riserH, treadThickness]} />
+                      <meshStandardMaterial color="#57534e" roughness={0.8} />
+                    </mesh>
+                  );
+                })}
+
+                {/* Left stringer (side beam) */}
+                <mesh
+                  position={[-stW / 2 - 0.02, totalH / 2, 0]}
+                  castShadow
+                >
+                  <boxGeometry args={[0.04, totalH, stL]} />
+                  <meshStandardMaterial color="#44403c" roughness={0.6} />
+                </mesh>
+
+                {/* Right stringer */}
+                <mesh
+                  position={[stW / 2 + 0.02, totalH / 2, 0]}
+                  castShadow
+                >
+                  <boxGeometry args={[0.04, totalH, stL]} />
+                  <meshStandardMaterial color="#44403c" roughness={0.6} />
+                </mesh>
+
+                {/* Left railing */}
+                <mesh position={[-stW / 2 - 0.02, totalH + railHeight / 2, 0]}>
+                  <boxGeometry args={[railThickness, railHeight, stL]} />
+                  <meshStandardMaterial color="#71717a" roughness={0.3} metalness={0.7} />
+                </mesh>
+
+                {/* Right railing */}
+                <mesh position={[stW / 2 + 0.02, totalH + railHeight / 2, 0]}>
+                  <boxGeometry args={[railThickness, railHeight, stL]} />
+                  <meshStandardMaterial color="#71717a" roughness={0.3} metalness={0.7} />
+                </mesh>
+
+                {/* Railing posts (left side) */}
+                {Array.from({ length: Math.ceil(numTreads / 3) + 1 }, (_, i) => {
+                  const postI = i * 3;
+                  const postY = Math.min(riserH * (postI + 1), totalH) + railHeight / 2;
+                  const postZ = -stL / 2 + treadDepth * Math.min(postI, numTreads - 1) + treadDepth / 2;
+                  return (
+                    <mesh key={`lpost_${i}`} position={[-stW / 2 - 0.02, postY, postZ]}>
+                      <boxGeometry args={[postSize, railHeight, postSize]} />
+                      <meshStandardMaterial color="#a1a1aa" roughness={0.3} metalness={0.6} />
+                    </mesh>
+                  );
+                })}
+
+                {/* Railing posts (right side) */}
+                {Array.from({ length: Math.ceil(numTreads / 3) + 1 }, (_, i) => {
+                  const postI = i * 3;
+                  const postY = Math.min(riserH * (postI + 1), totalH) + railHeight / 2;
+                  const postZ = -stL / 2 + treadDepth * Math.min(postI, numTreads - 1) + treadDepth / 2;
+                  return (
+                    <mesh key={`rpost_${i}`} position={[stW / 2 + 0.02, postY, postZ]}>
+                      <boxGeometry args={[postSize, railHeight, postSize]} />
+                      <meshStandardMaterial color="#a1a1aa" roughness={0.3} metalness={0.6} />
+                    </mesh>
+                  );
+                })}
               </group>
             );
           }

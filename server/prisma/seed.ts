@@ -161,7 +161,7 @@ async function main() {
   // -------------------------
   // ASSIGN ROLES TO USERS
   // -------------------------
-  
+
   // Admin - both ADMIN and USER roles
   await prisma.userRole.upsert({
     where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
@@ -279,14 +279,14 @@ async function main() {
   // -------------------------
   // ASSIGN USERS TO PROJECT
   // -------------------------
-  
+
   // Piyush as Project Manager
   await prisma.projectMember.upsert({
-    where: { 
-      projectId_userId: { 
-        projectId: sampleProject.id, 
-        userId: piyushUser.id 
-      } 
+    where: {
+      projectId_userId: {
+        projectId: sampleProject.id,
+        userId: piyushUser.id
+      }
     },
     update: {},
     create: {
@@ -298,11 +298,11 @@ async function main() {
 
   // Rajesh as Site Engineer
   await prisma.projectMember.upsert({
-    where: { 
-      projectId_userId: { 
-        projectId: sampleProject.id, 
-        userId: engineerUser.id 
-      } 
+    where: {
+      projectId_userId: {
+        projectId: sampleProject.id,
+        userId: engineerUser.id
+      }
     },
     update: {},
     create: {
@@ -314,11 +314,11 @@ async function main() {
 
   // Priya as Site Engineer
   await prisma.projectMember.upsert({
-    where: { 
-      projectId_userId: { 
-        projectId: sampleProject.id, 
-        userId: engineerUser2.id 
-      } 
+    where: {
+      projectId_userId: {
+        projectId: sampleProject.id,
+        userId: engineerUser2.id
+      }
     },
     update: {},
     create: {
@@ -330,11 +330,11 @@ async function main() {
 
   // Assign contractor to project
   await prisma.projectContractor.upsert({
-    where: { 
-      projectId_contractorId: { 
-        projectId: sampleProject.id, 
-        contractorId: amitContractorCompany.id 
-      } 
+    where: {
+      projectId_contractorId: {
+        projectId: sampleProject.id,
+        contractorId: amitContractorCompany.id
+      }
     },
     update: {},
     create: {
@@ -369,37 +369,37 @@ async function main() {
   console.log('   Username: admin');
   console.log('   Password: password123');
   console.log('   Role: ADMIN\n');
-  
+
   console.log('2. Project Manager (Piyush):');
   console.log('   Email: piyush.playtech@gmail.com');
   console.log('   Username: piyush');
   console.log('   Password: 123');
   console.log('   Role: PROJECT_MANAGER\n');
-  
+
   console.log('3. Site Engineer (Rajesh):');
   console.log('   Email: engineer@civil.com');
   console.log('   Username: rajesh_engineer');
   console.log('   Password: 123');
   console.log('   Role: SITE_ENGINEER\n');
-  
+
   console.log('4. Site Engineer (Priya):');
   console.log('   Email: priya.engineer@civil.com');
   console.log('   Username: priya_engineer');
   console.log('   Password: 123');
   console.log('   Role: SITE_ENGINEER\n');
-  
+
   console.log('5. Contractor (Amit):');
   console.log('   Email: contractor@civil.com');
   console.log('   Username: amit_contractor');
   console.log('   Password: 123');
   console.log('   Role: CONTRACTOR\n');
-  
+
   console.log('6. Labour (Ramesh):');
   console.log('   Email: labour@civil.com');
   console.log('   Username: ramesh_labour');
   console.log('   Password: 123');
   console.log('   Role: LABOUR\n');
-  
+
   console.log('🏗️  Sample Project Created:');
   console.log('   Project: Metro Station Construction - Phase 1');
   console.log('   Code: PROJ-2025-001');

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, MouseEvent } from "react";
 import { FloorPlanData, WallNode, Wall, Opening, SiteElement, SiteElementType, RoomLabel } from "./types";
-import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag } from "lucide-react";
+import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag, Footprints } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 
@@ -12,7 +12,7 @@ interface Editor2DProps {
   title?: string;
 }
 
-type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_label";
+type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_stairs" | "add_label";
 
 export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [mode, setMode] = useState<Mode>("select");
@@ -193,6 +193,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         add_vehicle: "vehicle",
         add_gate: "gate",
         add_tree: "tree",
+        add_stairs: "stairs",
       };
       const siteType = typeMap[mode];
       if (siteType) {
@@ -203,6 +204,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         if (siteType === "vehicle") { defaultWidth = 2; defaultLength = 4.5; }
         if (siteType === "gate") { defaultWidth = 3; defaultLength = 0.2; }
         if (siteType === "tree") { defaultWidth = 1.5; defaultLength = 1.5; }
+        if (siteType === "stairs") { defaultWidth = 1.2; defaultLength = 3; }
 
         const newSiteElement: SiteElement = {
           id: `site_${Date.now()}`,
@@ -518,6 +520,31 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           // Drawing a simple circle
           doc.circle(sx, sy, wMM/2, "S");
           return; // Skip rect drawing
+        } else if (site.type === "stairs") {
+          doc.setDrawColor(120, 113, 108); // stone
+          doc.setLineWidth(0.6);
+          // Draw rect with tread lines inside
+          doc.line(pts[0].x, pts[0].y, pts[1].x, pts[1].y);
+          doc.line(pts[1].x, pts[1].y, pts[2].x, pts[2].y);
+          doc.line(pts[2].x, pts[2].y, pts[3].x, pts[3].y);
+          doc.line(pts[3].x, pts[3].y, pts[0].x, pts[0].y);
+          // Draw tread lines
+          const numTreads = Math.max(3, Math.round(lMM / 2));
+          const cos = Math.cos((site.rotation * Math.PI) / 180);
+          const sin = Math.sin((site.rotation * Math.PI) / 180);
+          doc.setLineWidth(0.2);
+          for (let i = 1; i < numTreads; i++) {
+            const frac = i / numTreads;
+            const tx1 = sx + ((-wMM/2) * cos - (-lMM/2 + lMM * frac) * sin);
+            const ty1 = sy + ((-wMM/2) * sin + (-lMM/2 + lMM * frac) * cos);
+            const tx2 = sx + ((wMM/2) * cos - (-lMM/2 + lMM * frac) * sin);
+            const ty2 = sy + ((wMM/2) * sin + (-lMM/2 + lMM * frac) * cos);
+            doc.line(tx1, ty1, tx2, ty2);
+          }
+          doc.setTextColor(100, 116, 139);
+          doc.setFontSize(6);
+          doc.text("STAIRS", sx, sy, { align: "center", baseline: "middle" });
+          return; // Skip default rect drawing
         }
 
         // Draw rotated rect
@@ -702,6 +729,14 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}
         >
           <Trees className="h-3.5 w-3.5 mr-1" /> Tree
+        </Button>
+        <Button 
+          variant={mode === "add_stairs" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2.5"
+          onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}
+        >
+          <Footprints className="h-3.5 w-3.5 mr-1" /> Stairs
         </Button>
         <Button 
           variant={mode === "add_label" ? "default" : "secondary"} 
@@ -929,6 +964,19 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#b45309" stroke={isSelected ? "#3b82f6" : "#78350f"} strokeWidth={isSelected ? 3 : 1} />;
           } else if (site.type === "tree") {
             renderEl = <circle cx={0} cy={0} r={wPx/2} fill="#22c55e" opacity={0.8} stroke={isSelected ? "#3b82f6" : "#15803d"} strokeWidth={isSelected ? 3 : 2} />;
+          } else if (site.type === "stairs") {
+            const numTreads = Math.max(3, Math.round(lPx / 8));
+            const treadH = lPx / numTreads;
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#44403c" stroke={isSelected ? "#3b82f6" : "#78716c"} strokeWidth={isSelected ? 3 : 1.5} rx={2} />
+                {Array.from({ length: numTreads }, (_, i) => (
+                  <line key={i} x1={-wPx/2 + 2} y1={-lPx/2 + treadH * (i + 1)} x2={wPx/2 - 2} y2={-lPx/2 + treadH * (i + 1)} stroke={isSelected ? "#60a5fa" : "#a8a29e"} strokeWidth={1.2} />
+                ))}
+                {/* Arrow indicating direction */}
+                <polygon points={`0,${-lPx/2 + 6} ${-4},${-lPx/2 + 14} ${4},${-lPx/2 + 14}`} fill={isSelected ? "#60a5fa" : "#d6d3d1"} />
+              </g>
+            );
           }
 
           return (
