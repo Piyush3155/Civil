@@ -12,7 +12,7 @@ interface Editor2DProps {
   title?: string;
 }
 
-type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_stairs" | "add_label";
+type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_stairs" | "add_label" | "add_compound";
 
 export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [mode, setMode] = useState<Mode>("select");
@@ -194,6 +194,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         add_gate: "gate",
         add_tree: "tree",
         add_stairs: "stairs",
+        add_compound: "compound",
       };
       const siteType = typeMap[mode];
       if (siteType) {
@@ -205,6 +206,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         if (siteType === "gate") { defaultWidth = 3; defaultLength = 0.2; }
         if (siteType === "tree") { defaultWidth = 1.5; defaultLength = 1.5; }
         if (siteType === "stairs") { defaultWidth = 1.2; defaultLength = 3; }
+        if (siteType === "compound") { defaultWidth = 20; defaultLength = 15; }
 
         const newSiteElement: SiteElement = {
           id: `site_${Date.now()}`,
@@ -769,6 +771,15 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         >
           <Tag className="h-3.5 w-3.5 mr-1" /> Label
         </Button>
+        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
+        <Button 
+          variant={mode === "add_compound" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}
+        >
+          <Box className="h-3.5 w-3.5 mr-1" /> Compound
+        </Button>
         </div>
       </div>
 
@@ -983,6 +994,8 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
                 <polygon points={`0,${-lPx/2 + 6} ${-4},${-lPx/2 + 14} ${4},${-lPx/2 + 14}`} fill={isSelected ? "#60a5fa" : "#d6d3d1"} />
               </g>
             );
+          } else if (site.type === "compound") {
+            renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="none" stroke={isSelected ? "#3b82f6" : "#64748b"} strokeWidth={isSelected ? 4 : 2} rx={2} strokeDasharray="10,5" />;
           }
 
           return (
@@ -1073,6 +1086,55 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           <circle cx={mousePos.x} cy={mousePos.y} r={4} fill="#3b82f6" className="animate-pulse" />
         )}
       </svg>
+
+      {/* Floating Property Editor for Site Elements */}
+      {selectedSiteElementId && (
+        <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-xl w-56">
+          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Element Properties</div>
+          {(() => {
+            const el = (data.siteElements || []).find(s => s.id === selectedSiteElementId);
+            if (!el) return null;
+            return (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Rotation</label>
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-md hover:bg-white dark:hover:bg-slate-700 shadow-sm" onClick={() => {
+                      const newSiteElements = (data.siteElements || []).map(s => s.id === el.id ? { ...s, rotation: (s.rotation - 15) % 360 } : s);
+                      onChange({ ...data, siteElements: newSiteElements });
+                    }}>-</Button>
+                    <span className="text-xs w-8 text-center font-mono">{el.rotation}°</span>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 rounded-md hover:bg-white dark:hover:bg-slate-700 shadow-sm" onClick={() => {
+                      const newSiteElements = (data.siteElements || []).map(s => s.id === el.id ? { ...s, rotation: (s.rotation + 15) % 360 } : s);
+                      onChange({ ...data, siteElements: newSiteElements });
+                    }}>+</Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Width (m)</label>
+                  <input type="number" value={el.width} step="0.5" className="w-16 h-7 text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 focus:ring-2 focus:ring-violet-500/50 outline-none" onChange={(e) => {
+                     const val = parseFloat(e.target.value);
+                     if (!isNaN(val) && val > 0) {
+                       const newSiteElements = (data.siteElements || []).map(s => s.id === el.id ? { ...s, width: val } : s);
+                       onChange({ ...data, siteElements: newSiteElements });
+                     }
+                  }} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Length (m)</label>
+                  <input type="number" value={el.length} step="0.5" className="w-16 h-7 text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-2 focus:ring-2 focus:ring-violet-500/50 outline-none" onChange={(e) => {
+                     const val = parseFloat(e.target.value);
+                     if (!isNaN(val) && val > 0) {
+                       const newSiteElements = (data.siteElements || []).map(s => s.id === el.id ? { ...s, length: val } : s);
+                       onChange({ ...data, siteElements: newSiteElements });
+                     }
+                  }} />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
