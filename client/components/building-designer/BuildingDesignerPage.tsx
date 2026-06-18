@@ -365,27 +365,30 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
       <div className={`
         fixed lg:relative z-20 lg:z-auto
         w-72 sm:w-80 h-[calc(100vh-4rem)]
-        border-r bg-card flex flex-col
-        transition-transform duration-300 ease-in-out
+        border-r border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex flex-col
+        transition-transform duration-300 ease-in-out shadow-xl lg:shadow-none
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:min-w-0 lg:overflow-hidden lg:border-r-0 lg:p-0'}
       `}>
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <Box className="h-5 w-5" />
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
+          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100 tracking-tight">
+            <Box className="h-5 w-5 text-violet-500" />
             Building Designer
           </h2>
         </div>
 
-        <div className="flex-1 overflow-auto p-4 space-y-6">
+        <div className="flex-1 overflow-auto p-5 space-y-8">
           {/* AI Plan Generator */}
-          <div className="space-y-3 p-3 rounded-xl bg-gradient-to-br from-violet-950/50 to-indigo-950/50 border border-violet-800/40">
-            <h3 className="font-semibold text-sm flex items-center gap-2 text-violet-200">
-              <Sparkles className="h-4 w-4 text-violet-400" />
+          <div className="space-y-3 p-4 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/20 dark:to-indigo-950/20 border border-violet-100 dark:border-violet-900/30 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Sparkles className="h-16 w-16 text-violet-600" />
+            </div>
+            <h3 className="font-semibold text-sm flex items-center gap-2 text-violet-800 dark:text-violet-300 relative z-10">
+              <Sparkles className="h-4 w-4" />
               AI Plan Generator
             </h3>
             <Textarea
-              placeholder='e.g. "Create a 2 BHK house plan, plot size 49x41 feet with parking and garden"'
-              className="bg-slate-900/80 border-violet-800/30 text-sm min-h-[72px] resize-none placeholder:text-slate-500 focus:border-violet-500 focus:ring-violet-500/20"
+              placeholder='e.g. "Create a 2 BHK house plan, plot size 49x41 feet..."'
+              className="bg-white/80 dark:bg-slate-900/50 border-violet-200 dark:border-violet-800/50 text-sm min-h-[80px] resize-none placeholder:text-slate-400 focus-visible:ring-violet-500/30 relative z-10 rounded-xl"
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               disabled={isGenerating}
@@ -399,8 +402,8 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
             <Button
               onClick={handleGenerateAI}
               disabled={isGenerating || !aiPrompt.trim()}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/30 transition-all"
-              size="sm"
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20 transition-all rounded-xl relative z-10"
+              size="default"
             >
               {isGenerating ? (
                 <><Loader /> Generating...</>

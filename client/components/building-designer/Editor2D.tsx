@@ -612,11 +612,11 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   }, []);
 
   return (
-    <div className="w-full h-full relative flex flex-col bg-slate-900">
+    <div className="w-full h-full relative flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden">
       {/* Floor Stack Navigation and controls */}
-      <div className="absolute top-14 lg:top-4 left-4 z-10 flex items-center gap-1 bg-slate-800/90 border border-slate-700 p-1 rounded-xl shadow-2xl">
+      <div className="absolute top-14 lg:top-4 left-4 z-10 flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm">
         <select
-          className="bg-slate-900 text-slate-200 border-none rounded px-2.5 py-1.5 text-xs font-semibold focus:ring-1 focus:ring-primary outline-none cursor-pointer"
+          className="bg-transparent text-slate-700 dark:text-slate-200 border-none rounded-lg px-3 py-1.5 text-xs font-semibold focus:ring-2 focus:ring-violet-500/50 outline-none cursor-pointer"
           value={activeFloor}
           onChange={(e) => {
             setActiveFloor(parseInt(e.target.value));
@@ -636,7 +636,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-8 w-8 text-emerald-400 hover:text-emerald-300 hover:bg-slate-700/50" 
+          className="h-8 w-8 text-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-xl" 
           onClick={handleAddFloor}
           title="Add Floor"
         >
@@ -646,7 +646,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="h-8 w-8 text-rose-400 hover:text-rose-300 hover:bg-slate-700/50" 
+          className="h-8 w-8 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl" 
           disabled={maxFloorIndex === 0 && activeFloor === 0}
           onClick={handleDeleteFloor}
           title="Delete Level"
@@ -656,9 +656,9 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       </div>
 
       {/* 2D Design Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5 max-w-[calc(100vw-2rem)] lg:max-w-none">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 max-w-[calc(100vw-2rem)] lg:max-w-none">
         {/* Structural Tools Row */}
-        <div className="flex flex-wrap items-center gap-1 bg-slate-800/95 border border-slate-700 p-1.5 rounded-xl shadow-2xl">
+        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm">
         <Button 
           variant={mode === "select" ? "default" : "secondary"} 
           size="sm" 
@@ -704,15 +704,15 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         <Button 
           variant="outline" 
           size="sm"
-          className="h-8 border-slate-600 hover:bg-slate-700 text-slate-200 text-xs px-2.5"
+          className="h-8 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs px-2.5 rounded-xl"
           onClick={handleDownloadPdf}
         >
-          <FileDown className="h-3.5 w-3.5 mr-1 text-sky-400" /> Export PDF
+          <FileDown className="h-3.5 w-3.5 mr-1 text-sky-500" /> Export PDF
         </Button>
         </div>
 
         {/* Site Elements Row */}
-        <div className="flex flex-wrap items-center gap-1 bg-slate-800/95 border border-slate-700 p-1.5 rounded-xl shadow-2xl">
+        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm">
         <Button 
           variant={mode === "add_grass" ? "default" : "secondary"} 
           size="sm"
