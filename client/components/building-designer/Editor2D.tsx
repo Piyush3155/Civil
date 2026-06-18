@@ -24,6 +24,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [snappedWallInfo, setSnappedWallInfo] = useState<{ wall: Wall; t: number } | null>(null);
   const [activeFloor, setActiveFloor] = useState<number>(0);
+  const [isDraggingElement, setIsDraggingElement] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Constants
@@ -113,6 +114,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
 
       setMousePos(snappedPos);
       setSnappedWallInfo(null);
+      
+      if (isDraggingElement) {
+        if (selectedSiteElementId) {
+          const newSiteElements = (data.siteElements || []).map(s => 
+            s.id === selectedSiteElementId ? { ...s, x: snappedPos.x, y: snappedPos.y } : s
+          );
+          onChange({ ...data, siteElements: newSiteElements });
+        } else if (selectedLabelId) {
+          const newLabels = (data.roomLabels || []).map(l => 
+            l.id === selectedLabelId ? { ...l, x: snappedPos.x, y: snappedPos.y } : l
+          );
+          onChange({ ...data, roomLabels: newLabels });
+        }
+      }
     }
   };
 
@@ -763,6 +778,18 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         >
           <Footprints className="h-3.5 w-3.5 mr-1" /> Stairs
         </Button>
+        </div>
+
+        {/* Layout Row */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm self-end">
+        <Button 
+          variant={mode === "add_compound" ? "default" : "secondary"} 
+          size="sm"
+          className="h-8 text-xs px-2"
+          onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}
+        >
+          <Box className="h-3.5 w-3.5 mr-1" /> Compound Wall
+        </Button>
         <Button 
           variant={mode === "add_label" ? "default" : "secondary"} 
           size="sm"
@@ -770,15 +797,6 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
           onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}
         >
           <Tag className="h-3.5 w-3.5 mr-1" /> Label
-        </Button>
-        <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-0.5 hidden sm:block" />
-        <Button 
-          variant={mode === "add_compound" ? "default" : "secondary"} 
-          size="sm"
-          className="h-8 text-xs px-2"
-          onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}
-        >
-          <Box className="h-3.5 w-3.5 mr-1" /> Compound
         </Button>
         </div>
       </div>
@@ -788,6 +806,8 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         className="w-full h-full cursor-crosshair touch-none"
         onMouseMove={handleMouseMove}
         onClick={handleSvgClick}
+        onMouseUp={() => setIsDraggingElement(false)}
+        onMouseLeave={() => setIsDraggingElement(false)}
         viewBox="-400 -300 800 600"
       >
         <defs>
@@ -1002,13 +1022,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             <g
               key={site.id}
               transform={`translate(${site.x}, ${site.y}) rotate(${site.rotation})`}
-              className={mode === "select" ? "cursor-pointer" : ""}
-              onClick={(e) => {
+              className={mode === "select" ? (isDraggingElement && isSelected ? "cursor-grabbing" : "cursor-grab") : ""}
+              onMouseDown={(e) => {
                 if (mode === "select") {
                   e.stopPropagation();
                   setSelectedSiteElementId(site.id);
                   setSelectedWallId(null);
                   setSelectedOpeningId(null);
+                  setSelectedLabelId(null);
+                  setIsDraggingElement(true);
+                }
+              }}
+              onClick={(e) => {
+                if (mode === "select") {
+                  e.stopPropagation();
                 }
               }}
             >
@@ -1027,14 +1054,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             <g
               key={label.id}
               transform={`translate(${label.x}, ${label.y})`}
-              className={mode === "select" ? "cursor-pointer" : ""}
-              onClick={(e) => {
+              className={mode === "select" ? (isDraggingElement && isSelected ? "cursor-grabbing" : "cursor-grab") : ""}
+              onMouseDown={(e) => {
                 if (mode === "select") {
                   e.stopPropagation();
                   setSelectedLabelId(label.id);
                   setSelectedWallId(null);
                   setSelectedOpeningId(null);
                   setSelectedSiteElementId(null);
+                  setIsDraggingElement(true);
+                }
+              }}
+              onClick={(e) => {
+                if (mode === "select") {
+                  e.stopPropagation();
                 }
               }}
               onDoubleClick={(e) => {
@@ -1130,6 +1163,24 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
                      }
                   }} />
                 </div>
+                {el.type === "compound" && (
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Design</label>
+                    <select
+                      className="w-20 h-7 text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-1 focus:ring-2 focus:ring-violet-500/50 outline-none"
+                      value={el.style || "solid"}
+                      onChange={(e) => {
+                        const newSiteElements = (data.siteElements || []).map(s => s.id === el.id ? { ...s, style: e.target.value as any } : s);
+                        onChange({ ...data, siteElements: newSiteElements });
+                      }}
+                    >
+                      <option value="solid">Solid</option>
+                      <option value="brick">Brick</option>
+                      <option value="modern">Modern</option>
+                      <option value="picket">Picket</option>
+                    </select>
+                  </div>
+                )}
               </div>
             );
           })()}

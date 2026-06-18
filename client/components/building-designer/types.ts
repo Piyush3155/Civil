@@ -39,6 +39,7 @@ export interface SiteElement {
   width: number; // in meters (width along local X)
   length: number; // in meters (length/depth along local Y/Z)
   floorIndex?: number; // Usually 0 for ground level elements
+  style?: "solid" | "brick" | "modern" | "picket"; // For designed compound options
 }
 
 export interface RoomLabel {

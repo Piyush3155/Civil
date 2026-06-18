@@ -571,11 +571,30 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               </group>
             );
           } else if (site.type === "gate") {
+            const gateHeight = 2.2; // Taller than compound wall
+            const gateThick = 0.4; // Thicker than compound wall
             return (
-              <mesh key={site.id} position={[cx, cy + 0.6, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
-                <boxGeometry args={[site.width, 1.2, site.length]} />
-                <meshStandardMaterial color="#b45309" roughness={0.7} />
-              </mesh>
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                {/* Gate Outer Frame (Pillars) */}
+                <mesh position={[-site.width/2 + 0.15, gateHeight/2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[0.3, gateHeight, gateThick]} />
+                  <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+                </mesh>
+                <mesh position={[site.width/2 - 0.15, gateHeight/2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[0.3, gateHeight, gateThick]} />
+                  <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+                </mesh>
+                {/* Gate Header */}
+                <mesh position={[0, gateHeight - 0.1, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.2, gateThick]} />
+                  <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+                </mesh>
+                {/* Gate inner panels (wood/metal) */}
+                <mesh position={[0, gateHeight/2 - 0.1, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width - 0.6, gateHeight - 0.2, gateThick + 0.05]} />
+                  <meshStandardMaterial color="#78350f" roughness={0.9} />
+                </mesh>
+              </group>
             );
           } else if (site.type === "tree") {
             return (
@@ -686,6 +705,49 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                     </mesh>
                   );
                 })}
+              </group>
+            );
+          } else if (site.type === "compound") {
+            const w = site.width;
+            const l = site.length;
+            
+            let h = 1.8;
+            let th = 0.2;
+            let wallColor = "#94a3b8"; // solid
+            
+            if (site.style === "brick") {
+              wallColor = "#991b1b"; // red brick
+            } else if (site.style === "modern") {
+              wallColor = "#334155"; // slate
+              h = 2.0;
+            } else if (site.style === "picket") {
+              wallColor = "#ffffff"; // white fence
+              h = 1.2;
+              th = 0.1;
+            }
+
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                {/* Front wall */}
+                <mesh position={[0, h/2, l/2]} castShadow receiveShadow>
+                   <boxGeometry args={[w + th, h, th]} />
+                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                </mesh>
+                {/* Back wall */}
+                <mesh position={[0, h/2, -l/2]} castShadow receiveShadow>
+                   <boxGeometry args={[w + th, h, th]} />
+                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                </mesh>
+                {/* Left wall */}
+                <mesh position={[-w/2, h/2, 0]} castShadow receiveShadow>
+                   <boxGeometry args={[th, h, l - th]} />
+                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                </mesh>
+                {/* Right wall */}
+                <mesh position={[w/2, h/2, 0]} castShadow receiveShadow>
+                   <boxGeometry args={[th, h, l - th]} />
+                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                </mesh>
               </group>
             );
           }
