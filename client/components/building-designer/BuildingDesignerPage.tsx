@@ -74,6 +74,7 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAesthetics, setShowAesthetics] = useState(false);
 
   // Load drawing from drawingId if present in search parameters
   useEffect(() => {
@@ -364,13 +365,13 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
       {/* Sidebar / Properties Panel */}
       <div className={`
         fixed lg:relative z-20 lg:z-auto
-        w-72 sm:w-80 h-[calc(100vh-4rem)]
+        w-[280px] sm:w-[320px] h-[calc(100vh-4rem)]
         border-r border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex flex-col
-        transition-transform duration-300 ease-in-out shadow-xl lg:shadow-none
+        transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:min-w-0 lg:overflow-hidden lg:border-r-0 lg:p-0'}
       `}>
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
-          <h2 className="text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100 tracking-tight">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+          <h2 className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100 tracking-tight">
             <Box className="h-5 w-5 text-violet-500" />
             Building Designer
           </h2>
@@ -425,11 +426,22 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
             </TabsList>
           </Tabs>
 
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="font-semibold flex items-center gap-2">
-              <Settings className="h-4 w-4" /> Aesthetics
-            </h3>
-            <div className="space-y-3">
+          <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
+            <button 
+              onClick={() => setShowAesthetics(!showAesthetics)}
+              className="flex items-center justify-between w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-xl transition-all"
+            >
+              <h3 className="font-semibold flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <Settings className="h-4 w-4 text-slate-400" /> Aesthetics & Environment
+              </h3>
+              <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                {showAesthetics ? "Hide" : "Edit"}
+              </span>
+            </button>
+            
+            {showAesthetics && (
+              <div className="space-y-4 px-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                <div className="space-y-1.5">
               <div>
                 <Label>Wall Color</Label>
                 <div className="flex gap-2 mt-1">
@@ -506,12 +518,14 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
                   </div>
                 </div>
               )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
+      </div>
 
-        <div className="p-4 border-t bg-muted/20">
-          <Button onClick={handleOpenSaveDialog} className="w-full">
+        <div className="p-4 border-t border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
+          <Button onClick={handleOpenSaveDialog} className="w-full shadow-sm hover:shadow-md transition-all font-medium rounded-xl h-10">
             <Save className="mr-2 h-4 w-4" /> Save Design
           </Button>
         </div>

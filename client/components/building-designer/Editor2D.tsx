@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, MouseEvent } from "react";
 import { FloorPlanData, WallNode, Wall, Opening, SiteElement, SiteElementType, RoomLabel } from "./types";
-import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag, Footprints } from "lucide-react";
+import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag, Footprints, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 
@@ -673,46 +673,46 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       </div>
 
       {/* 2D Design Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 max-w-[calc(100vw-2rem)] lg:max-w-none">
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-3 max-w-[calc(100vw-2rem)] lg:max-w-none">
         {/* Structural Tools Row */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm">
+        <div className="flex flex-wrap items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-full shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
         <Button 
-          variant={mode === "select" ? "default" : "secondary"} 
+          variant={mode === "select" ? "default" : "ghost"} 
           size="sm" 
-          className="h-8 text-xs px-2.5"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("select"); setDrawingStartNode(null); }}
         >
-          <MousePointer2 className="h-3.5 w-3.5 mr-1" /> Select
+          <MousePointer2 className="h-3.5 w-3.5 mr-1.5" /> Select
         </Button>
         <Button 
-          variant={mode === "draw_wall" ? "default" : "secondary"} 
+          variant={mode === "draw_wall" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2.5"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => setMode("draw_wall")}
         >
-          <Plus className="h-3.5 w-3.5 mr-1" /> Wall
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> Wall
         </Button>
         <Button 
-          variant={mode === "add_door" ? "default" : "secondary"} 
+          variant={mode === "add_door" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2.5"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_door"); setDrawingStartNode(null); }}
         >
-          <DoorOpen className="h-3.5 w-3.5 mr-1" /> Door
+          <DoorOpen className="h-3.5 w-3.5 mr-1.5" /> Door
         </Button>
         <Button 
-          variant={mode === "add_window" ? "default" : "secondary"} 
+          variant={mode === "add_window" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2.5"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_window"); setDrawingStartNode(null); }}
         >
-          <Plus className="h-3.5 w-3.5 mr-1" /> Window
+          <Plus className="h-3.5 w-3.5 mr-1.5" /> Window
         </Button>
-        <div className="w-px h-6 bg-slate-700 mx-0.5 hidden sm:block" />
+        <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
         <Button 
-          variant="destructive" 
-          size="sm"
-          className="h-8 px-2"
+          variant="ghost" 
+          size="icon"
+          className="h-8 w-8 rounded-full hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/50"
           disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId && !selectedLabelId}
           onClick={handleDelete}
         >
@@ -721,82 +721,82 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         <Button 
           variant="outline" 
           size="sm"
-          className="h-8 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs px-2.5 rounded-xl"
+          className="h-8 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs px-3 rounded-full ml-1"
           onClick={handleDownloadPdf}
         >
-          <FileDown className="h-3.5 w-3.5 mr-1 text-sky-500" /> Export PDF
+          <FileDown className="h-3.5 w-3.5 mr-1.5 text-sky-500" /> Export PDF
         </Button>
         </div>
 
         {/* Site Elements Row */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm">
+        <div className="flex flex-wrap items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-full shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
         <Button 
-          variant={mode === "add_grass" ? "default" : "secondary"} 
+          variant={mode === "add_grass" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}
         >
-          <LayoutPanelLeft className="h-3.5 w-3.5 mr-1" /> Grass
+          <LayoutPanelLeft className="h-3.5 w-3.5 mr-1.5" /> Grass
         </Button>
         <Button 
-          variant={mode === "add_parking" ? "default" : "secondary"} 
+          variant={mode === "add_parking" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}
         >
-          <Box className="h-3.5 w-3.5 mr-1" /> Parking
+          <Box className="h-3.5 w-3.5 mr-1.5" /> Parking
         </Button>
         <Button 
-          variant={mode === "add_vehicle" ? "default" : "secondary"} 
+          variant={mode === "add_vehicle" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}
         >
-          <Car className="h-3.5 w-3.5 mr-1" /> Car
+          <Car className="h-3.5 w-3.5 mr-1.5" /> Car
         </Button>
         <Button 
-          variant={mode === "add_gate" ? "default" : "secondary"} 
+          variant={mode === "add_gate" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}
         >
-          <Fence className="h-3.5 w-3.5 mr-1" /> Gate
+          <Fence className="h-3.5 w-3.5 mr-1.5" /> Gate
         </Button>
         <Button 
-          variant={mode === "add_tree" ? "default" : "secondary"} 
+          variant={mode === "add_tree" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}
         >
-          <Trees className="h-3.5 w-3.5 mr-1" /> Tree
+          <Trees className="h-3.5 w-3.5 mr-1.5" /> Tree
         </Button>
         <Button 
-          variant={mode === "add_stairs" ? "default" : "secondary"} 
+          variant={mode === "add_stairs" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}
         >
-          <Footprints className="h-3.5 w-3.5 mr-1" /> Stairs
+          <Footprints className="h-3.5 w-3.5 mr-1.5" /> Stairs
         </Button>
         </div>
 
         {/* Layout Row */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-sm self-end">
+        <div className="flex flex-wrap items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-full shadow-lg shadow-slate-200/20 dark:shadow-none self-end transition-all hover:shadow-xl">
         <Button 
-          variant={mode === "add_compound" ? "default" : "secondary"} 
+          variant={mode === "add_compound" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}
         >
-          <Box className="h-3.5 w-3.5 mr-1" /> Compound Wall
+          <Box className="h-3.5 w-3.5 mr-1.5" /> Compound Wall
         </Button>
         <Button 
-          variant={mode === "add_label" ? "default" : "secondary"} 
+          variant={mode === "add_label" ? "default" : "ghost"} 
           size="sm"
-          className="h-8 text-xs px-2"
+          className="h-8 text-xs px-3 rounded-full"
           onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}
         >
-          <Tag className="h-3.5 w-3.5 mr-1" /> Label
+          <Tag className="h-3.5 w-3.5 mr-1.5" /> Label
         </Button>
         </div>
       </div>
@@ -1122,8 +1122,10 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
 
       {/* Floating Property Editor for Site Elements */}
       {selectedSiteElementId && (
-        <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-xl w-56">
-          <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Element Properties</div>
+        <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 p-4 rounded-3xl shadow-2xl shadow-slate-200/20 dark:shadow-none w-[240px] transition-all">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">
+            <Settings className="h-3.5 w-3.5" /> Properties
+          </div>
           {(() => {
             const el = (data.siteElements || []).find(s => s.id === selectedSiteElementId);
             if (!el) return null;
