@@ -31,7 +31,7 @@ const SUGGESTIONS = [
 // --- Sub-component: Chat Bubble ---
 const ChatBubble = ({ message, onProjectSelect }: { message: Message; onProjectSelect?: (projectId: string, queryType: string) => void }) => {
   const isUser = message.sender === 'user';
-  
+
   return (
     <div className={cn("flex w-full mb-4", isUser ? "justify-end" : "justify-start")}>
       <div className={cn("flex max-w-[85%] gap-2", isUser ? "flex-row-reverse" : "flex-row")}>
@@ -46,7 +46,7 @@ const ChatBubble = ({ message, onProjectSelect }: { message: Message; onProjectS
           isUser ? "bg-blue-600 text-white rounded-tr-none" : "bg-secondary text-secondary-foreground rounded-tl-none"
         )}>
           <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
-          
+
           {/* Project Selection Options */}
           {message.needsProjectSelection && message.projects && onProjectSelect && (
             <div className="mt-3 space-y-2">
@@ -67,7 +67,7 @@ const ChatBubble = ({ message, onProjectSelect }: { message: Message; onProjectS
               ))}
             </div>
           )}
-          
+
           <time className="text-[10px] opacity-70 mt-1 block">
             {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </time>
@@ -89,7 +89,7 @@ export const AiChatbot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const handleProjectSelect = async (projectId: string, queryType: string) => {
-    
+
     const userMsg: Message = {
       id: crypto.randomUUID(),
       text: `Get ${queryType} data for selected project`,
@@ -108,9 +108,9 @@ export const AiChatbot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       const data = await response.json();
-      
-      const aiText = data.error 
-        ? `❌ Error: ${data.error}` 
+
+      const aiText = data.error
+        ? `❌ Error: ${data.error}`
         : data.results || 'Data retrieved successfully.';
 
       setMessages(prev => [...prev, {
@@ -119,7 +119,7 @@ export const AiChatbot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         sender: 'ai',
         timestamp: new Date(),
       }]);
-    } catch  {
+    } catch {
       setMessages(prev => [...prev, {
         id: crypto.randomUUID(),
         text: "I'm having trouble fetching the project data.",
@@ -154,11 +154,11 @@ export const AiChatbot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       });
 
       const data = await response.json();
-      
+
       // Logic for parsing response (kept similar to your logic but cleaned up)
-      const aiText = data.error 
-        ? `❌ Error: ${data.error}` 
-        : data.results 
+      const aiText = data.error
+        ? `❌ Error: ${data.error}`
+        : data.results
           ? (typeof data.results === 'string' ? data.results : `Results found: ${data.results.length}`)
           : 'Query executed successfully.';
 
@@ -214,7 +214,7 @@ export const AiChatbot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )}
 
           {messages.map(m => <ChatBubble key={m.id} message={m} onProjectSelect={handleProjectSelect} />)}
-          
+
           {isLoading && (
             <div className="flex gap-2 items-center text-muted-foreground animate-in fade-in slide-in-from-bottom-2">
               <div className="bg-secondary rounded-2xl px-4 py-2 rounded-tl-none">
@@ -228,7 +228,7 @@ export const AiChatbot: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       {/* Input Area */}
       <div className="p-4 border-t bg-card">
-        <form 
+        <form
           onSubmit={(e) => { e.preventDefault(); handleSend(); }}
           className="flex items-center gap-2"
         >
