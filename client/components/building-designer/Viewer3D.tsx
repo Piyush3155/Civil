@@ -1087,6 +1087,154 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                 ))}
               </group>
             );
+          } else if (site.type === "column") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 3 / 2, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
+                <boxGeometry args={[site.width, 3, site.width]} />
+                <meshStandardMaterial color="#d6d3d1" roughness={0.8} metalness={0.1} />
+                <Edges threshold={15} color="#57534e" lineWidth={1} />
+              </mesh>
+            );
+          } else if (site.type === "beam") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 3 - site.width / 2, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
+                <boxGeometry args={[site.width, site.width, site.length]} />
+                <meshStandardMaterial color="#d6d3d1" roughness={0.8} metalness={0.1} />
+                <Edges threshold={15} color="#57534e" lineWidth={1} />
+              </mesh>
+            );
+          } else if (site.type === "toilet") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.2, site.length*0.1]} castShadow receiveShadow>
+                  <cylinderGeometry args={[site.width*0.35, site.width*0.3, 0.4]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.1} />
+                </mesh>
+                <mesh position={[0, 0.4, site.length*0.1]} castShadow receiveShadow>
+                  <cylinderGeometry args={[site.width*0.35, site.width*0.35, 0.05]} />
+                  <meshStandardMaterial color="#f8fafc" roughness={0.2} metalness={0.1} />
+                </mesh>
+                <mesh position={[0, 0.35, -site.length/2 + 0.1]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width*0.7, 0.7, 0.2]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.1} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "washbasin") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
+                  <cylinderGeometry args={[0.1, 0.15, 0.8]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.1} />
+                </mesh>
+                <mesh position={[0, 0.8, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.15, site.length]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.1} metalness={0.1} />
+                </mesh>
+                <mesh position={[0, 0.9, -site.length/2 + 0.05]} castShadow receiveShadow>
+                  <boxGeometry args={[0.05, 0.2, 0.05]} />
+                  <meshStandardMaterial color="#94a3b8" roughness={0.2} metalness={0.8} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "counter") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.9, site.length]} />
+                  <meshStandardMaterial color="#e2e8f0" roughness={0.5} metalness={0.1} />
+                  <Edges threshold={15} color="#94a3b8" lineWidth={1} />
+                </mesh>
+                <mesh position={[0, 0.92, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width + 0.04, 0.04, site.length + 0.04]} />
+                  <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.8} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "stove") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.9, site.length]} />
+                  <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.5} />
+                  <Edges threshold={15} color="#cbd5e1" lineWidth={1} />
+                </mesh>
+                <mesh position={[0, 0.91, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width - 0.02, 0.02, site.length - 0.02]} />
+                  <meshStandardMaterial color="#0f172a" roughness={0.2} metalness={0.8} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "bed") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.4, site.length]} />
+                  <meshStandardMaterial color="#f8fafc" roughness={0.8} metalness={0.0} />
+                </mesh>
+                <mesh position={[0, 0.25, -site.length/2 + 0.1]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.9, 0.2]} />
+                  <meshStandardMaterial color="#8b5cf6" roughness={0.6} metalness={0.1} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "sofa") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.4, site.length]} />
+                  <meshStandardMaterial color="#fcd34d" roughness={0.9} metalness={0.0} />
+                </mesh>
+                <mesh position={[0, 0.45, -site.length/2 + 0.1]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.5, 0.2]} />
+                  <meshStandardMaterial color="#fcd34d" roughness={0.9} metalness={0.0} />
+                </mesh>
+                <mesh position={[-site.width/2 + 0.1, 0.35, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[0.2, 0.3, site.length]} />
+                  <meshStandardMaterial color="#fbbf24" roughness={0.9} metalness={0.0} />
+                </mesh>
+                <mesh position={[site.width/2 - 0.1, 0.35, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[0.2, 0.3, site.length]} />
+                  <meshStandardMaterial color="#fbbf24" roughness={0.9} metalness={0.0} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "dining_table") {
+            return (
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width, 0.05, site.length]} />
+                  <meshStandardMaterial color="#78350f" roughness={0.6} metalness={0.1} />
+                </mesh>
+                <mesh position={[0, 0.375, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[site.width*0.6, 0.75, site.length*0.6]} />
+                  <meshStandardMaterial color="#451a03" roughness={0.7} metalness={0.1} />
+                </mesh>
+              </group>
+            );
+          } else if (site.type === "wardrobe") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 1.1, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
+                <boxGeometry args={[site.width, 2.2, site.length]} />
+                <meshStandardMaterial color="#92400e" roughness={0.6} metalness={0.1} />
+                <Edges threshold={15} color="#451a03" lineWidth={1} />
+              </mesh>
+            );
+          } else if (site.type === "balcony_railing") {
+            return (
+              <mesh key={site.id} position={[cx, cy + 0.5, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
+                <boxGeometry args={[site.width, 1.0, site.length]} />
+                <meshStandardMaterial color="#a1a1aa" roughness={0.3} metalness={0.8} transparent opacity={0.6} />
+                <Edges threshold={15} color="#3f3f46" lineWidth={1} />
+              </mesh>
+            );
+          } else if (site.type === "water_tank") {
+            return (
+              <mesh key={site.id} position={[cx, cy + site.width/2, cz]} rotation={[0, rotY, 0]} castShadow receiveShadow>
+                <cylinderGeometry args={[site.width/2, site.width/2, site.width]} />
+                <meshStandardMaterial color="#0284c7" roughness={0.4} metalness={0.2} />
+              </mesh>
+            );
           }
           return null;
         })}

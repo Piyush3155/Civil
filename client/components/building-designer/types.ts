@@ -28,7 +28,7 @@ export interface Opening {
   floorIndex?: number;
 }
 
-export type SiteElementType = "grass" | "parking" | "vehicle" | "gate" | "tree" | "stairs" | "compound";
+export type SiteElementType = "grass" | "parking" | "vehicle" | "gate" | "tree" | "stairs" | "compound" | "column" | "beam" | "toilet" | "washbasin" | "counter" | "stove" | "bed" | "sofa" | "dining_table" | "wardrobe" | "balcony_railing" | "water_tank";
 
 export interface SiteElement {
   id: string;

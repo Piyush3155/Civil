@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, MouseEvent } from "react";
 import { FloorPlanData, WallNode, Wall, Opening, SiteElement, SiteElementType, RoomLabel } from "./types";
-import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag, Footprints, Settings } from "lucide-react";
+import { Plus, MousePointer2, Trash2, FileDown, DoorOpen, PlusCircle, MinusCircle, Trees, Car, LayoutPanelLeft, Fence, Box, Tag, Footprints, Settings, Ruler, Columns3, Bath, CookingPot, BedDouble, Sofa, UtensilsCrossed, Warehouse, Droplets, Pilcrow, Armchair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { jsPDF } from "jspdf";
 
@@ -12,7 +12,7 @@ interface Editor2DProps {
   title?: string;
 }
 
-type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_stairs" | "add_label" | "add_compound";
+type Mode = "select" | "draw_wall" | "add_door" | "add_window" | "add_grass" | "add_parking" | "add_vehicle" | "add_gate" | "add_tree" | "add_stairs" | "add_label" | "add_compound" | "add_column" | "add_beam" | "add_toilet" | "add_washbasin" | "add_counter" | "add_stove" | "add_bed" | "add_sofa" | "add_dining_table" | "add_wardrobe" | "add_balcony_railing" | "add_water_tank" | "measure";
 
 export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [mode, setMode] = useState<Mode>("select");
@@ -25,6 +25,9 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
   const [snappedWallInfo, setSnappedWallInfo] = useState<{ wall: Wall; t: number } | null>(null);
   const [activeFloor, setActiveFloor] = useState<number>(0);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
+  const [measureStart, setMeasureStart] = useState<{ x: number; y: number } | null>(null);
+  const [measureEnd, setMeasureEnd] = useState<{ x: number; y: number } | null>(null);
+  const [measureLines, setMeasureLines] = useState<Array<{ x1: number; y1: number; x2: number; y2: number; dist: number }>>([]); 
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Constants
@@ -201,6 +204,18 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       }
     }
 
+    if (mode === "measure") {
+      if (!measureStart) {
+        setMeasureStart({ x: mousePos.x, y: mousePos.y });
+      } else {
+        const dist = Math.hypot(mousePos.x - measureStart.x, mousePos.y - measureStart.y) / PIXELS_PER_METER;
+        setMeasureLines(prev => [...prev, { x1: measureStart.x, y1: measureStart.y, x2: mousePos.x, y2: mousePos.y, dist }]);
+        setMeasureStart(null);
+        setMeasureEnd(null);
+      }
+      return;
+    }
+
     if (mode.startsWith("add_") && !["add_door", "add_window", "add_label"].includes(mode)) {
       const typeMap: Record<string, SiteElementType> = {
         add_grass: "grass",
@@ -210,6 +225,18 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         add_tree: "tree",
         add_stairs: "stairs",
         add_compound: "compound",
+        add_column: "column",
+        add_beam: "beam",
+        add_toilet: "toilet",
+        add_washbasin: "washbasin",
+        add_counter: "counter",
+        add_stove: "stove",
+        add_bed: "bed",
+        add_sofa: "sofa",
+        add_dining_table: "dining_table",
+        add_wardrobe: "wardrobe",
+        add_balcony_railing: "balcony_railing",
+        add_water_tank: "water_tank",
       };
       const siteType = typeMap[mode];
       if (siteType) {
@@ -222,6 +249,18 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         if (siteType === "tree") { defaultWidth = 1.5; defaultLength = 1.5; }
         if (siteType === "stairs") { defaultWidth = 1.2; defaultLength = 3; }
         if (siteType === "compound") { defaultWidth = 20; defaultLength = 15; }
+        if (siteType === "column") { defaultWidth = 0.3; defaultLength = 0.3; }
+        if (siteType === "beam") { defaultWidth = 0.3; defaultLength = 3; }
+        if (siteType === "toilet") { defaultWidth = 0.5; defaultLength = 0.7; }
+        if (siteType === "washbasin") { defaultWidth = 0.5; defaultLength = 0.4; }
+        if (siteType === "counter") { defaultWidth = 2.5; defaultLength = 0.6; }
+        if (siteType === "stove") { defaultWidth = 0.6; defaultLength = 0.6; }
+        if (siteType === "bed") { defaultWidth = 1.8; defaultLength = 2; }
+        if (siteType === "sofa") { defaultWidth = 2; defaultLength = 0.8; }
+        if (siteType === "dining_table") { defaultWidth = 1.5; defaultLength = 0.9; }
+        if (siteType === "wardrobe") { defaultWidth = 1.8; defaultLength = 0.6; }
+        if (siteType === "balcony_railing") { defaultWidth = 3; defaultLength = 0.1; }
+        if (siteType === "water_tank") { defaultWidth = 1.5; defaultLength = 1.5; }
 
         const newSiteElement: SiteElement = {
           id: `site_${Date.now()}`,
@@ -673,131 +712,106 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
       </div>
 
       {/* 2D Design Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-3 max-w-[calc(100vw-2rem)] lg:max-w-none">
-        {/* Structural Tools Row */}
-        <div className="flex flex-wrap items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-full shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
-        <Button 
-          variant={mode === "select" ? "default" : "ghost"} 
-          size="sm" 
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("select"); setDrawingStartNode(null); }}
-        >
-          <MousePointer2 className="h-3.5 w-3.5 mr-1.5" /> Select
-        </Button>
-        <Button 
-          variant={mode === "draw_wall" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => setMode("draw_wall")}
-        >
-          <Plus className="h-3.5 w-3.5 mr-1.5" /> Wall
-        </Button>
-        <Button 
-          variant={mode === "add_door" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_door"); setDrawingStartNode(null); }}
-        >
-          <DoorOpen className="h-3.5 w-3.5 mr-1.5" /> Door
-        </Button>
-        <Button 
-          variant={mode === "add_window" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_window"); setDrawingStartNode(null); }}
-        >
-          <Plus className="h-3.5 w-3.5 mr-1.5" /> Window
-        </Button>
-        <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="h-8 w-8 rounded-full hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/50"
-          disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId && !selectedLabelId}
-          onClick={handleDelete}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="h-8 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs px-3 rounded-full ml-1"
-          onClick={handleDownloadPdf}
-        >
-          <FileDown className="h-3.5 w-3.5 mr-1.5 text-sky-500" /> Export PDF
-        </Button>
+      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-3 max-w-[calc(100vw-2rem)] lg:max-w-none max-h-[calc(100vh-2rem)] overflow-y-auto pb-4 pr-2 custom-scrollbar">
+        {/* Core & Structural */}
+        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
+          <Button variant={mode === "select" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("select"); setDrawingStartNode(null); }}>
+            <MousePointer2 className="h-3.5 w-3.5 mr-1.5" /> Select
+          </Button>
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
+          <Button variant={mode === "draw_wall" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => setMode("draw_wall")}>
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> Wall
+          </Button>
+          <Button variant={mode === "add_door" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_door"); setDrawingStartNode(null); }}>
+            <DoorOpen className="h-3.5 w-3.5 mr-1.5" /> Door
+          </Button>
+          <Button variant={mode === "add_window" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_window"); setDrawingStartNode(null); }}>
+            <Plus className="h-3.5 w-3.5 mr-1.5" /> Window
+          </Button>
+          <Button variant={mode === "add_column" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_column"); setDrawingStartNode(null); }}>
+            <Columns3 className="h-3.5 w-3.5 mr-1.5" /> Column
+          </Button>
+          <Button variant={mode === "add_beam" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_beam"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-1.5" /> Beam
+          </Button>
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/50" disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId && !selectedLabelId} onClick={handleDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="outline" size="sm" className="h-8 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs px-3 rounded-xl ml-1" onClick={handleDownloadPdf}>
+            <FileDown className="h-3.5 w-3.5 mr-1.5 text-sky-500" /> Export PDF
+          </Button>
         </div>
 
-        {/* Site Elements Row */}
-        <div className="flex flex-wrap items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-full shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
-        <Button 
-          variant={mode === "add_grass" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}
-        >
-          <LayoutPanelLeft className="h-3.5 w-3.5 mr-1.5" /> Grass
-        </Button>
-        <Button 
-          variant={mode === "add_parking" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}
-        >
-          <Box className="h-3.5 w-3.5 mr-1.5" /> Parking
-        </Button>
-        <Button 
-          variant={mode === "add_vehicle" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}
-        >
-          <Car className="h-3.5 w-3.5 mr-1.5" /> Car
-        </Button>
-        <Button 
-          variant={mode === "add_gate" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}
-        >
-          <Fence className="h-3.5 w-3.5 mr-1.5" /> Gate
-        </Button>
-        <Button 
-          variant={mode === "add_tree" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}
-        >
-          <Trees className="h-3.5 w-3.5 mr-1.5" /> Tree
-        </Button>
-        <Button 
-          variant={mode === "add_stairs" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}
-        >
-          <Footprints className="h-3.5 w-3.5 mr-1.5" /> Stairs
-        </Button>
+        {/* Fixtures (Bathroom & Kitchen) */}
+        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
+          <Button variant={mode === "add_toilet" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_toilet"); setDrawingStartNode(null); }}>
+            <Bath className="h-3.5 w-3.5 mr-1.5" /> Toilet
+          </Button>
+          <Button variant={mode === "add_washbasin" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_washbasin"); setDrawingStartNode(null); }}>
+            <Droplets className="h-3.5 w-3.5 mr-1.5" /> Washbasin
+          </Button>
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
+          <Button variant={mode === "add_counter" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_counter"); setDrawingStartNode(null); }}>
+            <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" /> Counter
+          </Button>
+          <Button variant={mode === "add_stove" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_stove"); setDrawingStartNode(null); }}>
+            <CookingPot className="h-3.5 w-3.5 mr-1.5" /> Stove
+          </Button>
         </div>
 
-        {/* Layout Row */}
-        <div className="flex flex-wrap items-center gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-full shadow-lg shadow-slate-200/20 dark:shadow-none self-end transition-all hover:shadow-xl">
-        <Button 
-          variant={mode === "add_compound" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}
-        >
-          <Box className="h-3.5 w-3.5 mr-1.5" /> Compound Wall
-        </Button>
-        <Button 
-          variant={mode === "add_label" ? "default" : "ghost"} 
-          size="sm"
-          className="h-8 text-xs px-3 rounded-full"
-          onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}
-        >
-          <Tag className="h-3.5 w-3.5 mr-1.5" /> Label
-        </Button>
+        {/* Furniture */}
+        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
+          <Button variant={mode === "add_bed" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_bed"); setDrawingStartNode(null); }}>
+            <BedDouble className="h-3.5 w-3.5 mr-1.5" /> Bed
+          </Button>
+          <Button variant={mode === "add_sofa" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_sofa"); setDrawingStartNode(null); }}>
+            <Sofa className="h-3.5 w-3.5 mr-1.5" /> Sofa
+          </Button>
+          <Button variant={mode === "add_dining_table" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_dining_table"); setDrawingStartNode(null); }}>
+            <Armchair className="h-3.5 w-3.5 mr-1.5" /> Dining
+          </Button>
+          <Button variant={mode === "add_wardrobe" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_wardrobe"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-1.5" /> Wardrobe
+          </Button>
+        </div>
+
+        {/* Outdoor & Misc */}
+        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl max-w-[80vw] lg:max-w-none">
+          <Button variant={mode === "add_compound" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-1.5" /> Compound
+          </Button>
+          <Button variant={mode === "add_gate" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}>
+            <Fence className="h-3.5 w-3.5 mr-1.5" /> Gate
+          </Button>
+          <Button variant={mode === "add_balcony_railing" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_balcony_railing"); setDrawingStartNode(null); }}>
+            <Pilcrow className="h-3.5 w-3.5 mr-1.5" /> Balcony
+          </Button>
+          <Button variant={mode === "add_water_tank" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_water_tank"); setDrawingStartNode(null); }}>
+            <Warehouse className="h-3.5 w-3.5 mr-1.5" /> Tank
+          </Button>
+          <Button variant={mode === "add_tree" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}>
+            <Trees className="h-3.5 w-3.5 mr-1.5" /> Tree
+          </Button>
+          <Button variant={mode === "add_grass" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}>
+            <LayoutPanelLeft className="h-3.5 w-3.5 mr-1.5" /> Grass
+          </Button>
+          <Button variant={mode === "add_parking" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-1.5" /> Parking
+          </Button>
+          <Button variant={mode === "add_vehicle" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}>
+            <Car className="h-3.5 w-3.5 mr-1.5" /> Car
+          </Button>
+          <Button variant={mode === "add_stairs" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}>
+            <Footprints className="h-3.5 w-3.5 mr-1.5" /> Stairs
+          </Button>
+          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
+          <Button variant={mode === "add_label" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}>
+            <Tag className="h-3.5 w-3.5 mr-1.5" /> Label
+          </Button>
+          <Button variant={mode === "measure" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 dark:hover:bg-indigo-900" onClick={() => { setMode("measure"); setMeasureStart(null); setDrawingStartNode(null); }}>
+            <Ruler className="h-3.5 w-3.5 mr-1.5" /> Measure
+          </Button>
         </div>
       </div>
 
@@ -1016,6 +1030,110 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             );
           } else if (site.type === "compound") {
             renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="none" stroke={isSelected ? "#3b82f6" : "#64748b"} strokeWidth={isSelected ? 4 : 2} rx={2} strokeDasharray="10,5" />;
+          } else if (site.type === "column") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#78716c" stroke={isSelected ? "#3b82f6" : "#44403c"} strokeWidth={isSelected ? 3 : 2} />
+                <line x1={-wPx/2} y1={-lPx/2} x2={wPx/2} y2={lPx/2} stroke={isSelected ? "#60a5fa" : "#57534e"} strokeWidth={1} />
+                <line x1={wPx/2} y1={-lPx/2} x2={-wPx/2} y2={lPx/2} stroke={isSelected ? "#60a5fa" : "#57534e"} strokeWidth={1} />
+              </g>
+            );
+          } else if (site.type === "beam") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#a8a29e" stroke={isSelected ? "#3b82f6" : "#57534e"} strokeWidth={isSelected ? 3 : 1.5} />
+                <line x1={-wPx/2} y1={0} x2={wPx/2} y2={0} stroke="#78716c" strokeWidth={1} strokeDasharray="4,3" />
+              </g>
+            );
+          } else if (site.type === "toilet") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#e2e8f0" stroke={isSelected ? "#3b82f6" : "#94a3b8"} strokeWidth={isSelected ? 3 : 1.5} rx={3} />
+                <ellipse cx={0} cy={lPx*0.1} rx={wPx*0.35} ry={lPx*0.3} fill="none" stroke={isSelected ? "#60a5fa" : "#64748b"} strokeWidth={1.5} />
+                <rect x={-wPx*0.35} y={-lPx/2 + 2} width={wPx*0.7} height={lPx*0.2} rx={2} fill="none" stroke={isSelected ? "#60a5fa" : "#64748b"} strokeWidth={1.5} />
+              </g>
+            );
+          } else if (site.type === "washbasin") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#e2e8f0" stroke={isSelected ? "#3b82f6" : "#94a3b8"} strokeWidth={isSelected ? 3 : 1.5} rx={3} />
+                <ellipse cx={0} cy={0} rx={wPx*0.3} ry={lPx*0.3} fill="none" stroke={isSelected ? "#60a5fa" : "#64748b"} strokeWidth={1.5} />
+                <circle cx={0} cy={-lPx*0.15} r={2} fill={isSelected ? "#60a5fa" : "#475569"} />
+              </g>
+            );
+          } else if (site.type === "counter") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#d6d3d1" stroke={isSelected ? "#3b82f6" : "#78716c"} strokeWidth={isSelected ? 3 : 1.5} rx={1} />
+                <ellipse cx={wPx*0.25} cy={0} rx={wPx*0.1} ry={lPx*0.25} fill="none" stroke={isSelected ? "#60a5fa" : "#57534e"} strokeWidth={1.5} />
+                <circle cx={wPx*0.25} cy={-lPx*0.1} r={2} fill={isSelected ? "#60a5fa" : "#475569"} />
+              </g>
+            );
+          } else if (site.type === "stove") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#27272a" stroke={isSelected ? "#3b82f6" : "#3f3f46"} strokeWidth={isSelected ? 3 : 1.5} rx={2} />
+                <circle cx={-wPx*0.18} cy={-lPx*0.18} r={wPx*0.15} fill="none" stroke={isSelected ? "#60a5fa" : "#71717a"} strokeWidth={1.5} />
+                <circle cx={wPx*0.18} cy={-lPx*0.18} r={wPx*0.15} fill="none" stroke={isSelected ? "#60a5fa" : "#71717a"} strokeWidth={1.5} />
+                <circle cx={-wPx*0.18} cy={lPx*0.18} r={wPx*0.15} fill="none" stroke={isSelected ? "#60a5fa" : "#71717a"} strokeWidth={1.5} />
+                <circle cx={wPx*0.18} cy={lPx*0.18} r={wPx*0.15} fill="none" stroke={isSelected ? "#60a5fa" : "#71717a"} strokeWidth={1.5} />
+              </g>
+            );
+          } else if (site.type === "bed") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#dbeafe" stroke={isSelected ? "#3b82f6" : "#93c5fd"} strokeWidth={isSelected ? 3 : 1.5} rx={3} />
+                <rect x={-wPx/2 + 2} y={-lPx/2 + 2} width={wPx - 4} height={lPx*0.15} rx={2} fill={isSelected ? "#3b82f6" : "#60a5fa"} opacity={0.6} />
+                <rect x={-wPx*0.35} y={-lPx/2 + lPx*0.2} width={wPx*0.3} height={lPx*0.2} rx={3} fill="none" stroke={isSelected ? "#60a5fa" : "#93c5fd"} strokeWidth={1} />
+                <rect x={wPx*0.05} y={-lPx/2 + lPx*0.2} width={wPx*0.3} height={lPx*0.2} rx={3} fill="none" stroke={isSelected ? "#60a5fa" : "#93c5fd"} strokeWidth={1} />
+              </g>
+            );
+          } else if (site.type === "sofa") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#fef3c7" stroke={isSelected ? "#3b82f6" : "#d97706"} strokeWidth={isSelected ? 3 : 1.5} rx={4} />
+                <rect x={-wPx/2 + 3} y={-lPx/2 + lPx*0.55} width={wPx - 6} height={lPx*0.35} rx={3} fill={isSelected ? "#3b82f6" : "#f59e0b"} opacity={0.4} />
+                <rect x={-wPx/2 + 2} y={-lPx/2 + 2} width={wPx*0.12} height={lPx - 4} rx={2} fill={isSelected ? "#60a5fa" : "#d97706"} opacity={0.3} />
+                <rect x={wPx/2 - wPx*0.12 - 2} y={-lPx/2 + 2} width={wPx*0.12} height={lPx - 4} rx={2} fill={isSelected ? "#60a5fa" : "#d97706"} opacity={0.3} />
+              </g>
+            );
+          } else if (site.type === "dining_table") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#d6d3d1" stroke={isSelected ? "#3b82f6" : "#78350f"} strokeWidth={isSelected ? 3 : 1.5} rx={2} />
+                <circle cx={-wPx*0.3} cy={-lPx/2 - 5} r={4} fill="none" stroke={isSelected ? "#60a5fa" : "#a8a29e"} strokeWidth={1.5} />
+                <circle cx={wPx*0.3} cy={-lPx/2 - 5} r={4} fill="none" stroke={isSelected ? "#60a5fa" : "#a8a29e"} strokeWidth={1.5} />
+                <circle cx={-wPx*0.3} cy={lPx/2 + 5} r={4} fill="none" stroke={isSelected ? "#60a5fa" : "#a8a29e"} strokeWidth={1.5} />
+                <circle cx={wPx*0.3} cy={lPx/2 + 5} r={4} fill="none" stroke={isSelected ? "#60a5fa" : "#a8a29e"} strokeWidth={1.5} />
+              </g>
+            );
+          } else if (site.type === "wardrobe") {
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#92400e" stroke={isSelected ? "#3b82f6" : "#78350f"} strokeWidth={isSelected ? 3 : 1.5} rx={2} />
+                <line x1={0} y1={-lPx/2 + 2} x2={0} y2={lPx/2 - 2} stroke={isSelected ? "#60a5fa" : "#451a03"} strokeWidth={1.5} />
+                <circle cx={-3} cy={0} r={1.5} fill={isSelected ? "#60a5fa" : "#d6d3d1"} />
+                <circle cx={3} cy={0} r={1.5} fill={isSelected ? "#60a5fa" : "#d6d3d1"} />
+              </g>
+            );
+          } else if (site.type === "balcony_railing") {
+            const numPosts = Math.max(2, Math.round(wPx / 12));
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#71717a" stroke={isSelected ? "#3b82f6" : "#3f3f46"} strokeWidth={isSelected ? 3 : 1.5} />
+                {Array.from({ length: numPosts }, (_, i) => (
+                  <line key={i} x1={-wPx/2 + (wPx / (numPosts - 1)) * i} y1={-lPx/2} x2={-wPx/2 + (wPx / (numPosts - 1)) * i} y2={lPx/2} stroke={isSelected ? "#60a5fa" : "#a1a1aa"} strokeWidth={1} />
+                ))}
+              </g>
+            );
+          } else if (site.type === "water_tank") {
+            renderEl = (
+              <g>
+                <circle cx={0} cy={0} r={wPx/2} fill="#0ea5e9" opacity={0.3} stroke={isSelected ? "#3b82f6" : "#0284c7"} strokeWidth={isSelected ? 3 : 2} />
+                <circle cx={0} cy={0} r={wPx/2 - 3} fill="none" stroke={isSelected ? "#60a5fa" : "#0369a1"} strokeWidth={1} strokeDasharray="3,3" />
+                <text textAnchor="middle" dominantBaseline="central" fill={isSelected ? "#93c5fd" : "#0c4a6e"} fontSize={8} fontWeight="bold">WT</text>
+              </g>
+            );
           }
 
           return (
@@ -1107,6 +1225,23 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
             </g>
           );
         })}
+
+        {/* Measure Tool Lines */}
+        {measureLines.map((line, i) => (
+          <g key={`measure_${i}`}>
+            <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#6366f1" strokeWidth={2} strokeDasharray="5,5" />
+            <circle cx={line.x1} cy={line.y1} r={3} fill="#6366f1" />
+            <circle cx={line.x2} cy={line.y2} r={3} fill="#6366f1" />
+            <rect x={(line.x1 + line.x2)/2 - 20} y={(line.y1 + line.y2)/2 - 10} width={40} height={20} rx={4} fill="#1e1b4b" opacity={0.8} />
+            <text x={(line.x1 + line.x2)/2} y={(line.y1 + line.y2)/2} textAnchor="middle" dominantBaseline="central" fill="#818cf8" fontSize={10} fontWeight="bold">
+              {line.dist.toFixed(2)}m
+            </text>
+          </g>
+        ))}
+
+        {mode === "measure" && measureStart && (
+          <line x1={measureStart.x} y1={measureStart.y} x2={mousePos.x} y2={mousePos.y} stroke="#818cf8" strokeWidth={2} strokeDasharray="5,5" opacity={0.5} />
+        )}
 
         {/* Placing indicator */}
         {mode.startsWith("add_") && (mode === "add_door" || mode === "add_window" ? snappedWallInfo : true) && (
