@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, Environment } from "@react-three/drei";
+import { useMemo, useEffect, useRef } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import { OrbitControls, Grid, Environment, ContactShadows, Edges } from "@react-three/drei";
 import { FloorPlanData, Aesthetics } from "./types";
 import * as THREE from "three";
 
@@ -13,6 +13,210 @@ interface Viewer3DProps {
 
 const PIXELS_PER_METER = 20;
 
+// ─── Reusable Edge-Outlined Wall Segment ────────────────────────────────────
+function WallSegment({ position, rotation, args, color }: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  args: [number, number, number];
+  color: string;
+}) {
+  return (
+    <mesh position={position} rotation={rotation} castShadow receiveShadow>
+      <boxGeometry args={args} />
+      <meshStandardMaterial
+        color={color}
+        roughness={0.85}
+        metalness={0.05}
+        flatShading={false}
+      />
+      <Edges threshold={15} color="#1e293b" lineWidth={1} />
+    </mesh>
+  );
+}
+
+// ─── Detailed 3D Door ───────────────────────────────────────────────────────
+function Door3D({ position, rotation, width, height, thickness }: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  width: number;
+  height: number;
+  thickness: number;
+}) {
+  const panelWidth = width - 0.1;
+  const swingAngle = Math.PI / 6;
+
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Door Frame — Left Jamb */}
+      <mesh position={[-width / 2 + 0.025, 0, 0]} castShadow>
+        <boxGeometry args={[0.05, height, thickness]} />
+        <meshStandardMaterial color="#292524" roughness={0.4} metalness={0.3} />
+        <Edges threshold={15} color="#0c0a09" lineWidth={1} />
+      </mesh>
+      {/* Door Frame — Right Jamb */}
+      <mesh position={[width / 2 - 0.025, 0, 0]} castShadow>
+        <boxGeometry args={[0.05, height, thickness]} />
+        <meshStandardMaterial color="#292524" roughness={0.4} metalness={0.3} />
+        <Edges threshold={15} color="#0c0a09" lineWidth={1} />
+      </mesh>
+      {/* Door Frame — Header */}
+      <mesh position={[0, height / 2 - 0.025, 0]} castShadow>
+        <boxGeometry args={[width, 0.05, thickness]} />
+        <meshStandardMaterial color="#292524" roughness={0.4} metalness={0.3} />
+        <Edges threshold={15} color="#0c0a09" lineWidth={1} />
+      </mesh>
+      {/* Swinging Door Panel (hinged at left) */}
+      <group position={[-width / 2 + 0.05, 0, 0]} rotation={[0, swingAngle, 0]}>
+        {/* Main panel */}
+        <mesh position={[panelWidth / 2, 0, 0]} castShadow>
+          <boxGeometry args={[panelWidth, height - 0.1, 0.045]} />
+          <meshStandardMaterial color="#78350f" roughness={0.75} metalness={0.05} />
+          <Edges threshold={15} color="#451a03" lineWidth={1} />
+        </mesh>
+        {/* Raised panel detail (upper) */}
+        <mesh position={[panelWidth / 2, height * 0.18, 0.024]}>
+          <boxGeometry args={[panelWidth - 0.14, height * 0.3, 0.008]} />
+          <meshStandardMaterial color="#92400e" roughness={0.8} />
+        </mesh>
+        {/* Raised panel detail (lower) */}
+        <mesh position={[panelWidth / 2, -height * 0.15, 0.024]}>
+          <boxGeometry args={[panelWidth - 0.14, height * 0.35, 0.008]} />
+          <meshStandardMaterial color="#92400e" roughness={0.8} />
+        </mesh>
+        {/* Door Handle (lever) */}
+        <mesh position={[panelWidth - 0.1, 0, 0.03]}>
+          <boxGeometry args={[0.02, 0.12, 0.04]} />
+          <meshStandardMaterial color="#a8a29e" roughness={0.2} metalness={0.85} />
+        </mesh>
+        {/* Handle base plate */}
+        <mesh position={[panelWidth - 0.1, 0, 0.025]}>
+          <boxGeometry args={[0.05, 0.18, 0.01]} />
+          <meshStandardMaterial color="#78716c" roughness={0.3} metalness={0.7} />
+        </mesh>
+      </group>
+    </group>
+  );
+}
+
+// ─── Detailed 3D Window ─────────────────────────────────────────────────────
+function Window3D({ position, rotation, width, height }: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+  width: number;
+  height: number;
+}) {
+  const frameThick = 0.05;
+  const mullionWidth = 0.035;
+
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Outer Frame */}
+      {/* Top */}
+      <mesh position={[0, height / 2 - frameThick / 2, 0]} castShadow>
+        <boxGeometry args={[width, frameThick, 0.06]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.35} metalness={0.4} />
+        <Edges threshold={15} color="#0f172a" lineWidth={1} />
+      </mesh>
+      {/* Bottom (sill) */}
+      <mesh position={[0, -height / 2 + frameThick / 2, 0]} castShadow>
+        <boxGeometry args={[width + 0.06, frameThick, 0.09]} />
+        <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.3} />
+        <Edges threshold={15} color="#0f172a" lineWidth={1} />
+      </mesh>
+      {/* Left */}
+      <mesh position={[-width / 2 + frameThick / 2, 0, 0]} castShadow>
+        <boxGeometry args={[frameThick, height - frameThick * 2, 0.06]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.35} metalness={0.4} />
+      </mesh>
+      {/* Right */}
+      <mesh position={[width / 2 - frameThick / 2, 0, 0]} castShadow>
+        <boxGeometry args={[frameThick, height - frameThick * 2, 0.06]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.35} metalness={0.4} />
+      </mesh>
+      {/* Horizontal Mullion (center divider) */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[width - frameThick * 2, mullionWidth, 0.04]} />
+        <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.3} />
+      </mesh>
+      {/* Vertical Mullion (center divider) */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[mullionWidth, height - frameThick * 2, 0.04]} />
+        <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.3} />
+      </mesh>
+      {/* Glass Panes (4 quadrants) */}
+      {[[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([xSign, ySign], idx) => {
+        const paneW = (width - frameThick * 2 - mullionWidth) / 2;
+        const paneH = (height - frameThick * 2 - mullionWidth) / 2;
+        return (
+          <mesh
+            key={`pane_${idx}`}
+            position={[
+              xSign * (paneW / 2 + mullionWidth / 2),
+              ySign * (paneH / 2 + mullionWidth / 2),
+              0,
+            ]}
+          >
+            <boxGeometry args={[paneW - 0.01, paneH - 0.01, 0.008]} />
+            <meshPhysicalMaterial
+              color="#bfdbfe"
+              roughness={0.05}
+              metalness={0.1}
+              transparent
+              opacity={0.35}
+              transmission={0.6}
+              reflectivity={0.9}
+              clearcoat={1}
+              clearcoatRoughness={0.05}
+            />
+          </mesh>
+        );
+      })}
+    </group>
+  );
+}
+
+// ─── Realistic Tree ─────────────────────────────────────────────────────────
+function Tree3D({ position, rotation }: {
+  position: [number, number, number];
+  rotation: [number, number, number];
+}) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Trunk */}
+      <mesh position={[0, 1.2, 0]} castShadow>
+        <cylinderGeometry args={[0.12, 0.22, 2.4, 12]} />
+        <meshStandardMaterial color="#5c3d1e" roughness={0.95} metalness={0} />
+        <Edges threshold={20} color="#3b2212" lineWidth={1} />
+      </mesh>
+      {/* Branch stubs */}
+      <mesh position={[0.2, 1.8, 0.1]} rotation={[0, 0, -0.5]} castShadow>
+        <cylinderGeometry args={[0.04, 0.06, 0.6, 6]} />
+        <meshStandardMaterial color="#5c3d1e" roughness={0.95} />
+      </mesh>
+      <mesh position={[-0.15, 2.0, -0.08]} rotation={[0.3, 0, 0.6]} castShadow>
+        <cylinderGeometry args={[0.03, 0.05, 0.5, 6]} />
+        <meshStandardMaterial color="#5c3d1e" roughness={0.95} />
+      </mesh>
+      {/* Canopy — bottom layer (widest, darkest) */}
+      <mesh position={[0, 3.0, 0]} castShadow>
+        <sphereGeometry args={[1.6, 20, 16]} />
+        <meshStandardMaterial color="#15803d" roughness={0.9} metalness={0} />
+      </mesh>
+      {/* Canopy — middle layer */}
+      <mesh position={[0.3, 3.6, -0.2]} castShadow>
+        <sphereGeometry args={[1.2, 16, 14]} />
+        <meshStandardMaterial color="#16a34a" roughness={0.85} metalness={0} />
+      </mesh>
+      {/* Canopy — top layer (smallest, lightest) */}
+      <mesh position={[-0.2, 4.1, 0.15]} castShadow>
+        <sphereGeometry args={[0.85, 14, 12]} />
+        <meshStandardMaterial color="#22c55e" roughness={0.8} metalness={0} />
+      </mesh>
+    </group>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
 export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
   // Compute max floor index
   const maxFloorIndex = useMemo(() => {
@@ -29,7 +233,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
     if (data.nodes.length === 0) return slabs;
 
     for (let f = 1; f <= maxFloorIndex; f++) {
-      // Find boundary of nodes on this level (or fallback to global nodes if level nodes are missing)
       const levelNodes = data.nodes.filter((n) => (n.floorIndex || 0) === f);
       const targetNodes = levelNodes.length > 0 ? levelNodes : data.nodes;
 
@@ -47,8 +250,8 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
 
       slabs.push({
         id: `slab_${f}`,
-        position: [cx, f * 3.0 - 0.075, cz], // 15cm slab centered right below level boundary
-        args: [w + 0.4, 0.15, d + 0.4], // with a small overhang
+        position: [cx, f * 3.0 - 0.075, cz],
+        args: [w + 0.4, 0.15, d + 0.4],
       });
     }
     return slabs;
@@ -78,11 +281,9 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
       const angle = Math.atan2(z1 - z2, x1 - x2);
       const rotationY = -angle;
 
-      // Vertical stack base Y coordinate based on floorIndex
       const floorIdx = wall.floorIndex || 0;
-      const baseY = floorIdx * 3.0; // 3 meters per level
+      const baseY = floorIdx * 3.0;
 
-      // Get openings associated with this wall
       const wallOpenings = data.openings
         .filter((op) => op.wallId === wall.id)
         .map((op) => ({
@@ -122,7 +323,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         const cz = z1 + uz * midM;
 
         if (op.type === "window") {
-          // Sill wall (below window)
           if (op.elevation > 0) {
             const cy = baseY + op.elevation / 2;
             segments.push({
@@ -133,8 +333,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               color: wall.color || aesthetics.wallColor,
             });
           }
-
-          // Header wall (above window)
           const headerHeight = wall.height - (op.elevation + op.height);
           if (headerHeight > 0) {
             const cy = baseY + op.elevation + op.height + headerHeight / 2;
@@ -146,8 +344,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               color: wall.color || aesthetics.wallColor,
             });
           }
-
-          // Add window model metadata
           models.push({
             id: op.id,
             type: "window",
@@ -158,7 +354,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
             thickness: wall.thickness + 0.02,
           });
         } else if (op.type === "door") {
-          // Header wall above door
           const headerHeight = wall.height - op.height;
           if (headerHeight > 0) {
             const cy = baseY + op.height + headerHeight / 2;
@@ -170,8 +365,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               color: wall.color || aesthetics.wallColor,
             });
           }
-
-          // Add door model metadata
           models.push({
             id: op.id,
             type: "door",
@@ -211,7 +404,6 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
   const roofMesh = useMemo(() => {
     if (!aesthetics.showRoof || data.nodes.length === 0) return null;
 
-    // Use nodes of the top floor for roof scaling
     const topFloorNodes = data.nodes.filter(n => (n.floorIndex || 0) === maxFloorIndex);
     const targetNodes = topFloorNodes.length > 0 ? topFloorNodes : data.nodes;
 
@@ -227,8 +419,8 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
     const cx = (minX + maxX) / 2;
     const cz = (minZ + maxZ) / 2;
 
-    const roofBaseY = (maxFloorIndex + 1) * 3.0; // stacked ceiling height
-    const overhang = 0.6; // 60cm overhang
+    const roofBaseY = (maxFloorIndex + 1) * 3.0;
+    const overhang = 0.6;
     const roofW = w + overhang * 2;
     const roofD = d + overhang * 2;
     const pitchHeight = aesthetics.roofHeight;
@@ -239,12 +431,12 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         return (
           <mesh position={[cx, roofBaseY + 0.1, cz]} castShadow receiveShadow>
             <boxGeometry args={[roofW, 0.2, roofD]} />
-            <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+            <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+            <Edges threshold={15} color="#1e293b" lineWidth={1} />
           </mesh>
         );
 
       case "pitched": {
-        // Gable style slanting from ridge
         const isXLonger = w >= d;
         if (isXLonger) {
           const halfSpan = d / 2 + overhang;
@@ -256,11 +448,13 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
             <group position={[cx, 0, cz]}>
               <mesh position={[0, slabCY, -halfSpan / 2]} rotation={[-pitchAngle, 0, 0]} castShadow receiveShadow>
                 <boxGeometry args={[roofW, roofThick, slopeLen]} />
-                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+                <Edges threshold={15} color="#1e293b" lineWidth={1} />
               </mesh>
               <mesh position={[0, slabCY, halfSpan / 2]} rotation={[pitchAngle, 0, 0]} castShadow receiveShadow>
                 <boxGeometry args={[roofW, roofThick, slopeLen]} />
-                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+                <Edges threshold={15} color="#1e293b" lineWidth={1} />
               </mesh>
             </group>
           );
@@ -274,11 +468,13 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
             <group position={[cx, 0, cz]}>
               <mesh position={[-halfSpan / 2, slabCY, 0]} rotation={[0, 0, pitchAngle]} castShadow receiveShadow>
                 <boxGeometry args={[slopeLen, roofThick, roofD]} />
-                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+                <Edges threshold={15} color="#1e293b" lineWidth={1} />
               </mesh>
               <mesh position={[halfSpan / 2, slabCY, 0]} rotation={[0, 0, -pitchAngle]} castShadow receiveShadow>
                 <boxGeometry args={[slopeLen, roofThick, roofD]} />
-                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+                <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+                <Edges threshold={15} color="#1e293b" lineWidth={1} />
               </mesh>
             </group>
           );
@@ -286,27 +482,25 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
       }
 
       case "hip": {
-        // Hip style slanting pyramid-like on all four sides
-        // Renders as a 4-sided cylinder (pyramid), scaled to rectangular dimensions
         const scaleX = roofW / Math.sqrt(2);
         const scaleZ = roofD / Math.sqrt(2);
 
         return (
           <mesh 
             position={[cx, roofBaseY + pitchHeight / 2, cz]} 
-            rotation={[0, Math.PI / 4, 0]} // rotate 45 deg to align faces
+            rotation={[0, Math.PI / 4, 0]}
             scale={[scaleX, 1, scaleZ]}
             castShadow 
             receiveShadow
           >
             <cylinderGeometry args={[0, 1, pitchHeight, 4, 1]} />
-            <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+            <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+            <Edges threshold={15} color="#1e293b" lineWidth={1} />
           </mesh>
         );
       }
 
       case "shed": {
-        // Mono-pitched style slants single direction
         const isXLonger = w >= d;
         if (isXLonger) {
           const pitchAngle = Math.atan(pitchHeight / roofW);
@@ -319,7 +513,8 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               receiveShadow
             >
               <boxGeometry args={[slabLen, roofThick, roofD]} />
-              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+              <Edges threshold={15} color="#1e293b" lineWidth={1} />
             </mesh>
           );
         } else {
@@ -333,7 +528,8 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               receiveShadow
             >
               <boxGeometry args={[roofW, roofThick, slabLen]} />
-              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.5} />
+              <meshStandardMaterial color={aesthetics.roofColor} roughness={0.6} metalness={0.1} />
+              <Edges threshold={15} color="#1e293b" lineWidth={1} />
             </mesh>
           );
         }
@@ -346,97 +542,119 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
 
   return (
     <div className="w-full h-full relative" style={{ backgroundColor: aesthetics.groundColor }}>
-      <Canvas camera={{ position: [15, 20, 15], fov: 45 }} shadows>
-        <ambientLight intensity={aesthetics.ambientLightIntensity} />
-        <directionalLight 
-          position={[15, 35, 15]} 
-          intensity={1.2} 
-          castShadow 
-          shadow-mapSize-width={1024} 
-          shadow-mapSize-height={1024}
+      <Canvas
+        camera={{ position: [18, 22, 18], fov: 40 }}
+        shadows
+        gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+      >
+        {/* ─── Lighting System (3-point + hemisphere) ─── */}
+        <ambientLight intensity={0.35} color="#e2e8f0" />
+        <hemisphereLight
+          args={["#bfdbfe", "#d6d3d1", 0.4]}
         />
-        <Environment preset="city" />
-        <OrbitControls makeDefault maxPolarAngle={Math.PI / 2 - 0.05} />
+        {/* Key Light (main directional — sun) */}
+        <directionalLight
+          position={[20, 40, 20]}
+          intensity={1.8}
+          castShadow
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+          shadow-camera-left={-30}
+          shadow-camera-right={30}
+          shadow-camera-top={30}
+          shadow-camera-bottom={-30}
+          shadow-camera-near={0.5}
+          shadow-camera-far={80}
+          shadow-bias={-0.0005}
+          color="#fef3c7"
+        />
+        {/* Fill Light (softer, opposite side) */}
+        <directionalLight
+          position={[-15, 20, -10]}
+          intensity={0.5}
+          color="#dbeafe"
+        />
+        {/* Rim Light (back edge highlight) */}
+        <directionalLight
+          position={[-5, 15, -25]}
+          intensity={0.3}
+          color="#e0e7ff"
+        />
+
+        <Environment preset="apartment" />
+        <OrbitControls
+          makeDefault
+          maxPolarAngle={Math.PI / 2 - 0.05}
+          enableDamping
+          dampingFactor={0.08}
+          rotateSpeed={0.6}
+          zoomSpeed={0.8}
+          panSpeed={0.5}
+        />
 
         {/* Floor Grid */}
         <Grid
           infiniteGrid
           fadeDistance={60}
           sectionColor={aesthetics.floorColor}
-          cellColor="#334155"
+          cellColor="#475569"
           cellSize={1}
           sectionSize={5}
           position={[0, 0.01, 0]}
+        />
+
+        {/* Contact Shadows (soft shadow pool under objects) */}
+        <ContactShadows
+          position={[0, 0.005, 0]}
+          opacity={0.5}
+          scale={80}
+          blur={2.5}
+          far={15}
+          color="#1e293b"
         />
 
         {/* Floor concrete separation slabs */}
         {separationSlabs.map((slab) => (
           <mesh key={slab.id} position={slab.position} castShadow receiveShadow>
             <boxGeometry args={slab.args} />
-            <meshStandardMaterial color={aesthetics.floorColor} roughness={0.8} />
+            <meshStandardMaterial color={aesthetics.floorColor} roughness={0.75} metalness={0.1} />
+            <Edges threshold={15} color="#1e293b" lineWidth={1} />
           </mesh>
         ))}
 
-        {/* Extruded Wall segments stacked vertically */}
+        {/* Extruded Wall segments with edge outlines */}
         {wallSegments.map((seg) => (
-          <mesh
+          <WallSegment
             key={seg.id}
             position={seg.position}
             rotation={seg.rotation}
-            castShadow
-            receiveShadow
-          >
-            <boxGeometry args={seg.args} />
-            <meshStandardMaterial color={seg.color} roughness={0.7} />
-          </mesh>
+            args={seg.args}
+            color={seg.color}
+          />
         ))}
 
         {/* 3D door/window opening models */}
         {openingModels.map((model) => {
           if (model.type === "door") {
-            const panelWidth = model.width - 0.08;
-            const swingAngle = Math.PI / 6;
-
             return (
-              <group key={model.id} position={model.position} rotation={model.rotation}>
-                <mesh position={[-model.width / 2 + 0.02, 0, 0]}>
-                  <boxGeometry args={[0.04, model.height, model.thickness]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.6} />
-                </mesh>
-                <mesh position={[model.width / 2 - 0.02, 0, 0]}>
-                  <boxGeometry args={[0.04, model.height, model.thickness]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.6} />
-                </mesh>
-                <mesh position={[0, model.height / 2 - 0.02, 0]}>
-                  <boxGeometry args={[model.width, 0.04, model.thickness]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.6} />
-                </mesh>
-                <group position={[-model.width / 2 + 0.04, 0, 0]} rotation={[0, swingAngle, 0]}>
-                  <mesh position={[panelWidth / 2, 0, 0]}>
-                    <boxGeometry args={[panelWidth, model.height - 0.08, 0.04]} />
-                    <meshStandardMaterial color="#b45309" roughness={0.8} />
-                  </mesh>
-                </group>
-              </group>
+              <Door3D
+                key={model.id}
+                position={model.position}
+                rotation={model.rotation}
+                width={model.width}
+                height={model.height}
+                thickness={model.thickness}
+              />
             );
           } else {
             return (
-              <group key={model.id} position={model.position} rotation={model.rotation}>
-                <mesh>
-                  <boxGeometry args={[model.width, model.height, 0.04]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.6} />
-                </mesh>
-                <mesh>
-                  <boxGeometry args={[model.width - 0.08, model.height - 0.08, 0.01]} />
-                  <meshStandardMaterial 
-                    color="#38bdf8" 
-                    roughness={0.1} 
-                    metalness={0.9} 
-                    transparent 
-                    opacity={0.3} 
-                  />
-                </mesh>
-              </group>
+              <Window3D
+                key={model.id}
+                position={model.position}
+                rotation={model.rotation}
+                width={model.width}
+                height={model.height}
+              />
             );
           }
         })}
@@ -445,27 +663,84 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         {(data.siteElements || []).map((site) => {
           const cx = site.x / PIXELS_PER_METER;
           const cz = site.y / PIXELS_PER_METER;
-          const cy = (site.floorIndex || 0) * 3.0; // Base Y for this floor
+          const cy = (site.floorIndex || 0) * 3.0;
           const rotY = -(site.rotation * Math.PI) / 180;
 
           if (site.type === "grass") {
             return (
-              <mesh key={site.id} position={[cx, cy + 0.02, cz]} rotation={[0, rotY, 0]} receiveShadow>
-                <boxGeometry args={[site.width, 0.05, site.length]} />
-                <meshStandardMaterial color="#15803d" roughness={1} />
-              </mesh>
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                {/* Base soil layer */}
+                <mesh position={[0, 0.01, 0]} receiveShadow>
+                  <boxGeometry args={[site.width, 0.02, site.length]} />
+                  <meshStandardMaterial color="#3f2d17" roughness={1} />
+                </mesh>
+                {/* Grass layer */}
+                <mesh position={[0, 0.035, 0]} receiveShadow>
+                  <boxGeometry args={[site.width - 0.02, 0.03, site.length - 0.02]} />
+                  <meshStandardMaterial color="#15803d" roughness={0.95} metalness={0} />
+                </mesh>
+                {/* Grass variation patches */}
+                <mesh position={[site.width * 0.15, 0.05, site.length * 0.1]} receiveShadow>
+                  <boxGeometry args={[site.width * 0.4, 0.01, site.length * 0.3]} />
+                  <meshStandardMaterial color="#16a34a" roughness={0.9} />
+                </mesh>
+                <mesh position={[-site.width * 0.2, 0.05, -site.length * 0.15]} receiveShadow>
+                  <boxGeometry args={[site.width * 0.3, 0.01, site.length * 0.35]} />
+                  <meshStandardMaterial color="#22c55e" roughness={0.85} />
+                </mesh>
+                {/* Grass edge border */}
+                <mesh position={[0, 0.03, 0]} receiveShadow>
+                  <boxGeometry args={[site.width, 0.06, site.length]} />
+                  <meshStandardMaterial color="#166534" roughness={1} transparent opacity={0} />
+                  <Edges threshold={15} color="#14532d" lineWidth={1} />
+                </mesh>
+              </group>
             );
           } else if (site.type === "parking") {
             return (
-              <mesh key={site.id} position={[cx, cy + 0.03, cz]} rotation={[0, rotY, 0]} receiveShadow>
-                <boxGeometry args={[site.width, 0.04, site.length]} />
-                <meshStandardMaterial color="#334155" roughness={0.9} />
-              </mesh>
+              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
+                {/* Asphalt surface */}
+                <mesh position={[0, 0.025, 0]} receiveShadow>
+                  <boxGeometry args={[site.width, 0.05, site.length]} />
+                  <meshStandardMaterial color="#27272a" roughness={0.95} metalness={0.05} />
+                  <Edges threshold={15} color="#18181b" lineWidth={1} />
+                </mesh>
+                {/* Parking line markings */}
+                {/* Center line */}
+                <mesh position={[0, 0.055, 0]} receiveShadow>
+                  <boxGeometry args={[0.06, 0.005, site.length - 0.2]} />
+                  <meshStandardMaterial color="#fafafa" roughness={0.6} />
+                </mesh>
+                {/* Left boundary */}
+                <mesh position={[-site.width / 2 + 0.08, 0.055, 0]} receiveShadow>
+                  <boxGeometry args={[0.06, 0.005, site.length - 0.2]} />
+                  <meshStandardMaterial color="#fafafa" roughness={0.6} />
+                </mesh>
+                {/* Right boundary */}
+                <mesh position={[site.width / 2 - 0.08, 0.055, 0]} receiveShadow>
+                  <boxGeometry args={[0.06, 0.005, site.length - 0.2]} />
+                  <meshStandardMaterial color="#fafafa" roughness={0.6} />
+                </mesh>
+                {/* Top/Bottom boundary lines */}
+                <mesh position={[0, 0.055, site.length / 2 - 0.08]} receiveShadow>
+                  <boxGeometry args={[site.width - 0.1, 0.005, 0.06]} />
+                  <meshStandardMaterial color="#fafafa" roughness={0.6} />
+                </mesh>
+                <mesh position={[0, 0.055, -site.length / 2 + 0.08]} receiveShadow>
+                  <boxGeometry args={[site.width - 0.1, 0.005, 0.06]} />
+                  <meshStandardMaterial color="#fafafa" roughness={0.6} />
+                </mesh>
+                {/* Parking symbol (P) — small raised block */}
+                <mesh position={[0, 0.058, 0]} receiveShadow>
+                  <boxGeometry args={[0.35, 0.003, 0.45]} />
+                  <meshStandardMaterial color="#3b82f6" roughness={0.5} />
+                </mesh>
+              </group>
             );
           } else if (site.type === "vehicle") {
             // Detailed vehicle with body, cabin, wheels, lights
-            const bW = site.width;   // body width
-            const bL = site.length;  // body length
+            const bW = site.width;
+            const bL = site.length;
             const bodyH = 0.5;
             const cabinH = 0.45;
             const wheelR = 0.25;
@@ -476,25 +751,27 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                 {/* Lower body / chassis */}
                 <mesh position={[0, bodyH / 2, 0]} castShadow>
                   <boxGeometry args={[bW, bodyH, bL]} />
-                  <meshStandardMaterial color="#1e40af" roughness={0.3} metalness={0.7} />
+                  <meshStandardMaterial color="#1e40af" roughness={0.25} metalness={0.75} />
+                  <Edges threshold={20} color="#0f1d5c" lineWidth={1} />
                 </mesh>
 
-                {/* Upper cabin (windowed section, offset toward front) */}
+                {/* Upper cabin (windowed section) */}
                 <mesh position={[0, bodyH + cabinH / 2, -bL * 0.05]} castShadow>
                   <boxGeometry args={[bW - 0.15, cabinH, bL * 0.55]} />
                   <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.8} transparent opacity={0.85} />
+                  <Edges threshold={20} color="#020617" lineWidth={1} />
                 </mesh>
 
-                {/* Windshield (front glass, angled) */}
+                {/* Windshield */}
                 <mesh position={[0, bodyH + cabinH * 0.6, bL * 0.22]} rotation={[0.3, 0, 0]} castShadow>
                   <boxGeometry args={[bW - 0.2, cabinH * 0.7, 0.02]} />
-                  <meshStandardMaterial color="#38bdf8" roughness={0.05} metalness={0.9} transparent opacity={0.4} />
+                  <meshPhysicalMaterial color="#bfdbfe" roughness={0.05} metalness={0.1} transparent opacity={0.35} transmission={0.5} />
                 </mesh>
 
                 {/* Rear windshield */}
                 <mesh position={[0, bodyH + cabinH * 0.6, -bL * 0.32]} rotation={[-0.3, 0, 0]} castShadow>
                   <boxGeometry args={[bW - 0.2, cabinH * 0.7, 0.02]} />
-                  <meshStandardMaterial color="#38bdf8" roughness={0.05} metalness={0.9} transparent opacity={0.4} />
+                  <meshPhysicalMaterial color="#bfdbfe" roughness={0.05} metalness={0.1} transparent opacity={0.35} transmission={0.5} />
                 </mesh>
 
                 {/* Front bumper */}
@@ -502,14 +779,13 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   <boxGeometry args={[bW + 0.04, 0.2, 0.08]} />
                   <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.5} />
                 </mesh>
-
                 {/* Rear bumper */}
                 <mesh position={[0, 0.15, -bL / 2 - 0.04]} castShadow>
                   <boxGeometry args={[bW + 0.04, 0.2, 0.08]} />
                   <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.5} />
                 </mesh>
 
-                {/* Headlights (front left & right) */}
+                {/* Headlights */}
                 <mesh position={[-bW / 2 + 0.2, 0.3, bL / 2 + 0.01]}>
                   <boxGeometry args={[0.22, 0.1, 0.04]} />
                   <meshStandardMaterial color="#fef3c7" emissive="#fbbf24" emissiveIntensity={0.8} />
@@ -519,7 +795,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   <meshStandardMaterial color="#fef3c7" emissive="#fbbf24" emissiveIntensity={0.8} />
                 </mesh>
 
-                {/* Taillights (rear left & right) */}
+                {/* Taillights */}
                 <mesh position={[-bW / 2 + 0.2, 0.3, -bL / 2 - 0.01]}>
                   <boxGeometry args={[0.22, 0.1, 0.04]} />
                   <meshStandardMaterial color="#fca5a5" emissive="#ef4444" emissiveIntensity={0.6} />
@@ -529,29 +805,25 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   <meshStandardMaterial color="#fca5a5" emissive="#ef4444" emissiveIntensity={0.6} />
                 </mesh>
 
-                {/* 4 Wheels (cylinders rotated sideways) */}
-                {/* Front-left */}
+                {/* 4 Wheels */}
                 <mesh position={[-bW / 2 - wheelW / 2, wheelR, bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
                   <meshStandardMaterial color="#1c1917" roughness={0.9} />
                 </mesh>
-                {/* Front-right */}
                 <mesh position={[bW / 2 + wheelW / 2, wheelR, bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
                   <meshStandardMaterial color="#1c1917" roughness={0.9} />
                 </mesh>
-                {/* Rear-left */}
                 <mesh position={[-bW / 2 - wheelW / 2, wheelR, -bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
                   <meshStandardMaterial color="#1c1917" roughness={0.9} />
                 </mesh>
-                {/* Rear-right */}
                 <mesh position={[bW / 2 + wheelW / 2, wheelR, -bL * 0.3]} rotation={[0, 0, Math.PI / 2]} castShadow>
                   <cylinderGeometry args={[wheelR, wheelR, wheelW, 16]} />
                   <meshStandardMaterial color="#1c1917" roughness={0.9} />
                 </mesh>
 
-                {/* Wheel rims (shiny disc inside each wheel) */}
+                {/* Wheel rims */}
                 {[[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([xSign, zSign], idx) => (
                   <mesh
                     key={`rim_${idx}`}
@@ -563,7 +835,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   </mesh>
                 ))}
 
-                {/* Roof rack lines (subtle chrome strips on top) */}
+                {/* Roof rack */}
                 <mesh position={[0, bodyH + cabinH + 0.02, -bL * 0.05]}>
                   <boxGeometry args={[bW - 0.3, 0.02, bL * 0.45]} />
                   <meshStandardMaterial color="#475569" roughness={0.3} metalness={0.6} />
@@ -571,73 +843,111 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               </group>
             );
           } else if (site.type === "gate") {
-            const gateHeight = 2.2; // Taller than compound wall
-            const gateThick = 0.4; // Thicker than compound wall
+            const gateHeight = 2.2;
+            const gateThick = 0.35;
+            const barCount = Math.max(3, Math.floor(site.width / 0.15));
+
             return (
               <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
-                {/* Gate Outer Frame (Pillars) */}
-                <mesh position={[-site.width/2 + 0.15, gateHeight/2, 0]} castShadow receiveShadow>
-                  <boxGeometry args={[0.3, gateHeight, gateThick]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+                {/* Left Pillar */}
+                <mesh position={[-site.width / 2, gateHeight / 2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[0.35, gateHeight, gateThick]} />
+                  <meshStandardMaterial color="#44403c" roughness={0.75} metalness={0.15} />
+                  <Edges threshold={15} color="#1c1917" lineWidth={1} />
                 </mesh>
-                <mesh position={[site.width/2 - 0.15, gateHeight/2, 0]} castShadow receiveShadow>
-                  <boxGeometry args={[0.3, gateHeight, gateThick]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+                {/* Left pillar cap */}
+                <mesh position={[-site.width / 2, gateHeight + 0.08, 0]} castShadow>
+                  <boxGeometry args={[0.45, 0.15, 0.45]} />
+                  <meshStandardMaterial color="#57534e" roughness={0.7} metalness={0.2} />
+                  <Edges threshold={15} color="#1c1917" lineWidth={1} />
+                </mesh>
+                {/* Right Pillar */}
+                <mesh position={[site.width / 2, gateHeight / 2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[0.35, gateHeight, gateThick]} />
+                  <meshStandardMaterial color="#44403c" roughness={0.75} metalness={0.15} />
+                  <Edges threshold={15} color="#1c1917" lineWidth={1} />
+                </mesh>
+                {/* Right pillar cap */}
+                <mesh position={[site.width / 2, gateHeight + 0.08, 0]} castShadow>
+                  <boxGeometry args={[0.45, 0.15, 0.45]} />
+                  <meshStandardMaterial color="#57534e" roughness={0.7} metalness={0.2} />
+                  <Edges threshold={15} color="#1c1917" lineWidth={1} />
                 </mesh>
                 {/* Gate Header */}
-                <mesh position={[0, gateHeight - 0.1, 0]} castShadow receiveShadow>
-                  <boxGeometry args={[site.width, 0.2, gateThick]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.8} metalness={0.2} />
+                <mesh position={[0, gateHeight - 0.06, 0]} castShadow>
+                  <boxGeometry args={[site.width - 0.35, 0.12, 0.08]} />
+                  <meshStandardMaterial color="#292524" roughness={0.3} metalness={0.7} />
                 </mesh>
-                {/* Gate inner panels (wood/metal) */}
-                <mesh position={[0, gateHeight/2 - 0.1, 0]} castShadow receiveShadow>
-                  <boxGeometry args={[site.width - 0.6, gateHeight - 0.2, gateThick + 0.05]} />
-                  <meshStandardMaterial color="#78350f" roughness={0.9} />
+                {/* Gate Bottom Rail */}
+                <mesh position={[0, 0.15, 0]} castShadow>
+                  <boxGeometry args={[site.width - 0.35, 0.08, 0.06]} />
+                  <meshStandardMaterial color="#292524" roughness={0.3} metalness={0.7} />
                 </mesh>
+                {/* Middle horizontal rail */}
+                <mesh position={[0, gateHeight * 0.45, 0]} castShadow>
+                  <boxGeometry args={[site.width - 0.35, 0.06, 0.05]} />
+                  <meshStandardMaterial color="#292524" roughness={0.3} metalness={0.7} />
+                </mesh>
+                {/* Vertical iron bars */}
+                {Array.from({ length: barCount }, (_, i) => {
+                  const barX = -site.width / 2 + 0.35 + ((site.width - 0.7) / (barCount - 1)) * i;
+                  return (
+                    <mesh key={`bar_${i}`} position={[barX, gateHeight / 2, 0]} castShadow>
+                      <boxGeometry args={[0.025, gateHeight - 0.4, 0.025]} />
+                      <meshStandardMaterial color="#1c1917" roughness={0.4} metalness={0.6} />
+                    </mesh>
+                  );
+                })}
+                {/* Decorative top spikes on each bar */}
+                {Array.from({ length: barCount }, (_, i) => {
+                  const barX = -site.width / 2 + 0.35 + ((site.width - 0.7) / (barCount - 1)) * i;
+                  return (
+                    <mesh key={`spike_${i}`} position={[barX, gateHeight - 0.1, 0]} castShadow>
+                      <coneGeometry args={[0.025, 0.1, 4]} />
+                      <meshStandardMaterial color="#1c1917" roughness={0.4} metalness={0.6} />
+                    </mesh>
+                  );
+                })}
               </group>
             );
           } else if (site.type === "tree") {
             return (
-              <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
-                <mesh position={[0, 1.5, 0]} castShadow>
-                  <cylinderGeometry args={[0.2, 0.3, 3, 8]} />
-                  <meshStandardMaterial color="#78350f" roughness={0.9} />
-                </mesh>
-                <mesh position={[0, 3.5, 0]} castShadow>
-                  <sphereGeometry args={[1.5, 16, 16]} />
-                  <meshStandardMaterial color="#16a34a" roughness={0.8} />
-                </mesh>
-              </group>
+              <Tree3D
+                key={site.id}
+                position={[cx, cy, cz]}
+                rotation={[0, rotY, 0]}
+              />
             );
           } else if (site.type === "stairs") {
-            // 3D Staircase with individual treads, stringers, and railings
             const stW = site.width;
             const stL = site.length;
-            const totalH = 3.0; // One floor height
-            const numTreads = Math.max(4, Math.round(stL / 0.28)); // ~28cm tread depth
+            const totalH = 3.0;
+            const numTreads = Math.max(4, Math.round(stL / 0.28));
             const treadDepth = stL / numTreads;
             const riserH = totalH / numTreads;
             const treadThickness = 0.05;
+            const nosingOverhang = 0.02;
             const railHeight = 0.9;
             const railThickness = 0.04;
             const postSize = 0.05;
 
             return (
               <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
-                {/* Individual treads */}
+                {/* Individual treads with nosing overhang */}
                 {Array.from({ length: numTreads }, (_, i) => {
                   const treadY = riserH * (i + 1);
                   const treadZ = -stL / 2 + treadDepth * i + treadDepth / 2;
 
                   return (
-                    <mesh key={`tread_${i}`} position={[0, treadY, treadZ]} castShadow receiveShadow>
-                      <boxGeometry args={[stW, treadThickness, treadDepth]} />
-                      <meshStandardMaterial color="#78716c" roughness={0.7} />
+                    <mesh key={`tread_${i}`} position={[0, treadY, treadZ + nosingOverhang / 2]} castShadow receiveShadow>
+                      <boxGeometry args={[stW + 0.02, treadThickness, treadDepth + nosingOverhang]} />
+                      <meshStandardMaterial color="#78716c" roughness={0.65} metalness={0.1} />
+                      <Edges threshold={15} color="#44403c" lineWidth={1} />
                     </mesh>
                   );
                 })}
 
-                {/* Risers (vertical faces between treads) */}
+                {/* Risers */}
                 {Array.from({ length: numTreads }, (_, i) => {
                   const riserY = riserH * i + riserH / 2;
                   const riserZ = -stL / 2 + treadDepth * i + treadDepth / 2;
@@ -645,39 +955,33 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   return (
                     <mesh key={`riser_${i}`} position={[0, riserY, riserZ]} castShadow>
                       <boxGeometry args={[stW, riserH, treadThickness]} />
-                      <meshStandardMaterial color="#57534e" roughness={0.8} />
+                      <meshStandardMaterial color="#57534e" roughness={0.8} metalness={0.05} />
                     </mesh>
                   );
                 })}
 
-                {/* Left stringer (side beam) */}
-                <mesh
-                  position={[-stW / 2 - 0.02, totalH / 2, 0]}
-                  castShadow
-                >
-                  <boxGeometry args={[0.04, totalH, stL]} />
-                  <meshStandardMaterial color="#44403c" roughness={0.6} />
+                {/* Left stringer */}
+                <mesh position={[-stW / 2 - 0.02, totalH / 2, 0]} castShadow>
+                  <boxGeometry args={[0.05, totalH, stL]} />
+                  <meshStandardMaterial color="#44403c" roughness={0.6} metalness={0.1} />
+                  <Edges threshold={15} color="#292524" lineWidth={1} />
                 </mesh>
-
                 {/* Right stringer */}
-                <mesh
-                  position={[stW / 2 + 0.02, totalH / 2, 0]}
-                  castShadow
-                >
-                  <boxGeometry args={[0.04, totalH, stL]} />
-                  <meshStandardMaterial color="#44403c" roughness={0.6} />
+                <mesh position={[stW / 2 + 0.02, totalH / 2, 0]} castShadow>
+                  <boxGeometry args={[0.05, totalH, stL]} />
+                  <meshStandardMaterial color="#44403c" roughness={0.6} metalness={0.1} />
+                  <Edges threshold={15} color="#292524" lineWidth={1} />
                 </mesh>
 
                 {/* Left railing */}
                 <mesh position={[-stW / 2 - 0.02, totalH + railHeight / 2, 0]}>
                   <boxGeometry args={[railThickness, railHeight, stL]} />
-                  <meshStandardMaterial color="#71717a" roughness={0.3} metalness={0.7} />
+                  <meshStandardMaterial color="#71717a" roughness={0.25} metalness={0.75} />
                 </mesh>
-
                 {/* Right railing */}
                 <mesh position={[stW / 2 + 0.02, totalH + railHeight / 2, 0]}>
                   <boxGeometry args={[railThickness, railHeight, stL]} />
-                  <meshStandardMaterial color="#71717a" roughness={0.3} metalness={0.7} />
+                  <meshStandardMaterial color="#71717a" roughness={0.25} metalness={0.75} />
                 </mesh>
 
                 {/* Railing posts (left side) */}
@@ -688,11 +992,10 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   return (
                     <mesh key={`lpost_${i}`} position={[-stW / 2 - 0.02, postY, postZ]}>
                       <boxGeometry args={[postSize, railHeight, postSize]} />
-                      <meshStandardMaterial color="#a1a1aa" roughness={0.3} metalness={0.6} />
+                      <meshStandardMaterial color="#a1a1aa" roughness={0.25} metalness={0.7} />
                     </mesh>
                   );
                 })}
-
                 {/* Railing posts (right side) */}
                 {Array.from({ length: Math.ceil(numTreads / 3) + 1 }, (_, i) => {
                   const postI = i * 3;
@@ -701,7 +1004,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
                   return (
                     <mesh key={`rpost_${i}`} position={[stW / 2 + 0.02, postY, postZ]}>
                       <boxGeometry args={[postSize, railHeight, postSize]} />
-                      <meshStandardMaterial color="#a1a1aa" roughness={0.3} metalness={0.6} />
+                      <meshStandardMaterial color="#a1a1aa" roughness={0.25} metalness={0.7} />
                     </mesh>
                   );
                 })}
@@ -710,18 +1013,25 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           } else if (site.type === "compound") {
             const w = site.width;
             const l = site.length;
-            
+
             let h = 1.8;
             let th = 0.2;
-            let wallColor = "#94a3b8"; // solid
-            
+            let wallColor = "#94a3b8";
+            let pillarColor = "#64748b";
+            const pillarH = h + 0.15;
+            const pillarW = 0.3;
+            const capExtra = 0.1;
+
             if (site.style === "brick") {
-              wallColor = "#991b1b"; // red brick
+              wallColor = "#991b1b";
+              pillarColor = "#78350f";
             } else if (site.style === "modern") {
-              wallColor = "#334155"; // slate
+              wallColor = "#334155";
+              pillarColor = "#1e293b";
               h = 2.0;
             } else if (site.style === "picket") {
-              wallColor = "#ffffff"; // white fence
+              wallColor = "#ffffff";
+              pillarColor = "#e2e8f0";
               h = 1.2;
               th = 0.1;
             }
@@ -729,25 +1039,52 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
             return (
               <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
                 {/* Front wall */}
-                <mesh position={[0, h/2, l/2]} castShadow receiveShadow>
-                   <boxGeometry args={[w + th, h, th]} />
-                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                <mesh position={[0, h / 2, l / 2]} castShadow receiveShadow>
+                  <boxGeometry args={[w + th, h, th]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
                 </mesh>
                 {/* Back wall */}
-                <mesh position={[0, h/2, -l/2]} castShadow receiveShadow>
-                   <boxGeometry args={[w + th, h, th]} />
-                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                <mesh position={[0, h / 2, -l / 2]} castShadow receiveShadow>
+                  <boxGeometry args={[w + th, h, th]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
                 </mesh>
                 {/* Left wall */}
-                <mesh position={[-w/2, h/2, 0]} castShadow receiveShadow>
-                   <boxGeometry args={[th, h, l - th]} />
-                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                <mesh position={[-w / 2, h / 2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[th, h, l - th]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
                 </mesh>
                 {/* Right wall */}
-                <mesh position={[w/2, h/2, 0]} castShadow receiveShadow>
-                   <boxGeometry args={[th, h, l - th]} />
-                   <meshStandardMaterial color={wallColor} roughness={0.8} />
+                <mesh position={[w / 2, h / 2, 0]} castShadow receiveShadow>
+                  <boxGeometry args={[th, h, l - th]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
                 </mesh>
+
+                {/* Corner pillars with caps */}
+                {[
+                  [-w / 2, l / 2],
+                  [w / 2, l / 2],
+                  [-w / 2, -l / 2],
+                  [w / 2, -l / 2],
+                ].map(([px, pz], idx) => (
+                  <group key={`pillar_${idx}`}>
+                    {/* Pillar body */}
+                    <mesh position={[px, pillarH / 2, pz]} castShadow receiveShadow>
+                      <boxGeometry args={[pillarW, pillarH, pillarW]} />
+                      <meshStandardMaterial color={pillarColor} roughness={0.7} metalness={0.15} />
+                      <Edges threshold={15} color="#0f172a" lineWidth={1} />
+                    </mesh>
+                    {/* Pillar cap */}
+                    <mesh position={[px, pillarH + 0.05, pz]} castShadow>
+                      <boxGeometry args={[pillarW + capExtra, 0.1, pillarW + capExtra]} />
+                      <meshStandardMaterial color={pillarColor} roughness={0.6} metalness={0.2} />
+                      <Edges threshold={15} color="#0f172a" lineWidth={1} />
+                    </mesh>
+                  </group>
+                ))}
               </group>
             );
           }
@@ -759,7 +1096,7 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
           const cx = label.x / PIXELS_PER_METER;
           const cz = label.y / PIXELS_PER_METER;
           const floorIdx = label.floorIndex || 0;
-          const cy = floorIdx * 3.0 + 0.15; // Slightly above floor
+          const cy = floorIdx * 3.0 + 0.15;
 
           return (
             <RoomLabel3D
@@ -773,10 +1110,10 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
         {/* Stacked roof mesh at very top */}
         {roofMesh}
 
-        {/* Ground base plate */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+        {/* Ground base plate — solid matte concrete */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow>
           <planeGeometry args={[150, 150]} />
-          <meshStandardMaterial color={aesthetics.floorColor} opacity={0.6} transparent />
+          <meshStandardMaterial color="#e7e5e4" roughness={0.95} metalness={0.02} />
         </mesh>
       </Canvas>
     </div>
@@ -792,7 +1129,6 @@ function RoomLabel3D({ text, position }: RoomLabel3DProps) {
   const labelData = useMemo(() => {
     if (typeof window === "undefined") return null;
 
-    // Create a temporary canvas to measure text length
     const tempCanvas = document.createElement("canvas");
     const tempCtx = tempCanvas.getContext("2d");
     if (!tempCtx) return null;
@@ -818,7 +1154,6 @@ function RoomLabel3D({ text, position }: RoomLabel3DProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    // Background Rounded Rect with Neon Border
     const radius = 16;
     const halfBorder = borderThickness / 2;
     const rx = halfBorder;
@@ -845,7 +1180,6 @@ function RoomLabel3D({ text, position }: RoomLabel3DProps) {
     ctx.fill();
     ctx.stroke();
 
-    // Draw text centered
     ctx.fillStyle = "#f1f5f9";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
