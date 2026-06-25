@@ -711,108 +711,116 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         </Button>
       </div>
 
-      {/* 2D Design Toolbar */}
-      <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-3 max-w-[calc(100vw-2rem)] lg:max-w-none max-h-[calc(100vh-2rem)] overflow-y-auto pb-4 pr-2 custom-scrollbar">
+      {/* 2D Design Toolbar (Right Sidebar) */}
+      <div className="absolute top-4 right-4 bottom-4 z-10 w-52 flex flex-col gap-5 overflow-y-auto overflow-x-hidden custom-scrollbar bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-3xl shadow-2xl p-4">
+        
         {/* Core & Structural */}
-        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
-          <Button variant={mode === "select" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("select"); setDrawingStartNode(null); }}>
-            <MousePointer2 className="h-3.5 w-3.5 mr-1.5" /> Select
+        <div className="flex flex-col gap-1">
+          <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Structural</h3>
+          <Button variant={mode === "select" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("select"); setDrawingStartNode(null); }}>
+            <MousePointer2 className="h-3.5 w-3.5 mr-2" /> Select
           </Button>
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
-          <Button variant={mode === "draw_wall" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => setMode("draw_wall")}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" /> Wall
+          <Button variant={mode === "draw_wall" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => setMode("draw_wall")}>
+            <Plus className="h-3.5 w-3.5 mr-2" /> Wall
           </Button>
-          <Button variant={mode === "add_door" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_door"); setDrawingStartNode(null); }}>
-            <DoorOpen className="h-3.5 w-3.5 mr-1.5" /> Door
+          <Button variant={mode === "add_door" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_door"); setDrawingStartNode(null); }}>
+            <DoorOpen className="h-3.5 w-3.5 mr-2" /> Door
           </Button>
-          <Button variant={mode === "add_window" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_window"); setDrawingStartNode(null); }}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" /> Window
+          <Button variant={mode === "add_window" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_window"); setDrawingStartNode(null); }}>
+            <Plus className="h-3.5 w-3.5 mr-2" /> Window
           </Button>
-          <Button variant={mode === "add_column" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_column"); setDrawingStartNode(null); }}>
-            <Columns3 className="h-3.5 w-3.5 mr-1.5" /> Column
+          <Button variant={mode === "add_column" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_column"); setDrawingStartNode(null); }}>
+            <Columns3 className="h-3.5 w-3.5 mr-2" /> Column
           </Button>
-          <Button variant={mode === "add_beam" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_beam"); setDrawingStartNode(null); }}>
-            <Box className="h-3.5 w-3.5 mr-1.5" /> Beam
+          <Button variant={mode === "add_beam" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_beam"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-2" /> Beam
           </Button>
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/50" disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId && !selectedLabelId} onClick={handleDelete}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="outline" size="sm" className="h-8 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs px-3 rounded-xl ml-1" onClick={handleDownloadPdf}>
-            <FileDown className="h-3.5 w-3.5 mr-1.5 text-sky-500" /> Export PDF
+          <Button variant={mode === "add_stairs" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}>
+            <Footprints className="h-3.5 w-3.5 mr-2" /> Stairs
           </Button>
         </div>
 
-        {/* Fixtures (Bathroom & Kitchen) */}
-        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
-          <Button variant={mode === "add_toilet" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_toilet"); setDrawingStartNode(null); }}>
-            <Bath className="h-3.5 w-3.5 mr-1.5" /> Toilet
+        {/* Fixtures */}
+        <div className="flex flex-col gap-1">
+          <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Fixtures</h3>
+          <Button variant={mode === "add_toilet" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_toilet"); setDrawingStartNode(null); }}>
+            <Bath className="h-3.5 w-3.5 mr-2" /> Toilet
           </Button>
-          <Button variant={mode === "add_washbasin" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_washbasin"); setDrawingStartNode(null); }}>
-            <Droplets className="h-3.5 w-3.5 mr-1.5" /> Washbasin
+          <Button variant={mode === "add_washbasin" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_washbasin"); setDrawingStartNode(null); }}>
+            <Droplets className="h-3.5 w-3.5 mr-2" /> Washbasin
           </Button>
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
-          <Button variant={mode === "add_counter" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_counter"); setDrawingStartNode(null); }}>
-            <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" /> Counter
+          <Button variant={mode === "add_counter" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_counter"); setDrawingStartNode(null); }}>
+            <UtensilsCrossed className="h-3.5 w-3.5 mr-2" /> Counter
           </Button>
-          <Button variant={mode === "add_stove" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_stove"); setDrawingStartNode(null); }}>
-            <CookingPot className="h-3.5 w-3.5 mr-1.5" /> Stove
+          <Button variant={mode === "add_stove" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_stove"); setDrawingStartNode(null); }}>
+            <CookingPot className="h-3.5 w-3.5 mr-2" /> Stove
           </Button>
         </div>
 
         {/* Furniture */}
-        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl">
-          <Button variant={mode === "add_bed" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_bed"); setDrawingStartNode(null); }}>
-            <BedDouble className="h-3.5 w-3.5 mr-1.5" /> Bed
+        <div className="flex flex-col gap-1">
+          <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Furniture</h3>
+          <Button variant={mode === "add_bed" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_bed"); setDrawingStartNode(null); }}>
+            <BedDouble className="h-3.5 w-3.5 mr-2" /> Bed
           </Button>
-          <Button variant={mode === "add_sofa" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_sofa"); setDrawingStartNode(null); }}>
-            <Sofa className="h-3.5 w-3.5 mr-1.5" /> Sofa
+          <Button variant={mode === "add_sofa" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_sofa"); setDrawingStartNode(null); }}>
+            <Sofa className="h-3.5 w-3.5 mr-2" /> Sofa
           </Button>
-          <Button variant={mode === "add_dining_table" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_dining_table"); setDrawingStartNode(null); }}>
-            <Armchair className="h-3.5 w-3.5 mr-1.5" /> Dining
+          <Button variant={mode === "add_dining_table" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_dining_table"); setDrawingStartNode(null); }}>
+            <Armchair className="h-3.5 w-3.5 mr-2" /> Dining
           </Button>
-          <Button variant={mode === "add_wardrobe" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_wardrobe"); setDrawingStartNode(null); }}>
-            <Box className="h-3.5 w-3.5 mr-1.5" /> Wardrobe
+          <Button variant={mode === "add_wardrobe" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_wardrobe"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-2" /> Wardrobe
           </Button>
         </div>
 
         {/* Outdoor & Misc */}
-        <div className="flex flex-wrap items-center justify-end gap-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 p-1.5 rounded-2xl shadow-lg shadow-slate-200/20 dark:shadow-none transition-all hover:shadow-xl max-w-[80vw] lg:max-w-none">
-          <Button variant={mode === "add_compound" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}>
-            <Box className="h-3.5 w-3.5 mr-1.5" /> Compound
+        <div className="flex flex-col gap-1">
+          <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1 px-1">Exterior & Environment</h3>
+          <Button variant={mode === "add_compound" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_compound"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-2" /> Compound Wall
           </Button>
-          <Button variant={mode === "add_gate" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}>
-            <Fence className="h-3.5 w-3.5 mr-1.5" /> Gate
+          <Button variant={mode === "add_gate" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_gate"); setDrawingStartNode(null); }}>
+            <Fence className="h-3.5 w-3.5 mr-2" /> Main Gate
           </Button>
-          <Button variant={mode === "add_balcony_railing" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_balcony_railing"); setDrawingStartNode(null); }}>
-            <Pilcrow className="h-3.5 w-3.5 mr-1.5" /> Balcony
+          <Button variant={mode === "add_balcony_railing" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_balcony_railing"); setDrawingStartNode(null); }}>
+            <Pilcrow className="h-3.5 w-3.5 mr-2" /> Balcony Railing
           </Button>
-          <Button variant={mode === "add_water_tank" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_water_tank"); setDrawingStartNode(null); }}>
-            <Warehouse className="h-3.5 w-3.5 mr-1.5" /> Tank
+          <Button variant={mode === "add_water_tank" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_water_tank"); setDrawingStartNode(null); }}>
+            <Warehouse className="h-3.5 w-3.5 mr-2" /> Water Tank
           </Button>
-          <Button variant={mode === "add_tree" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}>
-            <Trees className="h-3.5 w-3.5 mr-1.5" /> Tree
+          <Button variant={mode === "add_tree" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_tree"); setDrawingStartNode(null); }}>
+            <Trees className="h-3.5 w-3.5 mr-2" /> Tree
           </Button>
-          <Button variant={mode === "add_grass" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}>
-            <LayoutPanelLeft className="h-3.5 w-3.5 mr-1.5" /> Grass
+          <Button variant={mode === "add_grass" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_grass"); setDrawingStartNode(null); }}>
+            <LayoutPanelLeft className="h-3.5 w-3.5 mr-2" /> Grass Area
           </Button>
-          <Button variant={mode === "add_parking" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}>
-            <Box className="h-3.5 w-3.5 mr-1.5" /> Parking
+          <Button variant={mode === "add_parking" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_parking"); setDrawingStartNode(null); }}>
+            <Box className="h-3.5 w-3.5 mr-2" /> Parking Area
           </Button>
-          <Button variant={mode === "add_vehicle" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}>
-            <Car className="h-3.5 w-3.5 mr-1.5" /> Car
-          </Button>
-          <Button variant={mode === "add_stairs" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_stairs"); setDrawingStartNode(null); }}>
-            <Footprints className="h-3.5 w-3.5 mr-1.5" /> Stairs
-          </Button>
-          <div className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-1" />
-          <Button variant={mode === "add_label" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl" onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}>
-            <Tag className="h-3.5 w-3.5 mr-1.5" /> Label
-          </Button>
-          <Button variant={mode === "measure" ? "default" : "ghost"} size="sm" className="h-8 text-xs px-3 rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 dark:hover:bg-indigo-900" onClick={() => { setMode("measure"); setMeasureStart(null); setDrawingStartNode(null); }}>
-            <Ruler className="h-3.5 w-3.5 mr-1.5" /> Measure
+          <Button variant={mode === "add_vehicle" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_vehicle"); setDrawingStartNode(null); }}>
+            <Car className="h-3.5 w-3.5 mr-2" /> Vehicle
           </Button>
         </div>
+
+        {/* Utilities */}
+        <div className="flex flex-col gap-1 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/60">
+          <Button variant={mode === "add_label" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl" onClick={() => { setMode("add_label"); setDrawingStartNode(null); }}>
+            <Tag className="h-3.5 w-3.5 mr-2" /> Room Label
+          </Button>
+          <Button variant={mode === "measure" ? "default" : "ghost"} size="sm" className="w-full justify-start h-8 text-xs rounded-xl bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 dark:hover:bg-indigo-900" onClick={() => { setMode("measure"); setMeasureStart(null); setDrawingStartNode(null); }}>
+            <Ruler className="h-3.5 w-3.5 mr-2" /> Measure Tool
+          </Button>
+          <div className="flex gap-2 mt-2">
+            <Button variant="outline" size="icon" className="h-8 flex-1 rounded-xl hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/50" disabled={!selectedWallId && !selectedOpeningId && !selectedSiteElementId && !selectedLabelId} onClick={handleDelete} title="Delete Selected">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="outline" size="icon" className="h-8 flex-1 rounded-xl" onClick={handleDownloadPdf} title="Export as PDF">
+              <FileDown className="h-3.5 w-3.5 text-sky-500" />
+            </Button>
+          </div>
+        </div>
+
       </div>
 
       <svg

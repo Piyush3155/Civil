@@ -97,6 +97,7 @@ const navigationData: NavGroup[] = [
         url: "/building-designer",
         icon: Box,
         allowedRoles: ['ADMIN', 'PROJECT_MANAGER', 'SITE_ENGINEER'],
+        target: "_blank",
       },
       {
         title: "Analytics",

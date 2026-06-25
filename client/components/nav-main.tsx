@@ -22,6 +22,7 @@ export function NavMain({
       title: string
       url: string
       icon: LucideIcon
+      target?: string
       items?: { // Optional subitems if you have them in future
         title: string
         url: string
@@ -40,7 +41,13 @@ export function NavMain({
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton 
                   tooltip={item.title} 
-                  onClick={() => router.push(item.url)}
+                  onClick={() => {
+                    if (item.target === "_blank") {
+                      window.open(item.url, "_blank");
+                    } else {
+                      router.push(item.url);
+                    }
+                  }}
                 >
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>

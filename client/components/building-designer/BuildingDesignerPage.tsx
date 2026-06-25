@@ -37,6 +37,7 @@ import { getSession } from "@/lib/sessionAction";
 import Loader from "@/components/ui/loader";
 import Editor2D from "./Editor2D";
 import Viewer3D from "./Viewer3D";
+import { useSidebar } from "@/components/ui/sidebar";
 import { generateFloorPlan } from "@/app/actions/ai/main";
 
 interface BuildingDesignerPageProps {
@@ -75,6 +76,12 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAesthetics, setShowAesthetics] = useState(false);
+
+  // Collapse the global app sidebar when in the designer
+  const { setOpen } = useSidebar();
+  useEffect(() => {
+    setOpen(false);
+  }, [setOpen]);
 
   // Load drawing from drawingId if present in search parameters
   useEffect(() => {
@@ -344,52 +351,64 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background relative">
-      {/* Mobile sidebar toggle */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="absolute top-3 left-3 z-30 lg:hidden flex items-center justify-center h-9 w-9 rounded-lg bg-slate-800/90 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors shadow-lg backdrop-blur-sm"
-        title={sidebarOpen ? "Close panel" : "Open panel"}
-      >
-        {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeft className="h-4 w-4" />}
-      </button>
-
-      {/* Sidebar backdrop (mobile) */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar / Properties Panel */}
-      <div className={`
-        fixed lg:relative z-20 lg:z-auto
-        w-[280px] sm:w-[320px] h-[calc(100vh-4rem)]
-        border-r border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl flex flex-col
-        transition-transform duration-300 ease-in-out shadow-2xl lg:shadow-none
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0 lg:w-0 lg:min-w-0 lg:overflow-hidden lg:border-r-0 lg:p-0'}
-      `}>
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800/60 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-          <h2 className="text-base font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100 tracking-tight">
-            <Box className="h-5 w-5 text-violet-500" />
-            Building Designer
-          </h2>
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background relative overflow-hidden">
+      {/* Top Bar — minimal, full width */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 py-2 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50">
+        {/* Left: Title + Tab Switch */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Box className="h-4 w-4 text-violet-500" />
+            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 hidden sm:block truncate max-w-[160px]">{saveForm.title || "Building Designer"}</span>
+          </div>
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5">
+            <button
+              onClick={() => setActiveTab("2d")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === "2d" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"}`}
+            >
+              <Pencil className="h-3 w-3" /> 2D Plan
+            </button>
+            <button
+              onClick={() => setActiveTab("3d")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${activeTab === "3d" ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"}`}
+            >
+              <Box className="h-3 w-3" /> 3D View
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-5 space-y-8">
-          {/* AI Plan Generator */}
-          <div className="space-y-3 p-4 rounded-2xl bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-950/20 dark:to-indigo-950/20 border border-violet-100 dark:border-violet-900/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <Sparkles className="h-16 w-16 text-violet-600" />
-            </div>
-            <h3 className="font-semibold text-sm flex items-center gap-2 text-violet-800 dark:text-violet-300 relative z-10">
-              <Sparkles className="h-4 w-4" />
-              AI Plan Generator
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAesthetics(!showAesthetics)}
+            className={`h-8 w-8 flex items-center justify-center rounded-lg transition-all ${showAesthetics ? "bg-violet-100 dark:bg-violet-900/50 text-violet-600" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
+            title="Aesthetics & Environment"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className={`h-8 w-8 flex items-center justify-center rounded-lg transition-all ${sidebarOpen ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600" : "text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"}`}
+            title="AI Plan Generator"
+          >
+            <Sparkles className="h-4 w-4" />
+          </button>
+          <Button onClick={handleOpenSaveDialog} size="sm" className="h-8 text-xs px-3 rounded-lg shadow-sm">
+            <Save className="h-3.5 w-3.5 mr-1.5" /> Save
+          </Button>
+        </div>
+      </div>
+
+      {/* AI Plan Generator — floating panel (right) */}
+      {sidebarOpen && (
+        <>
+          <div className="fixed inset-0 z-30 bg-black/20 lg:hidden" onClick={() => setSidebarOpen(false)} />
+          <div className="absolute top-12 right-3 z-40 w-[300px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-2xl shadow-2xl shadow-slate-200/30 dark:shadow-none p-4 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+            <h3 className="font-semibold text-sm flex items-center gap-2 text-violet-700 dark:text-violet-300">
+              <Sparkles className="h-4 w-4" /> AI Plan Generator
             </h3>
             <Textarea
               placeholder='e.g. "Create a 2 BHK house plan, plot size 49x41 feet..."'
-              className="bg-white/80 dark:bg-slate-900/50 border-violet-200 dark:border-violet-800/50 text-sm min-h-[80px] resize-none placeholder:text-slate-400 focus-visible:ring-violet-500/30 relative z-10 rounded-xl"
+              className="bg-white/80 dark:bg-slate-900/50 border-violet-200 dark:border-violet-800/50 text-sm min-h-[70px] resize-none placeholder:text-slate-400 focus-visible:ring-violet-500/30 rounded-xl"
               value={aiPrompt}
               onChange={(e) => setAiPrompt(e.target.value)}
               disabled={isGenerating}
@@ -403,145 +422,94 @@ export default function BuildingDesignerPage({ initialData, projectId }: Buildin
             <Button
               onClick={handleGenerateAI}
               disabled={isGenerating || !aiPrompt.trim()}
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20 transition-all rounded-xl relative z-10"
-              size="default"
+              className="w-full bg-violet-600 hover:bg-violet-700 text-white shadow-md shadow-violet-500/20 transition-all rounded-xl h-9 text-xs"
+              size="sm"
             >
               {isGenerating ? (
                 <><Loader /> Generating...</>
               ) : (
-                <><Sparkles className="h-4 w-4 mr-2" /> Generate Plan</>
+                <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate Plan</>
               )}
             </Button>
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Label className="text-xs">Project Title</Label>
+              <Input value={saveForm.title} onChange={(e) => setSaveForm({ ...saveForm, title: e.target.value })} className="h-8 text-xs rounded-lg" />
+            </div>
           </div>
+        </>
+      )}
 
+      {/* Aesthetics panel — floating (right, below settings icon) */}
+      {showAesthetics && (
+        <div className="absolute top-12 right-14 z-40 w-[260px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200/60 dark:border-slate-800/60 rounded-2xl shadow-2xl shadow-slate-200/30 dark:shadow-none p-4 space-y-3 animate-in slide-in-from-top-2 fade-in duration-200">
+          <h3 className="font-semibold text-xs flex items-center gap-2 text-slate-600 dark:text-slate-300">
+            <Settings className="h-3.5 w-3.5" /> Aesthetics & Environment
+          </h3>
           <div className="space-y-3">
-            <Label>Project Title</Label>
-            <Input value={saveForm.title} onChange={(e) => setSaveForm({ ...saveForm, title: e.target.value })} />
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="2d"><Pencil className="h-4 w-4 mr-2" /> 2D Plan</TabsTrigger>
-              <TabsTrigger value="3d"><Box className="h-4 w-4 mr-2" /> 3D View</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/60">
-            <button 
-              onClick={() => setShowAesthetics(!showAesthetics)}
-              className="flex items-center justify-between w-full p-2 hover:bg-slate-50 dark:hover:bg-slate-900/50 rounded-xl transition-all"
-            >
-              <h3 className="font-semibold flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <Settings className="h-4 w-4 text-slate-400" /> Aesthetics & Environment
-              </h3>
-              <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                {showAesthetics ? "Hide" : "Edit"}
-              </span>
-            </button>
-            
-            {showAesthetics && (
-              <div className="space-y-4 px-2 animate-in slide-in-from-top-2 fade-in duration-200">
-                <div className="space-y-1.5">
-              <div>
-                <Label>Wall Color</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input type="color" className="w-12 h-10 p-1" value={aesthetics.wallColor} onChange={(e) => setAesthetics({ ...aesthetics, wallColor: e.target.value })} />
-                  <Input value={aesthetics.wallColor} onChange={(e) => setAesthetics({ ...aesthetics, wallColor: e.target.value })} />
-                </div>
-              </div>
-              <div>
-                <Label>Floor Color</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input type="color" className="w-12 h-10 p-1" value={aesthetics.floorColor} onChange={(e) => setAesthetics({ ...aesthetics, floorColor: e.target.value })} />
-                  <Input value={aesthetics.floorColor} onChange={(e) => setAesthetics({ ...aesthetics, floorColor: e.target.value })} />
-                </div>
-              </div>
-              <div>
-                <Label>Environment (Ground)</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input type="color" className="w-12 h-10 p-1" value={aesthetics.groundColor} onChange={(e) => setAesthetics({ ...aesthetics, groundColor: e.target.value })} />
-                  <Input value={aesthetics.groundColor} onChange={(e) => setAesthetics({ ...aesthetics, groundColor: e.target.value })} />
-                </div>
-              </div>
-
-              {/* Roof Settings */}
-              <div className="pt-3 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="show-roof" className="cursor-pointer">Enable Roof</Label>
-                  <input
-                    id="show-roof"
-                    type="checkbox"
-                    className="h-4 w-4 rounded bg-slate-900 border-slate-700 text-primary focus:ring-primary cursor-pointer"
-                    checked={aesthetics.showRoof}
-                    onChange={(e) => setAesthetics({ ...aesthetics, showRoof: e.target.checked })}
-                  />
-                </div>
-              </div>
-
-              {aesthetics.showRoof && (
-                <div className="space-y-3 pt-2">
-                  <div>
-                    <Label>Roof Style</Label>
-                    <select
-                      className="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-sm text-slate-200 mt-1"
-                      value={aesthetics.roofType}
-                      onChange={(e) => setAesthetics({ ...aesthetics, roofType: e.target.value as any })}
-                    >
-                      <option value="flat">Flat Slab</option>
-                      <option value="pitched">Pitched Gable</option>
-                      <option value="hip">Hip Roof</option>
-                      <option value="shed">Shed Roof</option>
-                    </select>
-                  </div>
-
-                  {aesthetics.roofType !== "flat" && (
-                    <div>
-                      <Label>Ridge Height (meters)</Label>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0.5"
-                        max="6"
-                        className="mt-1"
-                        value={aesthetics.roofHeight}
-                        onChange={(e) => setAesthetics({ ...aesthetics, roofHeight: parseFloat(e.target.value) || 2.0 })}
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <Label>Roof Color</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Input type="color" className="w-12 h-10 p-1" value={aesthetics.roofColor} onChange={(e) => setAesthetics({ ...aesthetics, roofColor: e.target.value })} />
-                      <Input value={aesthetics.roofColor} onChange={(e) => setAesthetics({ ...aesthetics, roofColor: e.target.value })} />
-                    </div>
-                  </div>
-                </div>
-              )}
+            <div>
+              <Label className="text-xs">Wall Color</Label>
+              <div className="flex gap-2 mt-1">
+                <Input type="color" className="w-10 h-8 p-0.5 rounded-lg" value={aesthetics.wallColor} onChange={(e) => setAesthetics({ ...aesthetics, wallColor: e.target.value })} />
+                <Input className="h-8 text-xs rounded-lg" value={aesthetics.wallColor} onChange={(e) => setAesthetics({ ...aesthetics, wallColor: e.target.value })} />
               </div>
             </div>
-          )}
+            <div>
+              <Label className="text-xs">Floor Color</Label>
+              <div className="flex gap-2 mt-1">
+                <Input type="color" className="w-10 h-8 p-0.5 rounded-lg" value={aesthetics.floorColor} onChange={(e) => setAesthetics({ ...aesthetics, floorColor: e.target.value })} />
+                <Input className="h-8 text-xs rounded-lg" value={aesthetics.floorColor} onChange={(e) => setAesthetics({ ...aesthetics, floorColor: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Ground</Label>
+              <div className="flex gap-2 mt-1">
+                <Input type="color" className="w-10 h-8 p-0.5 rounded-lg" value={aesthetics.groundColor} onChange={(e) => setAesthetics({ ...aesthetics, groundColor: e.target.value })} />
+                <Input className="h-8 text-xs rounded-lg" value={aesthetics.groundColor} onChange={(e) => setAesthetics({ ...aesthetics, groundColor: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800">
+              <Label htmlFor="show-roof-panel" className="text-xs cursor-pointer">Enable Roof</Label>
+              <input id="show-roof-panel" type="checkbox" className="h-4 w-4 rounded cursor-pointer" checked={aesthetics.showRoof} onChange={(e) => setAesthetics({ ...aesthetics, showRoof: e.target.checked })} />
+            </div>
+            {aesthetics.showRoof && (
+              <div className="space-y-2">
+                <div>
+                  <Label className="text-xs">Roof Style</Label>
+                  <select className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-1.5 text-xs mt-1" value={aesthetics.roofType} onChange={(e) => setAesthetics({ ...aesthetics, roofType: e.target.value as any })}>
+                    <option value="flat">Flat Slab</option>
+                    <option value="pitched">Pitched Gable</option>
+                    <option value="hip">Hip Roof</option>
+                    <option value="shed">Shed Roof</option>
+                  </select>
+                </div>
+                {aesthetics.roofType !== "flat" && (
+                  <div>
+                    <Label className="text-xs">Ridge Height (m)</Label>
+                    <Input type="number" step="0.5" className="h-8 text-xs rounded-lg mt-1" value={aesthetics.roofHeight} onChange={(e) => setAesthetics({ ...aesthetics, roofHeight: parseFloat(e.target.value) || 2 })} />
+                  </div>
+                )}
+                <div>
+                  <Label className="text-xs">Roof Color</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input type="color" className="w-10 h-8 p-0.5 rounded-lg" value={aesthetics.roofColor} onChange={(e) => setAesthetics({ ...aesthetics, roofColor: e.target.value })} />
+                    <Input className="h-8 text-xs rounded-lg" value={aesthetics.roofColor} onChange={(e) => setAesthetics({ ...aesthetics, roofColor: e.target.value })} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
-        <div className="p-4 border-t border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950">
-          <Button onClick={handleOpenSaveDialog} className="w-full shadow-sm hover:shadow-md transition-all font-medium rounded-xl h-10">
-            <Save className="mr-2 h-4 w-4" /> Save Design
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Canvas Area */}
-      <div className="flex-1 relative bg-slate-950 overflow-hidden">
+      {/* Main Canvas Area — full width */}
+      <div className="flex-1 relative bg-slate-950 overflow-hidden pt-11">
         {activeTab === "3d" && (
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10 pointer-events-none">
             <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/70 backdrop-blur-sm rounded-full px-3 py-1.5">
-              <Move className="h-3 w-3" />
-              Drag to rotate
+              <Move className="h-3 w-3" /> Drag to rotate
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/70 backdrop-blur-sm rounded-full px-3 py-1.5">
-              <ZoomIn className="h-3 w-3" />
-              Scroll to zoom
+              <ZoomIn className="h-3 w-3" /> Scroll to zoom
             </div>
           </div>
         )}
