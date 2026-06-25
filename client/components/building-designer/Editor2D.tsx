@@ -245,7 +245,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         if (siteType === "grass") { defaultWidth = 4; defaultLength = 4; }
         if (siteType === "parking") { defaultWidth = 3; defaultLength = 5; }
         if (siteType === "vehicle") { defaultWidth = 2; defaultLength = 4.5; }
-        if (siteType === "gate") { defaultWidth = 3; defaultLength = 0.2; }
+        if (siteType === "gate") { defaultWidth = 3; defaultLength = 1; }
         if (siteType === "tree") { defaultWidth = 1.5; defaultLength = 1.5; }
         if (siteType === "stairs") { defaultWidth = 1.2; defaultLength = 3; }
         if (siteType === "compound") { defaultWidth = 20; defaultLength = 15; }
@@ -259,7 +259,7 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
         if (siteType === "sofa") { defaultWidth = 2; defaultLength = 0.8; }
         if (siteType === "dining_table") { defaultWidth = 1.5; defaultLength = 0.9; }
         if (siteType === "wardrobe") { defaultWidth = 1.8; defaultLength = 0.6; }
-        if (siteType === "balcony_railing") { defaultWidth = 3; defaultLength = 0.1; }
+        if (siteType === "balcony_railing") { defaultWidth = 3; defaultLength = 0.5; }
         if (siteType === "water_tank") { defaultWidth = 1.5; defaultLength = 1.5; }
 
         const newSiteElement: SiteElement = {
@@ -1012,7 +1012,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               </g>
             );
           } else if (site.type === "gate") {
-            renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#b45309" stroke={isSelected ? "#3b82f6" : "#78350f"} strokeWidth={isSelected ? 3 : 1} />;
+            const numBars = Math.max(3, Math.round(wPx / 6));
+            renderEl = (
+              <g>
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#451a03" opacity={0.3} stroke={isSelected ? "#3b82f6" : "#78350f"} strokeWidth={isSelected ? 3 : 2} rx={1} />
+                {/* Vertical bars */}
+                {Array.from({ length: numBars }, (_, i) => (
+                  <line key={i} x1={-wPx/2 + (wPx / (numBars - 1)) * i} y1={-lPx/2 + 1} x2={-wPx/2 + (wPx / (numBars - 1)) * i} y2={lPx/2 - 1} stroke={isSelected ? "#60a5fa" : "#92400e"} strokeWidth={1.5} />
+                ))}
+                {/* Middle rail */}
+                <line x1={-wPx/2 + 1} y1={0} x2={wPx/2 - 1} y2={0} stroke={isSelected ? "#60a5fa" : "#78350f"} strokeWidth={1.5} />
+                {/* Gate label */}
+                <text textAnchor="middle" dominantBaseline="central" fill={isSelected ? "#93c5fd" : "#b45309"} fontSize={7} fontWeight="bold" y={lPx/2 + 8}>GATE</text>
+              </g>
+            );
           } else if (site.type === "tree") {
             renderEl = <circle cx={0} cy={0} r={wPx/2} fill="#22c55e" opacity={0.8} stroke={isSelected ? "#3b82f6" : "#15803d"} strokeWidth={isSelected ? 3 : 2} />;
           } else if (site.type === "stairs") {
@@ -1029,7 +1042,20 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               </g>
             );
           } else if (site.type === "compound") {
-            renderEl = <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="none" stroke={isSelected ? "#3b82f6" : "#64748b"} strokeWidth={isSelected ? 4 : 2} rx={2} strokeDasharray="10,5" />;
+            const cornerSize = Math.min(wPx, lPx) * 0.04;
+            renderEl = (
+              <g>
+                {/* Compound boundary */}
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="none" stroke={isSelected ? "#3b82f6" : "#64748b"} strokeWidth={isSelected ? 4 : 3} rx={2} strokeDasharray="10,5" />
+                {/* Corner pillars */}
+                <rect x={-wPx/2 - 2} y={-lPx/2 - 2} width={cornerSize} height={cornerSize} fill={isSelected ? "#3b82f6" : "#475569"} rx={1} />
+                <rect x={wPx/2 - cornerSize + 2} y={-lPx/2 - 2} width={cornerSize} height={cornerSize} fill={isSelected ? "#3b82f6" : "#475569"} rx={1} />
+                <rect x={-wPx/2 - 2} y={lPx/2 - cornerSize + 2} width={cornerSize} height={cornerSize} fill={isSelected ? "#3b82f6" : "#475569"} rx={1} />
+                <rect x={wPx/2 - cornerSize + 2} y={lPx/2 - cornerSize + 2} width={cornerSize} height={cornerSize} fill={isSelected ? "#3b82f6" : "#475569"} rx={1} />
+                {/* Label */}
+                <text textAnchor="middle" dominantBaseline="central" fill={isSelected ? "#60a5fa" : "#94a3b8"} fontSize={9} fontWeight="bold" y={-lPx/2 - 10}>COMPOUND WALL</text>
+              </g>
+            );
           } else if (site.type === "column") {
             renderEl = (
               <g>
@@ -1117,13 +1143,21 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
               </g>
             );
           } else if (site.type === "balcony_railing") {
-            const numPosts = Math.max(2, Math.round(wPx / 12));
+            const numPosts = Math.max(3, Math.round(wPx / 10));
             renderEl = (
               <g>
-                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#71717a" stroke={isSelected ? "#3b82f6" : "#3f3f46"} strokeWidth={isSelected ? 3 : 1.5} />
+                {/* Main railing bar background */}
+                <rect x={-wPx/2} y={-lPx/2} width={wPx} height={lPx} fill="#52525b" stroke={isSelected ? "#3b82f6" : "#3f3f46"} strokeWidth={isSelected ? 3 : 2} rx={1} />
+                {/* Top rail accent */}
+                <line x1={-wPx/2} y1={-lPx/2} x2={wPx/2} y2={-lPx/2} stroke={isSelected ? "#60a5fa" : "#a1a1aa"} strokeWidth={2} />
+                {/* Bottom rail accent */}
+                <line x1={-wPx/2} y1={lPx/2} x2={wPx/2} y2={lPx/2} stroke={isSelected ? "#60a5fa" : "#a1a1aa"} strokeWidth={2} />
+                {/* Vertical posts */}
                 {Array.from({ length: numPosts }, (_, i) => (
-                  <line key={i} x1={-wPx/2 + (wPx / (numPosts - 1)) * i} y1={-lPx/2} x2={-wPx/2 + (wPx / (numPosts - 1)) * i} y2={lPx/2} stroke={isSelected ? "#60a5fa" : "#a1a1aa"} strokeWidth={1} />
+                  <line key={i} x1={-wPx/2 + (wPx / (numPosts - 1)) * i} y1={-lPx/2} x2={-wPx/2 + (wPx / (numPosts - 1)) * i} y2={lPx/2} stroke={isSelected ? "#60a5fa" : "#a1a1aa"} strokeWidth={1.5} />
                 ))}
+                {/* Label */}
+                <text textAnchor="middle" dominantBaseline="central" fill={isSelected ? "#93c5fd" : "#a1a1aa"} fontSize={7} fontWeight="bold" y={lPx/2 + 8}>RAILING</text>
               </g>
             );
           } else if (site.type === "water_tank") {
@@ -1155,7 +1189,13 @@ export default function Editor2D({ data, onChange, title }: Editor2DProps) {
                 if (mode === "select") {
                   e.stopPropagation();
                 }
+                // Allow placing elements on compound boundary area
+                if (mode.startsWith("add_") && site.type === "compound") {
+                  // Don't stop propagation — let the click pass through to handleSvgClick
+                  return;
+                }
               }}
+              style={{ pointerEvents: (mode.startsWith("add_") && site.type === "compound" && mode !== "add_compound") ? "none" : "auto" }}
             >
               {renderEl}
             </g>

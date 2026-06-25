@@ -1036,32 +1036,141 @@ export default function Viewer3D({ data, aesthetics }: Viewer3DProps) {
               th = 0.1;
             }
 
+            // Find gates that overlap with this compound's edges
+            const compCx = site.x / PIXELS_PER_METER;
+            const compCz = site.y / PIXELS_PER_METER;
+            const gates = (data.siteElements || []).filter(s => s.type === "gate");
+            
+            // For each compound wall edge, detect gate openings
+            // Compound edges in world space (before compound rotation):
+            // Front: z = compCz + l/2, x from compCx-w/2 to compCx+w/2
+            // Back:  z = compCz - l/2, x from compCx-w/2 to compCx+w/2
+            // Left:  x = compCx - w/2, z from compCz-l/2 to compCz+l/2
+            // Right: x = compCx + w/2, z from compCz-l/2 to compCz+l/2
+            const tolerance = 1.5; // meters tolerance for snapping
+            
+            type WallGap = { offset: number; halfWidth: number };
+            const frontGaps: WallGap[] = [];
+            const backGaps: WallGap[] = [];
+            const leftGaps: WallGap[] = [];
+            const rightGaps: WallGap[] = [];
+            
+            gates.forEach(gate => {
+              const gx = gate.x / PIXELS_PER_METER;
+              const gz = gate.y / PIXELS_PER_METER;
+              const gateHalfW = gate.width / 2;
+              
+              // Check front wall (z = compCz + l/2)
+              if (Math.abs(gz - (compCz + l / 2)) < tolerance && gx >= compCx - w / 2 - tolerance && gx <= compCx + w / 2 + tolerance) {
+                frontGaps.push({ offset: gx - compCx, halfWidth: gateHalfW });
+              }
+              // Check back wall (z = compCz - l/2)
+              if (Math.abs(gz - (compCz - l / 2)) < tolerance && gx >= compCx - w / 2 - tolerance && gx <= compCx + w / 2 + tolerance) {
+                backGaps.push({ offset: gx - compCx, halfWidth: gateHalfW });
+              }
+              // Check left wall (x = compCx - w/2)
+              if (Math.abs(gx - (compCx - w / 2)) < tolerance && gz >= compCz - l / 2 - tolerance && gz <= compCz + l / 2 + tolerance) {
+                leftGaps.push({ offset: gz - compCz, halfWidth: gateHalfW });
+              }
+              // Check right wall (x = compCx + w/2)
+              if (Math.abs(gx - (compCx + w / 2)) < tolerance && gz >= compCz - l / 2 - tolerance && gz <= compCz + l / 2 + tolerance) {
+                rightGaps.push({ offset: gz - compCz, halfWidth: gateHalfW });
+              }
+            });
+            
+            // Helper: render a wall with gaps
+            const renderWallWithGaps = (
+              wallLength: number,
+              gaps: WallGap[],
+              positionFn: (segOffset: number, segLength: number) => [number, number, number],
+              sizeIsX: boolean
+            ) => {
+              if (gaps.length === 0) {
+                const pos = positionFn(0, wallLength);
+                const args: [number, number, number] = sizeIsX ? [wallLength, h, th] : [th, h, wallLength];
+                return (
+                  <mesh position={pos} castShadow receiveShadow>
+                    <boxGeometry args={args} />
+                    <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                    <Edges threshold={15} color="#1e293b" lineWidth={1} />
+                  </mesh>
+                );
+              }
+              
+              // Sort gaps by offset
+              const sortedGaps = [...gaps].sort((a, b) => a.offset - b.offset);
+              const segments: any[] = [];
+              let cursor = -wallLength / 2;
+              
+              sortedGaps.forEach((gap, i) => {
+                const gapStart = gap.offset - gap.halfWidth;
+                const gapEnd = gap.offset + gap.halfWidth;
+                
+                // Segment before gap
+                if (gapStart > cursor + 0.1) {
+                  const segLen = gapStart - cursor;
+                  const segCenter = (cursor + gapStart) / 2;
+                  const pos = positionFn(segCenter, segLen);
+                  const args: [number, number, number] = sizeIsX ? [segLen, h, th] : [th, h, segLen];
+                  segments.push(
+                    <mesh key={`seg_${i}_before`} position={pos} castShadow receiveShadow>
+                      <boxGeometry args={args} />
+                      <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                      <Edges threshold={15} color="#1e293b" lineWidth={1} />
+                    </mesh>
+                  );
+                }
+                cursor = gapEnd;
+              });
+              
+              // Final segment after last gap
+              if (cursor < wallLength / 2 - 0.1) {
+                const segLen = wallLength / 2 - cursor;
+                const segCenter = (cursor + wallLength / 2) / 2;
+                const pos = positionFn(segCenter, segLen);
+                const args: [number, number, number] = sizeIsX ? [segLen, h, th] : [th, h, segLen];
+                segments.push(
+                  <mesh key="seg_final" position={pos} castShadow receiveShadow>
+                    <boxGeometry args={args} />
+                    <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
+                    <Edges threshold={15} color="#1e293b" lineWidth={1} />
+                  </mesh>
+                );
+              }
+              
+              return <>{segments}</>;
+            };
+
             return (
               <group key={site.id} position={[cx, cy, cz]} rotation={[0, rotY, 0]}>
-                {/* Front wall */}
-                <mesh position={[0, h / 2, l / 2]} castShadow receiveShadow>
-                  <boxGeometry args={[w + th, h, th]} />
-                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
-                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
-                </mesh>
-                {/* Back wall */}
-                <mesh position={[0, h / 2, -l / 2]} castShadow receiveShadow>
-                  <boxGeometry args={[w + th, h, th]} />
-                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
-                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
-                </mesh>
-                {/* Left wall */}
-                <mesh position={[-w / 2, h / 2, 0]} castShadow receiveShadow>
-                  <boxGeometry args={[th, h, l - th]} />
-                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
-                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
-                </mesh>
-                {/* Right wall */}
-                <mesh position={[w / 2, h / 2, 0]} castShadow receiveShadow>
-                  <boxGeometry args={[th, h, l - th]} />
-                  <meshStandardMaterial color={wallColor} roughness={0.8} metalness={0.05} />
-                  <Edges threshold={15} color="#1e293b" lineWidth={1} />
-                </mesh>
+                {/* Front wall (with gate gaps) */}
+                {renderWallWithGaps(
+                  w + th,
+                  frontGaps,
+                  (offset, _len) => [offset, h / 2, l / 2],
+                  true
+                )}
+                {/* Back wall (with gate gaps) */}
+                {renderWallWithGaps(
+                  w + th,
+                  backGaps,
+                  (offset, _len) => [offset, h / 2, -l / 2],
+                  true
+                )}
+                {/* Left wall (with gate gaps) */}
+                {renderWallWithGaps(
+                  l - th,
+                  leftGaps,
+                  (offset, _len) => [-w / 2, h / 2, offset],
+                  false
+                )}
+                {/* Right wall (with gate gaps) */}
+                {renderWallWithGaps(
+                  l - th,
+                  rightGaps,
+                  (offset, _len) => [w / 2, h / 2, offset],
+                  false
+                )}
 
                 {/* Corner pillars with caps */}
                 {[
