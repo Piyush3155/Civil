@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { 
+import {
   LayoutDashboard,
   Building2,
   Users,
@@ -44,6 +44,7 @@ interface NavItem {
   url: string;
   icon: LucideIcon;
   allowedRoles: UserRole[];
+  target?: string;
 }
 
 interface NavGroup {
@@ -179,7 +180,7 @@ const hasAccess = (userRoles: string[], allowedRoles: UserRole[]): boolean => {
 const getFilteredNavigation = (userRoles: string[]): NavGroup[] => {
   return navigationData
     .map(group => {
-      const filteredItems = group.items.filter(item => 
+      const filteredItems = group.items.filter(item =>
         hasAccess(userRoles, item.allowedRoles)
       );
 
@@ -285,7 +286,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent>
         {isLoading ? (
           <div className="space-y-6 px-4 py-4">

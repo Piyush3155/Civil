@@ -11,5 +11,5 @@ export const ironSessionOptions: SessionOptions = {
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: '/', // Cookie available site-wide
   },
-  ttl: 60 * 60 * 24 * 7 * 1000, // 7 days in milliseconds
+  ttl: 60 * 60 * 24 * 7, // 7 days in seconds
 };

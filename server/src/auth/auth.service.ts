@@ -56,7 +56,7 @@ export class AuthService {
 
   async refresh(token: string) {
     try {
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify(token, { ignoreExpiration: true });
       const user = await this.usersService.findByIdWithRoles(payload.sub);
       if (!user) {
         throw new UnauthorizedException();
