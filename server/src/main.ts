@@ -46,8 +46,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
-  // 🔥 REQUIRED FOR RENDER
-  await app.listen(port, '0.0.0.0');
+  // 🔥 REQUIRED FOR RENDER (0.0.0.0)
+  // Locally, undefined allows binding to both IPv4 and IPv6, fixing ECONNREFUSED from Next.js fetch
+  const host = isRender ? '0.0.0.0' : undefined;
+  if (host) {
+    await app.listen(port, host);
+  } else {
+    await app.listen(port);
+  }
 
   console.log(`Server running on port ${port}`);
 }
